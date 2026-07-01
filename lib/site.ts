@@ -1,6 +1,12 @@
+const PRODUCTION_SITE_URL = 'https://www.syncclub.tech';
+
 export function getSiteUrl(): string {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (configured) return configured.replace(/\/$/, '');
+
+  if (process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production') {
+    return PRODUCTION_SITE_URL;
+  }
 
   const production = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
   if (production) return `https://${production.replace(/\/$/, '')}`;
