@@ -1,3 +1,7 @@
+export type ActivityRegion = 'domestic' | 'overseas' | 'hmt';
+
+export type ActivityCatalogType = 'festival' | 'indoor';
+
 export type Activity = {
   _id?: string;
   legacyId: number;
@@ -9,16 +13,24 @@ export type Activity = {
   location?: string;
   city?: string;
   area?: string;
-  region?: string;
+  region?: ActivityRegion;
+  latitude?: number;
+  longitude?: number;
   image?: string;
   description?: string;
   lineup?: string[];
   artists?: string[];
   status?: string;
+  activityType?: ActivityCatalogType;
+  hot?: boolean;
   attendees?: number;
   recruitPostCount?: number;
   lineupPublished?: boolean;
   travelGuideSupported?: boolean;
+  externalUrl?: string;
+  infoSource?: string;
+  infoUpdatedAt?: string;
+  damaiProjectId?: string;
 };
 
 export type RecruitPost = {

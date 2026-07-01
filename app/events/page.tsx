@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { EventCard } from '../../components/EventCard';
 import { listActivities } from '../../lib/api';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: '活动列表',
   description: '浏览 SYNC Web MVP 收录的电音节活动、城市与阵容信息。',

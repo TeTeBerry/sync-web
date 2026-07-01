@@ -1,10 +1,10 @@
-import { fallbackActivities, fallbackPosts } from './fallback-data';
 import type { Activity, EventPostsPage, RecruitPost } from './types';
+import { isActivityExpired } from './activity-date';
 
 const API_BASE =
   process.env.API_BASE_URL ??
   process.env.NEXT_PUBLIC_API_BASE_URL ??
-  'http://127.0.0.1:3000/api';
+  'https://sync-backend-prd-269371-9-1442514260.sh.run.tcloudbase.com/api';
 
 type ApiEnvelope<T> = {
   code?: number;
@@ -74,15 +74,24 @@ function normalizeActivity(raw: Activity): Activity {
     location: getString(raw.location),
     city: inferCity(raw),
     area: getString(raw.area),
+    region: raw.region,
+    latitude: getNumber(raw.latitude),
+    longitude: getNumber(raw.longitude),
     image: getString(raw.image),
     description: getString(raw.description),
     lineup: getStringList(raw.lineup),
     artists: getStringList(raw.artists),
     status: getString(raw.status),
+    activityType: raw.activityType,
+    hot: raw.hot,
     attendees: getNumber(raw.attendees),
     recruitPostCount: getNumber(raw.recruitPostCount),
     lineupPublished: raw.lineupPublished,
     travelGuideSupported: raw.travelGuideSupported,
+    externalUrl: getString(raw.externalUrl),
+    infoSource: getString(raw.infoSource),
+    infoUpdatedAt: getString(raw.infoUpdatedAt),
+    damaiProjectId: getString(raw.damaiProjectId),
   };
 }
 
@@ -107,9 +116,11 @@ export async function listActivities(): Promise<Activity[]> {
   try {
     const payload = await apiGet<Activity[] | ActivityListPage>('/activities');
     const items = Array.isArray(payload) ? payload : (payload.items ?? []);
-    return items.map(normalizeActivity).filter((item) => item.legacyId > 0);
+    return items
+      .map(normalizeActivity)
+      .filter((item) => item.legacyId > 0 && !isActivityExpired(item));
   } catch {
-    return fallbackActivities;
+    return [];
   }
 }
 
@@ -118,7 +129,7 @@ export async function getActivity(id: number): Promise<Activity | null> {
     const activity = await apiGet<Activity | null>(`/activities/${id}`);
     return activity ? normalizeActivity(activity) : null;
   } catch {
-    return fallbackActivities.find((item) => item.legacyId === id) ?? null;
+    return null;
   }
 }
 
@@ -130,7 +141,7 @@ export async function listRecruitPosts(activityLegacyId: number): Promise<Recrui
     const items = Array.isArray(page) ? page : (page.items ?? page.posts ?? []);
     return items.map(normalizeRecruitPost);
   } catch {
-    return activityLegacyId === 16 ? fallbackPosts : [];
+    return [];
   }
 }
 
@@ -143,6 +154,37 @@ export function getActivityLineup(activity: Activity): string[] {
     .filter(Boolean)
     .slice(0, 12);
 }
+
+export type ScheduleDj = {
+  id: string;
+  name: string;
+  genre?: string;
+  genreLabel?: string;
+  stage?: string;
+  stageLabel?: string;
+  popularity?: number;
+  genreColor?: string;
+};
+
+export type ActivitySchedule = {
+  activityLegacyId: number;
+  eventMeta?: string;
+  djs?: ScheduleDj[];
+};
+
+export async function fetchActivitySchedule(
+  legacyId: number,
+): Promise<ActivitySchedule | null> {
+  try {
+    return await apiGet<ActivitySchedule>(
+      `/activities/${legacyId}/itinerary/schedule`,
+    );
+  } catch {
+    return null;
+  }
+}
+
+
 
 export function getActivityImage(activity?: Activity | null): string | undefined {
   return activity?.image?.trim() || undefined;
