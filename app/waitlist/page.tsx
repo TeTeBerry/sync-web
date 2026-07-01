@@ -26,7 +26,7 @@ export default async function WaitlistPage({ searchParams }: WaitlistPageProps) 
             <div className="eyebrow">Waitlist</div>
             <h1 style={{ marginTop: 12 }}>加入 SYNC 内测</h1>
             <p className="lead" style={{ marginTop: 16 }}>
-              现在先收集第一批真实需求：你想查哪场节、想不想找同行、愿不愿意订阅阵容更新。
+              现在先收集第一批真实需求：你想查哪场节、想不想找组队、愿不愿意订阅阵容更新。
             </p>
             <div className="hero__actions">
               <a className="button" href={`mailto:${email}?subject=${subject}&body=${body}`}>
@@ -45,7 +45,7 @@ export default async function WaitlistPage({ searchParams }: WaitlistPageProps) 
               <input name="subject" type="hidden" value="加入 SYNC Web MVP 内测" />
               <input name="body" placeholder="微信 / 邮箱" />
               <input name="body" placeholder="你最关注哪场活动" />
-              <textarea name="body" placeholder="你更想查节、看阵容，还是找同行？" />
+              <textarea name="body" placeholder="你更想查节、看阵容，还是找组队？" />
               <button className="button" type="submit">
                 发送
               </button>

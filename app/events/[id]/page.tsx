@@ -238,7 +238,7 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
                   订阅更新
                 </Link>
                 <a className="button secondary" href="#crew">
-                  查看同行招募
+                  查看组队招募
                 </a>
               </div>
             </div>
@@ -340,7 +340,7 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
 
             <article className="detail-panel" id="crew">
               <div className="eyebrow">Crew</div>
-              <h2>公开同行招募</h2>
+              <h2>公开组队招募</h2>
               <div className="recruit-list">
                 {posts.length ? (
                   posts.map((post) => <RecruitCard post={post} key={post.id} />)
@@ -355,7 +355,7 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
             <div className="eyebrow">MVP Signal</div>
             <h2>下一步想验证</h2>
             <p className="section__note">
-              用户是否愿意订阅这场活动、浏览同行需求，并在小程序上线前留下联系方式。
+              用户是否愿意订阅这场活动、浏览组队需求，并在小程序上线前留下联系方式。
             </p>
             <div className="section__actions" style={{ marginTop: 8 }}>
               <Link className="button" href={`/waitlist?event=${activity.legacyId}`}>

@@ -24,7 +24,7 @@ export default async function HomePage() {
               与公开组队招募
             </h1>
             <p className="lead" style={{ marginTop: 20 }}>
-              先在 Web 上发现活动、查看阵容和公开同行需求。小程序审核期间，这里就是 SYNC
+              先在 Web 上发现活动、查看阵容和公开组队需求。小程序审核期间，这里就是 SYNC
               的第一版内测入口。
             </p>
             <div className="hero__actions">
@@ -79,7 +79,7 @@ export default async function HomePage() {
           <div className="section__header">
             <div>
               <div className="eyebrow">Crew</div>
-              <h2>公开同行需求</h2>
+              <h2>公开组队需求</h2>
             </div>
           </div>
           <div className="event-grid">

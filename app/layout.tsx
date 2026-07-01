@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: '发现电音节、查看阵容与公开组队招募，先用 Web MVP 加入 SYNC 内测。',
   openGraph: {
     title: 'SYNC | 电音节资讯与公开组队招募',
-    description: '查活动、看阵容、找公开同行招募。',
+    description: '查活动、看阵容、找公开组队招募。',
     type: 'website',
     url: siteUrl,
   },
