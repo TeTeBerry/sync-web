@@ -491,7 +491,6 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
             <div className="section__header">
               <div>
                 <div className="eyebrow">{t.eventDetail.moreEyebrow}</div>
-                <h2>{t.eventDetail.moreTitle}</h2>
               </div>
             </div>
             <div className="event-grid">
