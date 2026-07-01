@@ -376,6 +376,22 @@ const EN_ACTIVITY_CONTENT: Record<number, ActivityLocaleContent> = {
     area: 'China',
     infoSource: 'VAC official',
   },
+  19: {
+    name: 'Lost Lands 2026',
+    title: 'Lost Lands 2026',
+    location: 'Legend Valley, Thornville, Ohio',
+    area: 'United States',
+    description: "Excision's premier bass and dubstep festival returns to Legend Valley with 100+ artists across 5 stages.",
+    infoSource: 'Lost Lands official website',
+  },
+  20: {
+    name: 'Sunburn Mumbai 2026',
+    title: 'Sunburn Mumbai 2026',
+    location: 'Mahalaxmi Racecourse, Mumbai, India',
+    area: 'India',
+    description: "India's biggest electronic music festival returns to Mumbai.",
+    infoSource: 'Sunburn Festival official website',
+  },
 };
 
 const EN_CITY_NAMES: Record<string, string> = {
