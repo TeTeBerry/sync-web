@@ -343,7 +343,7 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
               <div className="detail-actions" style={{ marginTop: 16 }}>
                 <TrackedLink
                   className="button"
-                  href={`${localizedPath(locale, '/waitlist')}?event=${activity.legacyId}`}
+                  href={`${localizedPath(locale, '/waitlist')}?event=${encodeURIComponent(getActivityTitle(activity))}`}
                   eventName="event_subscribe_click"
                   eventProperties={subscribeEventProperties}
                 >
@@ -474,7 +474,7 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
             <div className="section__actions" style={{ marginTop: 8 }}>
               <TrackedLink
                 className="button"
-                href={`${localizedPath(locale, '/waitlist')}?event=${activity.legacyId}`}
+                href={`${localizedPath(locale, '/waitlist')}?event=${encodeURIComponent(getActivityTitle(activity))}`}
                 eventName="event_subscribe_click"
                 eventProperties={subscribeEventProperties}
               >
