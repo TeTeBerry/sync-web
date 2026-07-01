@@ -57,8 +57,8 @@ export const messages = {
       description: '浏览 SYNC Web MVP 收录的电音节活动、城市与阵容信息。',
       eyebrow: 'Event Catalog',
       heading: '查活动',
-      searchPlaceholder: '搜索活动、城市、阵容关键词',
-      allCities: '全部城市',
+      searchPlaceholder: '搜索活动、国家、阵容关键词',
+      allCountries: '全部国家',
       search: '搜索',
     },
     waitlist: {
@@ -161,8 +161,8 @@ export const messages = {
       description: 'Browse electronic festival events, cities, venues, and lineup information collected by SYNC.',
       eyebrow: 'Event Catalog',
       heading: 'Events',
-      searchPlaceholder: 'Search events, cities, venues, or lineup keywords',
-      allCities: 'All cities',
+      searchPlaceholder: 'Search events, countries, venues, or lineup keywords',
+      allCountries: 'All countries',
       search: 'Search',
     },
     waitlist: {

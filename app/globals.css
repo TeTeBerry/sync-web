@@ -634,8 +634,7 @@ h3 {
   border: 1px solid rgba(var(--primary-rgb), 0.12);
 }
 
-.filter-bar input,
-.filter-bar select {
+.filter-bar input {
   flex: 1;
   min-height: 42px;
   border: none;
@@ -651,21 +650,134 @@ h3 {
   color: rgba(255, 255, 255, 0.32);
 }
 
-.filter-bar input:focus,
-.filter-bar select:focus {
+.filter-bar input:focus {
   outline: none;
   background: rgba(255, 255, 255, 0.04);
 }
 
-.filter-bar select {
-  color: var(--muted-foreground);
-  appearance: none;
-  cursor: pointer;
+.country-select {
+  position: relative;
+  flex: 0 0 230px;
+  min-width: 190px;
 }
 
-.filter-bar select option {
-  background: var(--popover);
+.country-select__trigger {
+  width: 100%;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(135deg, rgba(var(--secondary-rgb), 0.09), transparent 46%),
+    rgba(255, 255, 255, 0.035);
   color: var(--foreground);
+  padding: 0 12px 0 14px;
+  font-size: var(--type-body-sm);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.country-select__trigger:hover,
+.country-select__trigger[aria-expanded='true'] {
+  border-color: rgba(var(--secondary-rgb), 0.35);
+  background:
+    linear-gradient(135deg, rgba(var(--secondary-rgb), 0.14), rgba(var(--primary-rgb), 0.05)),
+    rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 1px rgba(var(--secondary-rgb), 0.08), var(--shadow-glow-secondary);
+}
+
+.country-select__value,
+.country-select__placeholder {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.country-select__placeholder {
+  color: var(--muted-foreground);
+}
+
+.country-select__chevron {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-right: 2px solid rgba(255, 255, 255, 0.55);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.55);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.16s ease, border-color 0.16s ease;
+}
+
+.country-select__trigger[aria-expanded='true'] .country-select__chevron {
+  transform: translateY(2px) rotate(225deg);
+  border-color: var(--secondary);
+}
+
+.country-select__menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 10px);
+  left: 0;
+  width: min(280px, calc(100vw - 40px));
+  max-height: 288px;
+  overflow: auto;
+  padding: 8px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(var(--secondary-rgb), 0.22);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(var(--secondary-rgb), 0.16), transparent 34%),
+    radial-gradient(circle at 88% 18%, rgba(var(--primary-rgb), 0.12), transparent 32%),
+    rgba(14, 14, 18, 0.96);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.country-select__option {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--muted-foreground);
+  padding: 0 10px;
+  font-size: var(--type-body-sm);
+  font-weight: var(--fw-semibold);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.16s ease, background 0.16s ease;
+}
+
+.country-select__option:hover,
+.country-select__option.is-selected {
+  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.country-select__option.is-selected {
+  background: rgba(var(--secondary-rgb), 0.12);
+}
+
+.country-select__option-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  box-shadow: none;
+}
+
+.country-select__option.is-selected .country-select__option-dot {
+  background: var(--secondary);
+  box-shadow: 0 0 10px rgba(var(--secondary-rgb), 0.72);
 }
 
 .filter-bar .button {
@@ -983,8 +1095,9 @@ h3 {
   }
 
   .filter-bar input,
-  .filter-bar select {
+  .country-select {
     width: 100%;
+    flex-basis: auto;
   }
 
   .section__header {

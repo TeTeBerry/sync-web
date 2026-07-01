@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { CountrySelect } from '../../../components/CountrySelect';
 import { EventCard } from '../../../components/EventCard';
 import { listActivities } from '../../../lib/api';
 import {
@@ -17,7 +18,7 @@ type EventsPageProps = {
   params: Promise<{ locale: string }>;
   searchParams?: Promise<{
     q?: string;
-    city?: string;
+    country?: string;
     status?: string;
   }>;
 };
@@ -45,17 +46,17 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
   const queryParams = (await searchParams) ?? {};
   const activities = localizeActivities(await listActivities(), locale);
   const query = queryParams.q?.trim().toLowerCase() ?? '';
-  const city = queryParams.city?.trim() ?? '';
+  const country = queryParams.country?.trim() ?? '';
 
-  const cities = [...new Set(activities.map((item) => item.city).filter(Boolean))] as string[];
+  const countries = [...new Set(activities.map((item) => item.area).filter(Boolean))] as string[];
   const filtered = activities.filter((activity) => {
     const text = [activity.name, activity.title, activity.location, activity.city, activity.area, activity.code]
       .filter(Boolean)
       .join(' ')
       .toLowerCase();
     const matchesQuery = query ? text.includes(query) : true;
-    const matchesCity = city ? activity.city === city : true;
-    return matchesQuery && matchesCity;
+    const matchesCountry = country ? activity.area === country : true;
+    return matchesQuery && matchesCountry;
   });
 
   return (
@@ -72,14 +73,12 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
 
           <form className="filter-bar" action={localizedPath(locale, '/events')}>
             <input name="q" placeholder={t.events.searchPlaceholder} defaultValue={queryParams.q ?? ''} />
-            <select name="city" defaultValue={city}>
-              <option value="">{t.events.allCities}</option>
-              {cities.map((item) => (
-                <option value={item} key={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
+            <CountrySelect
+              name="country"
+              value={country}
+              options={countries}
+              placeholder={t.events.allCountries}
+            />
             <button className="button" type="submit">
               {t.events.search}
             </button>
