@@ -1,35 +1,37 @@
 import type { MetadataRoute } from 'next';
 import { listActivities } from '../lib/api';
+import { LOCALES, localizedPath } from '../lib/i18n';
 import { getSiteUrl } from '../lib/site';
 
 const siteUrl = getSiteUrl();
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const activities = await listActivities();
-  return [
+  const lastModified = new Date();
+  return LOCALES.flatMap((locale) => [
     {
-      url: siteUrl,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1,
+      url: `${siteUrl}${localizedPath(locale)}`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: locale === 'zh' ? 1 : 0.9,
     },
     {
-      url: `${siteUrl}/events`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
+      url: `${siteUrl}${localizedPath(locale, '/events')}`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
       priority: 0.9,
     },
     {
-      url: `${siteUrl}/waitlist`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
+      url: `${siteUrl}${localizedPath(locale, '/waitlist')}`,
+      lastModified,
+      changeFrequency: 'monthly' as const,
       priority: 0.7,
     },
     ...activities.map((activity) => ({
-      url: `${siteUrl}/events/${activity.legacyId}`,
-      lastModified: new Date(),
+      url: `${siteUrl}${localizedPath(locale, `/events/${activity.legacyId}`)}`,
+      lastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     })),
-  ];
+  ]);
 }

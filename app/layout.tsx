@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { AudioWaveform } from 'lucide-react';
+import { headers } from 'next/headers';
+import { Analytics } from '@vercel/analytics/next';
+import { getMessages, normalizeLocale } from '../lib/i18n';
 import { getSiteUrl } from '../lib/site';
 import './globals.css';
 
@@ -21,30 +22,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+type RootLayoutProps = {
+  children: React.ReactNode;
+};
+
+export default async function RootLayout({ children }: RootLayoutProps) {
+  const requestHeaders = await headers();
+  const locale = normalizeLocale(requestHeaders.get('x-sync-locale') ?? undefined);
+  const t = getMessages(locale);
+
   return (
-    <html lang="zh-CN">
+    <html lang={t.htmlLang}>
       <body>
-        <div className="site-shell">
-          <header className="site-header">
-            <div className="site-header__inner">
-              <Link className="brand" href="/" aria-label="SYNC home">
-                <AudioWaveform className="brand__icon" size={28} strokeWidth={2.5} color="#4cc9f0" />
-                <span>SYNC</span>
-              </Link>
-              <nav className="site-nav" aria-label="Main navigation">
-                <Link href="/events">活动</Link>
-                <Link href="/waitlist">加入内测</Link>
-              </nav>
-            </div>
-          </header>
-          {children}
-          <footer className="footer">
-            <div className="container">
-              SYNC 提供免费的活动资讯与公开招募发现工具，不售票，不收取服务费。
-            </div>
-          </footer>
-        </div>
+        {children}
+        <Analytics />
       </body>
     </html>
   );

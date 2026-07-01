@@ -3,25 +3,24 @@ import type { CSSProperties } from 'react';
 import { activityMeta } from '../lib/format';
 import { getActivityImage, getActivityTitle } from '../lib/api';
 import type { Activity } from '../lib/types';
+import {
+  getActivityTypeLabel,
+  getMessages,
+  getRegionLabel,
+  localizeActivity,
+  localizedPath,
+  type Locale,
+} from '../lib/i18n';
 
-const ACTIVITY_TYPE_LABELS: Record<string, string> = {
-  festival: '户外电音节',
-  indoor: '室内电音',
-};
-
-const REGION_LABELS: Record<string, string> = {
-  domestic: '国内',
-  overseas: '海外',
-  hmt: '港澳台',
-};
-
-export function EventCard({ activity }: { activity: Activity }) {
-  const image = getActivityImage(activity);
-  const meta = activityMeta(activity);
+export function EventCard({ activity, locale }: { activity: Activity; locale: Locale }) {
+  const t = getMessages(locale);
+  const localizedActivity = localizeActivity(activity, locale);
+  const image = getActivityImage(localizedActivity);
+  const meta = activityMeta(localizedActivity);
   const [datePart] = meta.split(' · ');
 
   return (
-    <Link className="event-card" href={`/events/${activity.legacyId}`}>
+    <Link className="event-card" href={localizedPath(locale, `/events/${localizedActivity.legacyId}`)}>
       <div
         className="event-card__image"
         style={image ? ({ '--event-image': `url("${image}")` } as CSSProperties) : undefined}
@@ -30,23 +29,25 @@ export function EventCard({ activity }: { activity: Activity }) {
       </div>
       <div className="event-card__body">
         <div className="event-card__tags">
-          {activity.hot && <span className="pill pill--primary">热门</span>}
+          {activity.hot && <span className="pill pill--primary">{t.eventCard.hot}</span>}
           {activity.activityType && (
             <span className="pill pill--secondary">
-              {ACTIVITY_TYPE_LABELS[activity.activityType] ?? activity.activityType}
+              {getActivityTypeLabel(locale, activity.activityType)}
             </span>
           )}
           {activity.region && (
             <span className="pill pill--accent">
-              {REGION_LABELS[activity.region] ?? activity.region}
+              {getRegionLabel(locale, activity.region)}
             </span>
           )}
         </div>
-        <h3>{getActivityTitle(activity)}</h3>
-        <p className="event-card__location">{activity.location ?? activity.area ?? '地点待定'}</p>
+        <h3>{getActivityTitle(localizedActivity)}</h3>
+        <p className="event-card__location">
+          {localizedActivity.location ?? localizedActivity.area ?? t.eventCard.locationFallback}
+        </p>
         <div className="event-card__footer">
-          <span>{activity.city ?? activity.area ?? '活动'}</span>
-          <span className="event-card__action">查看详情</span>
+          <span>{localizedActivity.city ?? localizedActivity.area ?? t.eventCard.cityFallback}</span>
+          <span className="event-card__action">{t.eventCard.action}</span>
         </div>
       </div>
     </Link>

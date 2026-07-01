@@ -13,11 +13,29 @@ Thin Next.js public web surface for validating SYNC before the mini program revi
 ## Local Dev
 
 ```bash
-pnpm install
-pnpm --filter sync-web dev
+npm install
+npm run dev
 ```
 
 Set `API_BASE_URL` to the backend API root for server-rendered reads. Production currently points at `https://sync-backend-prd-269371-9-1442514260.sh.run.tcloudbase.com/api`; local backend dev can use `http://127.0.0.1:3000/api`. `NEXT_PUBLIC_API_BASE_URL` is kept as a fallback for compatibility.
+
+## Vercel Deployment
+
+Deploy the MVP to Vercel first with the generated `*.vercel.app` domain, then set `NEXT_PUBLIC_SITE_URL` to that production URL so metadata, canonical URLs, and `sitemap.xml` are absolute.
+
+Required production environment variables:
+
+- `API_BASE_URL`: backend API root for activity and recruit reads.
+- `NEXT_PUBLIC_SITE_URL`: the public Vercel URL, without a trailing slash.
+- `DATABASE_URL`: Postgres connection string from the Vercel Marketplace Neon/Postgres integration.
+
+Optional production environment variables:
+
+- `RESEND_API_KEY`: enables email notification for waitlist submissions after the database write succeeds.
+
+Waitlist submissions are stored in `waitlist_submissions`. The API creates the table on first successful request, so no separate migration command is required for the MVP.
+
+Vercel Analytics is enabled in the root layout. It records page views plus key conversion events such as home event clicks, event subscribe clicks, and waitlist submission results.
 
 The app currently consumes read-only backend APIs:
 
