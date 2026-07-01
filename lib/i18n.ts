@@ -361,6 +361,21 @@ const EN_ACTIVITY_CONTENT: Record<number, ActivityLocaleContent> = {
     description: 'The Magic of Tomorrowland brings the Planaxis-themed experience to Shanghai.',
     infoSource: 'Tomorrowland / organizer announcement',
   },
+  17: {
+    name: '808 Festival Bangkok 2026',
+    title: '808 Festival Bangkok 2026',
+    location: 'BITEC Bangna, Bangkok, Thailand',
+    area: 'Thailand',
+    description: "Thailand's #1 EDM festival returns to Bangkok for a two-day event.",
+    infoSource: '808 Festival official website',
+  },
+  18: {
+    name: 'VAC Zhuhai 2026',
+    title: 'VAC Zhuhai 2026',
+    location: 'Zhuhai Hengqin Chimelong Resort, Parking Lot #5',
+    area: 'China',
+    infoSource: 'VAC official',
+  },
 };
 
 const EN_CITY_NAMES: Record<string, string> = {
