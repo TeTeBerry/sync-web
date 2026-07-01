@@ -6,6 +6,7 @@ import { EventCard } from '../../components/EventCard';
 import { RecruitCard } from '../../components/RecruitCard';
 import { TrackedLink } from '../../components/TrackedLink';
 import { getActivityImage, getActivityTitle, listActivities, listRecruitPosts } from '../../lib/api';
+import { activityMeta } from '../../lib/format';
 import {
   getMessages,
   isLocale,
@@ -56,6 +57,7 @@ export default async function HomePage({ params }: HomePageProps) {
   const localizedFeatured = featured ? localizeActivity(featured, locale) : undefined;
   const posts = featured ? await listRecruitPosts(featured.legacyId) : [];
   const heroImage = getActivityImage(localizedFeatured);
+  const featuredMeta = localizedFeatured ? activityMeta(localizedFeatured) : t.home.featuredMetaFallback;
 
   return (
     <main>
@@ -63,13 +65,10 @@ export default async function HomePage({ params }: HomePageProps) {
         <div className="container hero__grid">
           <div>
             <div className="eyebrow">{t.home.eyebrow}</div>
-            <h1>
-              {t.home.title.split('\n').map((line, index) => (
-                <span key={line}>
-                  {index > 0 && <br />}
-                  {line}
-                </span>
-              ))}
+            <h1 className="hero__title">
+              <span>{t.home.titlePrefix}</span>
+              <span className="hero__title-highlight">{t.home.titleHighlight}</span>
+              <span>{t.home.titleSuffix}</span>
             </h1>
             <p className="lead" style={{ marginTop: 20 }}>
               {t.home.lead}
@@ -101,12 +100,14 @@ export default async function HomePage({ params }: HomePageProps) {
             }
           >
             <div className="hero__media-caption">
+              <div className="hero__media-label">{t.home.featuredLabel}</div>
               <div className="ticker">
                 <span className="pill pill--primary">{t.home.mediaPills[0]}</span>
                 <span className="pill pill--secondary">{t.home.mediaPills[1]}</span>
                 <span className="pill pill--accent">{t.home.mediaPills[2]}</span>
               </div>
               <h2>{localizedFeatured ? getActivityTitle(localizedFeatured) : t.home.featuredFallback}</h2>
+              <p className="hero__media-meta">{featuredMeta || t.home.featuredMetaFallback}</p>
             </div>
           </Link>
         </div>
