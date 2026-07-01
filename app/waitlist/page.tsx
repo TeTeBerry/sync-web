@@ -84,7 +84,7 @@ export default function WaitlistPage() {
 
           <section className="waitlist-panel">
             <div className="eyebrow">What We Need</div>
-            <h2>提交内测</h2>
+
             <form className="waitlist-form" onSubmit={handleSubmit}>
               <input name="email" placeholder="微信 / 邮箱" />
               <input name="event" placeholder="你最关注哪场活动" />
