@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { CountrySelect } from '../../../components/CountrySelect';
 import { EventCard } from '../../../components/EventCard';
 import { listActivities } from '../../../lib/api';
+import { listCityGroups, cityPath } from '../../../lib/seo-cities';
 import {
   alternateLanguages,
   getMessages,
@@ -44,9 +46,11 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
   const locale = rawLocale as Locale;
   const t = getMessages(locale);
   const queryParams = (await searchParams) ?? {};
-  const activities = localizeActivities(await listActivities(), locale);
+  const rawActivities = await listActivities();
+  const activities = localizeActivities(rawActivities, locale);
   const query = queryParams.q?.trim().toLowerCase() ?? '';
   const country = queryParams.country?.trim() ?? '';
+  const cityGroups = listCityGroups(rawActivities, locale).slice(0, 12);
 
   const countries = [...new Set(activities.map((item) => item.area).filter(Boolean))] as string[];
   const filtered = activities.filter((activity) => {
@@ -83,6 +87,19 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
               {t.events.search}
             </button>
           </form>
+
+          {cityGroups.length > 0 && (
+            <div className="city-link-strip" aria-label={t.events.cityLinksTitle}>
+              <span>{t.events.cityLinksTitle}</span>
+              <div>
+                {cityGroups.map((group) => (
+                  <Link href={cityPath(locale, group.city)} key={group.slug}>
+                    {group.city}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="event-grid">
             {filtered.map((activity) => (
