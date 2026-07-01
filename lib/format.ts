@@ -12,10 +12,10 @@ export function activityMeta(activity: Activity): string {
 }
 
 export function recruitPeople(post: RecruitPost): string {
-  if (post.currentPeople && post.targetPeople) {
+  if (post.currentPeople != null && post.targetPeople != null) {
     return `${post.currentPeople}/${post.targetPeople}`;
   }
-  if (post.targetPeople) {
+  if (post.targetPeople != null) {
     return `目标 ${post.targetPeople} 人`;
   }
   return '公开招募';

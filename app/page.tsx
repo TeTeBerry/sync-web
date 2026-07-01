@@ -15,11 +15,15 @@ export default async function HomePage() {
       <section className="hero">
         <div className="container hero__grid">
           <div>
-            <div className="eyebrow">SYNC WEB MVP</div>
-            <h1>电音节资讯与公开组队招募</h1>
-            <p className="lead">
-              先在 Web 上发现活动、查看阵容和公开同行需求。小程序审核期间，这里就是
-              SYNC 的第一版内测入口。
+            <div className="eyebrow">SYNC</div>
+            <h1>
+              电音节资讯
+              <br />
+              与公开组队招募
+            </h1>
+            <p className="lead" style={{ marginTop: 20 }}>
+              先在 Web 上发现活动、查看阵容和公开同行需求。小程序审核期间，这里就是 SYNC
+              的第一版内测入口。
             </p>
             <div className="hero__actions">
               <Link className="button" href="/events">
@@ -39,9 +43,9 @@ export default async function HomePage() {
           >
             <div className="hero__media-caption">
               <div className="ticker">
-                <span className="pill">活动详情</span>
-                <span className="pill">阵容更新</span>
-                <span className="pill">公开招募</span>
+                <span className="pill pill--primary">活动详情</span>
+                <span className="pill pill--secondary">阵容更新</span>
+                <span className="pill pill--accent">公开招募</span>
               </div>
               <h2>{featured ? getActivityTitle(featured) : '精选活动'}</h2>
             </div>
@@ -75,9 +79,6 @@ export default async function HomePage() {
               <div className="eyebrow">Crew</div>
               <h2>公开同行需求</h2>
             </div>
-            <p className="section__note">
-              MVP 第一版先验证浏览和留资，完整发帖、评论、通知回流放到下一阶段。
-            </p>
           </div>
           <div className="event-grid">
             {posts.slice(0, 3).map((post) => (

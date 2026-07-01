@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { AudioWaveform } from 'lucide-react';
 import { getSiteUrl } from '../lib/site';
 import './globals.css';
 
@@ -28,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <header className="site-header">
             <div className="site-header__inner">
               <Link className="brand" href="/" aria-label="SYNC home">
-                <span className="brand__mark" />
+                <AudioWaveform className="brand__icon" size={28} strokeWidth={2.5} color="#4cc9f0" />
                 <span>SYNC</span>
               </Link>
               <nav className="site-nav" aria-label="Main navigation">

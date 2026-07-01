@@ -67,7 +67,7 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
               <div className="eyebrow">Event Detail</div>
               <h1>{getActivityTitle(activity)}</h1>
               <p className="lead">{activityMeta(activity)}</p>
-              <div className="detail-actions">
+              <div className="detail-actions" style={{ marginTop: 16 }}>
                 <Link className="button" href={`/waitlist?event=${activity.legacyId}`}>
                   订阅更新
                 </Link>
@@ -97,7 +97,7 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
               <h2>阵容</h2>
               <div className="lineup">
                 {(lineup.length ? lineup : ['Lineup TBA']).map((artist) => (
-                  <span className="pill" key={artist}>
+                  <span className="pill pill--accent" key={artist}>
                     {artist}
                   </span>
                 ))}
@@ -123,7 +123,7 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
             <p className="section__note">
               用户是否愿意订阅这场活动、浏览同行需求，并在小程序上线前留下联系方式。
             </p>
-            <div className="section__actions">
+            <div className="section__actions" style={{ marginTop: 8 }}>
               <Link className="button" href={`/waitlist?event=${activity.legacyId}`}>
                 加入内测
               </Link>

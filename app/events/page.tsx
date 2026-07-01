@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { EventCard } from '../../components/EventCard';
 import { listActivities } from '../../lib/api';
 

@@ -24,8 +24,8 @@ export default async function WaitlistPage({ searchParams }: WaitlistPageProps) 
         <div className="container detail-layout">
           <div>
             <div className="eyebrow">Waitlist</div>
-            <h1>加入 SYNC Web MVP 内测</h1>
-            <p className="lead">
+            <h1 style={{ marginTop: 12 }}>加入 SYNC 内测</h1>
+            <p className="lead" style={{ marginTop: 16 }}>
               现在先收集第一批真实需求：你想查哪场节、想不想找同行、愿不愿意订阅阵容更新。
             </p>
             <div className="hero__actions">
