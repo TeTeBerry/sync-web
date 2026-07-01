@@ -21,12 +21,12 @@ Set `API_BASE_URL` to the backend API root for server-rendered reads. Production
 
 ## Vercel Deployment
 
-Deploy the MVP to Vercel first with the generated `*.vercel.app` domain, then set `NEXT_PUBLIC_SITE_URL` to that production URL so metadata, canonical URLs, and `sitemap.xml` are absolute.
+Deploy the MVP to Vercel with the custom production domain `https://www.syncclub.tech`. Metadata, canonical URLs, `robots.txt`, and `sitemap.xml` must use this custom domain, not the generated `*.vercel.app` URL.
 
 Required production environment variables:
 
 - `API_BASE_URL`: backend API root for activity and recruit reads.
-- `NEXT_PUBLIC_SITE_URL`: the public Vercel URL, without a trailing slash.
+- `NEXT_PUBLIC_SITE_URL`: optional local/preview override. Production falls back to `https://www.syncclub.tech`.
 - `DATABASE_URL`: Postgres connection string from the Vercel Marketplace Neon/Postgres integration.
 
 Optional production environment variables:
