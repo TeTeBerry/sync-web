@@ -40,8 +40,8 @@ export const messages = {
     footer: 'SYNC 提供免费的活动资讯与公开招募发现工具，不售票，不收取服务费。',
     home: {
       eyebrow: 'SYNC',
-      title: '电音节资讯\n与公开组队招募',
-      lead: '先在 Web 上发现活动、查看阵容和公开组队需求。小程序审核期间，这里就是 SYNC 的第一版内测入口。',
+      title: '全球电音资讯｜组队搭子招募',
+      lead: '可直接在网页端浏览活动、查阅艺人阵容，查看全部公开组队招募帖。在小程序平台上线前，网页端为 SYNC 专属先行体验入口。',
       eventsCta: '查活动',
       waitlistCta: '加入内测',
       mediaPills: ['活动详情', '阵容更新', '公开招募'],
@@ -144,8 +144,8 @@ export const messages = {
     footer: 'SYNC is a free discovery tool for festival information and open rave squads. We do not sell tickets or charge service fees.',
     home: {
       eyebrow: 'SYNC',
-      title: 'Festival discovery\nand rave squad matching',
-      lead: 'Use the web MVP to discover events, check lineups, and browse open rave squads while the mini program is under review.',
+      title: 'Festival Discovery\nRave Squad Finds',
+      lead: 'Until our full platform officially launches, head to our web portal to discover upcoming festivals, check DJ lineups, and connect with available rave squads.',
       eventsCta: 'Browse Events',
       waitlistCta: 'Join Waitlist',
       mediaPills: ['Event details', 'Lineup updates', 'Rave squads'],
