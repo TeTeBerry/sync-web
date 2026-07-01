@@ -40,7 +40,7 @@ export const messages = {
     footer: 'SYNC 提供免费的活动资讯与公开招募发现工具，不售票，不收取服务费。',
     home: {
       eyebrow: 'SYNC',
-      title: '全球电音资讯｜组队搭子招募',
+      title: '电音节资讯｜组队搭子招募',
       lead: '可直接在网页端浏览活动、查阅艺人阵容，查看全部公开组队招募帖。在小程序平台上线前，网页端为 SYNC 专属先行体验入口。',
       eventsCta: '查活动',
       waitlistCta: '加入内测',
