@@ -44,7 +44,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
               <div className="eyebrow">Event Catalog</div>
               <h1>查活动</h1>
             </div>
-            <p className="section__note">先用最少筛选验证用户会不会找节、点详情、订阅更新。</p>
+
           </div>
 
           <form className="filter-bar" action="/events">
