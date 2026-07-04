@@ -803,6 +803,17 @@ textarea.field-input {
   transform: none;
 }
 
+/* Homepage primary sections — visible before reveal JS runs (SPA nav back) */
+.home .section[data-reveal] {
+  opacity: 1;
+  transform: none;
+}
+
+.home [data-reveal-stagger] > * {
+  opacity: 1;
+  transform: none;
+}
+
 [data-reveal-stagger] > * {
   opacity: 0;
   transform: translateY(calc(var(--reveal-distance) - 2px));

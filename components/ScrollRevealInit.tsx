@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 function revealElement(el: Element) {
@@ -52,32 +52,36 @@ function initScrollReveal() {
 
 export function ScrollRevealInit() {
   const pathname = usePathname();
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
     let cleanup: (() => void) | undefined;
-    const idleWindow = window as Window & {
-      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
-      cancelIdleCallback?: (id: number) => void;
-    };
+    let cancelled = false;
 
     const run = () => {
+      if (cancelled) return;
+      cleanup?.();
       cleanup = initScrollReveal();
     };
 
-    if (idleWindow.requestIdleCallback) {
-      const idleId = idleWindow.requestIdleCallback(run, { timeout: 1200 });
-      return () => {
-        idleWindow.cancelIdleCallback?.(idleId);
-        cleanup?.();
-      };
-    }
+    // Wait until the new route segment has hydrated before mutating className.
+    // Immediate timers (setTimeout 0 / rAF) can still race client navigations.
+    const timeoutId = window.setTimeout(run, 50);
+    const retryId = window.setTimeout(run, 250);
 
-    const timeoutId = window.setTimeout(run, 1);
     return () => {
+      cancelled = true;
       window.clearTimeout(timeoutId);
+      window.clearTimeout(retryId);
       cleanup?.();
     };
-  }, [pathname]);
+  }, [pathname, hydrated]);
 
   return null;
 }
