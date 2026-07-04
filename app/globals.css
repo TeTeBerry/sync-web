@@ -816,6 +816,12 @@ textarea.field-input {
   transition-delay: calc(var(--reveal-delay, 0s) + var(--card-index, 0) * 0.06s);
 }
 
+/* Event catalog is primary content — keep cards visible before reveal JS runs */
+.events-grid[data-reveal-stagger] > * {
+  opacity: 1;
+  transform: none;
+}
+
 [data-reveal-stagger].is-revealed > * {
   opacity: 1;
   transform: translateY(0);

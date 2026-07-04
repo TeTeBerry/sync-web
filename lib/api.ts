@@ -1,10 +1,33 @@
 import type { Activity, ActivityListPage } from './types';
 import { isActivityExpired } from './activity-date';
 
-const API_BASE =
-  process.env.API_BASE_URL ??
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
+const PRODUCTION_API_BASE =
   'https://sync-backend-prd-269371-9-1442514260.sh.run.tcloudbase.com/api';
+
+function isLoopbackApiUrl(value: string): boolean {
+  try {
+    const { hostname } = new URL(value);
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+  } catch {
+    return false;
+  }
+}
+
+function resolveApiBase(): string {
+  const configured = process.env.API_BASE_URL?.trim();
+  if (configured) {
+    return configured.replace(/\/$/, '');
+  }
+
+  const publicConfigured = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+  if (publicConfigured && !isLoopbackApiUrl(publicConfigured)) {
+    return publicConfigured.replace(/\/$/, '');
+  }
+
+  return PRODUCTION_API_BASE;
+}
+
+const API_BASE = resolveApiBase();
 
 type ApiEnvelope<T> = {
   code?: number;

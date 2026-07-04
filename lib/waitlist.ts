@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { neon } from '@neondatabase/serverless';
+import { getDatabaseUrl, getSql } from './db';
 
 type WaitlistSubmission = {
   contact: string;
@@ -11,14 +11,6 @@ type WaitlistSubmission = {
 };
 
 let setupPromise: Promise<void> | null = null;
-
-function getSql() {
-  const databaseUrl = process.env.DATABASE_URL?.trim();
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL is not configured');
-  }
-  return neon(databaseUrl);
-}
 
 async function ensureWaitlistTable(): Promise<void> {
   if (!setupPromise) {
@@ -89,12 +81,11 @@ export function getWaitlistSocialProofMin(): number {
 }
 
 async function fetchWaitlistCount(): Promise<number | null> {
-  const databaseUrl = process.env.DATABASE_URL?.trim();
-  if (!databaseUrl) return null;
+  if (!getDatabaseUrl()) return null;
 
   try {
     await ensureWaitlistTable();
-    const sql = neon(databaseUrl);
+    const sql = getSql();
     const rows = await sql`SELECT COUNT(*)::int AS count FROM waitlist_submissions`;
     const count = rows[0]?.count;
     return typeof count === 'number' && Number.isFinite(count) ? count : null;
