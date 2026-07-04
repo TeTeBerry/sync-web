@@ -69,7 +69,7 @@ export function HeroPhonePreview({ locale, preview, ariaLabel }: HeroPhonePrevie
     setTilt(0, 0);
   }
 
-  const statusSubtitle = locale === 'zh' ? '音乐节出行规划' : 'Festival trip planning';
+  const statusSubtitle = locale === 'zh' ? '电音节出行规划' : 'Festival trip planning';
 
   return (
     <figure
