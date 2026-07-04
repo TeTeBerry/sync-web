@@ -1,4 +1,4 @@
-import type { Activity, RecruitPost } from './types';
+import type { Activity } from './types';
 
 export function compactMeta(parts: Array<string | number | null | undefined>): string {
   return parts
@@ -9,14 +9,4 @@ export function compactMeta(parts: Array<string | number | null | undefined>): s
 
 export function activityMeta(activity: Activity): string {
   return compactMeta([activity.date, activity.location ?? activity.city]);
-}
-
-export function recruitPeople(post: RecruitPost): string {
-  if (post.currentPeople != null && post.targetPeople != null) {
-    return `${post.currentPeople}/${post.targetPeople}`;
-  }
-  if (post.targetPeople != null) {
-    return `目标 ${post.targetPeople} 人`;
-  }
-  return '公开招募';
 }

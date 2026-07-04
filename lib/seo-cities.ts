@@ -84,9 +84,9 @@ export function cityDescription(group: CityGroup, locale: Locale): string {
     .map(getActivityTitle)
     .join(locale === 'zh' ? '、' : ', ');
   if (locale === 'zh') {
-    return `浏览 ${group.city} 电音节与电子音乐活动，查看时间、地点、阵容和公开组队招募。${topEvents ? `收录活动包括 ${topEvents}。` : ''}`;
+    return `浏览 ${group.city} 电音节与电子音乐活动，查看时间、地点与阵容。${topEvents ? `收录活动包括 ${topEvents}。` : ''}`;
   }
-  return `Browse electronic festivals and rave events in ${group.city}, including dates, venues, lineups, and open rave squads.${topEvents ? ` Featured events include ${topEvents}.` : ''}`;
+  return `Browse electronic festivals and rave events in ${group.city}, including dates, venues, and lineups.${topEvents ? ` Featured events include ${topEvents}.` : ''}`;
 }
 
 export function cityTitle(group: CityGroup, locale: Locale): string {

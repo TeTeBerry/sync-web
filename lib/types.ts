@@ -24,7 +24,6 @@ export type Activity = {
   activityType?: ActivityCatalogType;
   hot?: boolean;
   attendees?: number;
-  recruitPostCount?: number;
   lineupPublished?: boolean;
   travelGuideSupported?: boolean;
   externalUrl?: string;
@@ -33,33 +32,9 @@ export type Activity = {
   damaiProjectId?: string;
 };
 
-export type RecruitPost = {
-  id: string;
-  authorName?: string;
-  name?: string;
-  handle?: string;
-  eventTitle?: string;
-  body?: string;
-  bodyPreview?: string;
-  content?: string;
-  location?: string;
-  departureCity?: string;
-  activityLegacyId?: number;
-  recruitStatus?: string;
-  currentPeople?: number;
-  targetPeople?: number;
-  unityTags?: string[];
-  tags?: string[];
-  recruitUnityTags?: string[];
-  slotsFilled?: number;
-  slotsTotal?: number;
-  comments?: number;
-  avatar?: string;
-  createdAt?: string;
-};
-
-export type EventPostsPage = {
-  items?: RecruitPost[];
-  posts?: RecruitPost[];
-  nextCursor?: string | null;
+export type ActivityListPage = {
+  items?: Activity[];
+  total?: number;
+  skip?: number;
+  limit?: number;
 };

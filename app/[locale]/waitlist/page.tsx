@@ -2,29 +2,47 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { WaitlistForm } from './WaitlistForm';
 import {
-  alternateLanguages,
   getMessages,
   isLocale,
   localizedPath,
   type Locale,
 } from '../../../lib/i18n';
+import {
+  absoluteAlternateLanguages,
+  absoluteLocalizedUrl,
+  buildSocialMetadata,
+} from '../../../lib/seo';
 
 type WaitlistPageProps = {
   params: Promise<{ locale: string }>;
-  searchParams?: Promise<{ event?: string }>;
+  searchParams?: Promise<{ event?: string; note?: string; prompt?: string }>;
 };
 
 export async function generateMetadata({ params }: WaitlistPageProps): Promise<Metadata> {
   const { locale: rawLocale } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : 'zh';
   const t = getMessages(locale);
+  const url = absoluteLocalizedUrl(locale, '/waitlist');
+
   return {
-    title: t.waitlist.title,
+    title: {
+      absolute: t.waitlist.seoTitle,
+    },
     description: t.waitlist.description,
     alternates: {
-      canonical: localizedPath(locale, '/waitlist'),
-      languages: alternateLanguages('/waitlist'),
+      canonical: url,
+      languages: absoluteAlternateLanguages('/waitlist'),
     },
+    robots: {
+      index: true,
+      follow: true,
+    },
+    ...buildSocialMetadata({
+      title: t.waitlist.seoTitle,
+      description: t.waitlist.description,
+      url,
+      locale,
+    }),
   };
 }
 
@@ -34,5 +52,13 @@ export default async function WaitlistPage({ params: routeParams, searchParams }
 
   const locale = rawLocale as Locale;
   const queryParams = (await searchParams) ?? {};
-  return <WaitlistForm initialEvent={queryParams.event?.trim()} locale={locale} />;
+  const initialNote = queryParams.note?.trim() || queryParams.prompt?.trim();
+
+  return (
+    <WaitlistForm
+      initialEvent={queryParams.event?.trim()}
+      initialNote={initialNote}
+      locale={locale}
+    />
+  );
 }

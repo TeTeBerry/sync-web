@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { createWaitlistSubmission } from '../../../lib/waitlist';
+import { createWaitlistSubmission, findWaitlistContact } from '../../../lib/waitlist';
 
 const TO_EMAIL = 'czy250714751cn@sina.cn';
-const FROM_EMAIL = 'noreply@sync-festival.com';
+const FROM_EMAIL = 'noreply@raven-festival.com';
 
 function readText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -16,17 +16,32 @@ function readEventLegacyId(value: string): number | null {
 }
 
 export async function POST(request: Request) {
+  let locale = 'zh';
+
   try {
     const payload = await request.json();
     const email = readText(payload.email);
     const event = readText(payload.event);
     const note = readText(payload.note);
     const sourcePath = readText(payload.sourcePath);
-    const locale = readText(payload.locale) || 'zh';
+    locale = readText(payload.locale) || 'zh';
     const userAgent = request.headers.get('user-agent')?.trim() ?? '';
 
     if (!email && !note) {
-      return NextResponse.json({ error: '请至少填写一项' }, { status: 400 });
+      const error =
+        locale === 'en' ? 'Enter at least one field.' : '请至少填写一项';
+      return NextResponse.json({ error, code: 'validation' }, { status: 400 });
+    }
+
+    if (email) {
+      const existing = await findWaitlistContact(email);
+      if (existing) {
+        const error =
+          locale === 'en'
+            ? 'This contact is already on the waitlist.'
+            : '该联系方式已提交过申请';
+        return NextResponse.json({ error, code: 'duplicate' }, { status: 409 });
+      }
     }
 
     await createWaitlistSubmission({
@@ -51,7 +66,7 @@ export async function POST(request: Request) {
       await resend.emails.send({
         from: FROM_EMAIL,
         to: TO_EMAIL,
-        subject: `[SYNC内测] 新的加入请求`,
+        subject: `[RAVEN内测] 新的加入请求`,
         text: body,
       });
     } else {
@@ -61,6 +76,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[waitlist] send failed:', error);
-    return NextResponse.json({ error: '发送失败，请稍后重试' }, { status: 500 });
+    const message =
+      locale === 'en' ? 'Unable to submit. Please try again.' : '提交失败，请稍后重试';
+    return NextResponse.json({ error: message, code: 'server' }, { status: 500 });
   }
 }

@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import { neon } from '@neondatabase/serverless';
 
 type WaitlistSubmission = {
@@ -64,4 +65,48 @@ export async function createWaitlistSubmission(submission: WaitlistSubmission): 
       ${submission.locale}
     )
   `;
+}
+
+export async function findWaitlistContact(contact: string): Promise<boolean> {
+  await ensureWaitlistTable();
+  const sql = getSql();
+  const rows = await sql`
+    SELECT id
+    FROM waitlist_submissions
+    WHERE LOWER(TRIM(contact)) = LOWER(TRIM(${contact}))
+    LIMIT 1
+  `;
+  return rows.length > 0;
+}
+
+const DEFAULT_WAITLIST_SOCIAL_PROOF_MIN = 10;
+
+export function getWaitlistSocialProofMin(): number {
+  const raw = process.env.WAITLIST_SOCIAL_PROOF_MIN?.trim();
+  if (!raw) return DEFAULT_WAITLIST_SOCIAL_PROOF_MIN;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_WAITLIST_SOCIAL_PROOF_MIN;
+}
+
+async function fetchWaitlistCount(): Promise<number | null> {
+  const databaseUrl = process.env.DATABASE_URL?.trim();
+  if (!databaseUrl) return null;
+
+  try {
+    await ensureWaitlistTable();
+    const sql = neon(databaseUrl);
+    const rows = await sql`SELECT COUNT(*)::int AS count FROM waitlist_submissions`;
+    const count = rows[0]?.count;
+    return typeof count === 'number' && Number.isFinite(count) ? count : null;
+  } catch {
+    return null;
+  }
+}
+
+const getCachedWaitlistCount = unstable_cache(fetchWaitlistCount, ['waitlist-count'], {
+  revalidate: 3600,
+});
+
+export async function getWaitlistCount(): Promise<number | null> {
+  return getCachedWaitlistCount();
 }

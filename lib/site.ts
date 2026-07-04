@@ -1,4 +1,4 @@
-const PRODUCTION_SITE_URL = 'https://www.syncclub.tech';
+const PRODUCTION_SITE_URL = 'https://www.ravenclub.tech';
 
 export function getSiteUrl(): string {
   if (process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production') {

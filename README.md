@@ -1,6 +1,6 @@
-# SYNC Web MVP
+# Raven Web MVP
 
-Thin Next.js public web surface for validating SYNC before the mini program review finishes.
+Thin Next.js public web surface for validating Raven before the mini program review finishes.
 
 ## Scope
 
@@ -21,12 +21,12 @@ Set `API_BASE_URL` to the backend API root for server-rendered reads. Production
 
 ## Vercel Deployment
 
-Deploy the MVP to Vercel with the custom production domain `https://www.syncclub.tech`. Metadata, canonical URLs, `robots.txt`, and `sitemap.xml` must use this custom domain, not the generated `*.vercel.app` URL.
+Deploy the MVP to Vercel with the custom production domain `https://www.ravenclub.tech`. Metadata, canonical URLs, `robots.txt`, and `sitemap.xml` must use this custom domain, not the generated `*.vercel.app` URL.
 
 Required production environment variables:
 
 - `API_BASE_URL`: backend API root for activity and recruit reads.
-- `NEXT_PUBLIC_SITE_URL`: optional local/preview override. Production falls back to `https://www.syncclub.tech`.
+- `NEXT_PUBLIC_SITE_URL`: optional local/preview override. Production falls back to `https://www.ravenclub.tech`.
 - `DATABASE_URL`: Postgres connection string from the Vercel Marketplace Neon/Postgres integration.
 
 Optional production environment variables:

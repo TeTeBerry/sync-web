@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { listActivities } from '../lib/api';
 import { LOCALES, localizedPath } from '../lib/i18n';
+import { eventPath } from '../lib/event-slug';
 import { cityAlternateLanguages, cityPath, listCityGroups } from '../lib/seo-cities';
 import { getSiteUrl } from '../lib/site';
 
@@ -88,17 +89,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
       };
     }),
-    ...activities.map((activity) => {
-      const path = `/events/${activity.legacyId}`;
-      return {
-        url: `${siteUrl}${localizedPath(locale, path)}`,
-        lastModified: getActivityLastModified(activity) ?? latestActivityModified ?? new Date(),
-        changeFrequency: 'weekly' as const,
-        priority: 0.8,
-        alternates: {
-          languages: absoluteLanguages(getAlternateLanguages(path)),
-        },
-      };
-    }),
+    ...activities.map((activity) => ({
+      url: `${siteUrl}${eventPath(locale, activity)}`,
+      lastModified: getActivityLastModified(activity) ?? latestActivityModified ?? new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+      alternates: {
+        languages: absoluteLanguages({
+          'zh-CN': eventPath('zh', activity),
+          en: eventPath('en', activity),
+        }),
+      },
+    })),
   ]);
 }

@@ -1,34 +1,51 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Outfit, DM_Sans } from 'next/font/google';
 import { getMessages, normalizeLocale } from '../lib/i18n';
 import { getSiteUrl } from '../lib/site';
+import { buildSocialMetadata } from '../lib/seo';
 import './globals.css';
+
+const outfit = Outfit({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+  adjustFontFallback: true,
+  preload: true,
+  weight: ['400', '500', '600', '700'],
+});
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-body',
+  display: 'swap',
+  adjustFontFallback: true,
+  preload: true,
+  weight: ['400', '500', '600', '700'],
+});
 
 const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'SYNC | 电音节资讯与公开组队招募',
-    template: '%s | SYNC',
+    default: 'Raven | AI Festival Companion',
+    template: '%s | Raven',
   },
-  description: '发现电音节、查看阵容与公开组队招募，先用 Web MVP 加入 SYNC 内测。',
+  description:
+    'Your AI festival companion. Discover festivals, read lineups, and plan the trip in one conversation.',
   icons: {
-    icon: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
-      { url: '/icon-512.png', type: 'image/png', sizes: '512x512' },
-    ],
-    apple: [
-      { url: '/apple-icon.png', type: 'image/png', sizes: '180x180' },
-    ],
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/icon.svg', type: 'image/svg+xml' }],
   },
-  openGraph: {
-    title: 'SYNC | 电音节资讯与公开组队招募',
-    description: '查活动、看阵容、找公开组队招募。',
-    type: 'website',
+  ...buildSocialMetadata({
+    title: 'Raven | AI Festival Companion',
+    description: 'Less planning. More floor time.',
     url: siteUrl,
-  },
+    locale: 'en',
+  }),
 };
 
 type RootLayoutProps = {
@@ -41,10 +58,16 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   const t = getMessages(locale);
 
   return (
-    <html lang={t.htmlLang}>
+    <html lang={t.htmlLang} className={`${outfit.variable} ${dmSans.variable}`}>
       <body>
+        <div className="ambient-bg" aria-hidden="true">
+          <div className="ambient-bg__orb ambient-bg__orb--purple" />
+          <div className="ambient-bg__orb ambient-bg__orb--blue" />
+          <div className="ambient-bg__grid" />
+        </div>
         {children}
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { AudioWaveform } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import { ScrollRevealInit } from '../../components/ScrollRevealInit';
+import { SiteNav } from '../../components/SiteNav';
 import {
   getMessages,
   isLocale,
   localizedPath,
   type Locale,
 } from '../../lib/i18n';
+import { getWaitlistCount, getWaitlistSocialProofMin } from '../../lib/waitlist';
 
 type LocaleLayoutProps = {
   children: React.ReactNode;
@@ -24,27 +27,66 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   const locale = rawLocale as Locale;
   const t = getMessages(locale);
   const nextLocale: Locale = locale === 'zh' ? 'en' : 'zh';
+  const waitlistCount = await getWaitlistCount();
+  const waitlistMin = getWaitlistSocialProofMin();
+  const showWaitlistStat =
+    waitlistCount !== null && waitlistCount >= waitlistMin;
+  const formattedWaitlistCount =
+    waitlistCount !== null
+      ? waitlistCount.toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US')
+      : '';
 
   return (
     <div className="site-shell">
+      <ScrollRevealInit />
+      <a className="skip-link" href="#main-content">
+        {t.ui.skipToContent}
+      </a>
       <header className="site-header">
         <div className="site-header__inner">
-          <Link className="brand" href={localizedPath(locale)} aria-label="SYNC home">
-            <AudioWaveform className="brand__icon" size={28} strokeWidth={2.5} color="#4cc9f0" />
-            <span>SYNC</span>
+          <Link className="brand" href={localizedPath(locale)} aria-label={t.nav.brandHome}>
+            <span className="brand__mark" aria-hidden>
+              <Sparkles size={16} strokeWidth={2.25} />
+            </span>
+            <span>RAVEN</span>
           </Link>
-          <nav className="site-nav" aria-label="Main navigation">
-            <Link href={localizedPath(locale, '/events')}>{t.nav.events}</Link>
-            <Link href={localizedPath(locale, '/waitlist')}>{t.nav.waitlist}</Link>
-            <Link href={localizedPath(nextLocale)} hrefLang={nextLocale}>
-              {t.nav.language}
-            </Link>
-          </nav>
+          <SiteNav
+            locale={locale}
+            nextLocale={nextLocale}
+            labels={{
+              howItWorks: t.nav.howItWorks,
+              festivals: t.nav.festivals,
+              waitlist: t.nav.waitlist,
+              language: t.nav.language,
+              planCta: t.nav.planCta,
+              openMenu: t.nav.openMenu,
+              closeMenu: t.nav.closeMenu,
+              mainNav: t.nav.mainNav,
+              mobileNav: t.nav.mobileNav,
+            }}
+          />
         </div>
       </header>
-      {children}
+      <div id="main-content">{children}</div>
       <footer className="footer">
-        <div className="container">{t.footer}</div>
+        <div className="container footer__inner">
+          <div className="footer__brand">
+            <Sparkles size={14} strokeWidth={2} aria-hidden />
+            <span>RAVEN</span>
+          </div>
+          <p>{t.footer.tagline}</p>
+          <p className="footer__note">{t.footer.wechat}</p>
+          {showWaitlistStat ? (
+            <p className="footer__stat">
+              {t.footer.waitlistStat.replace('{count}', formattedWaitlistCount)}
+            </p>
+          ) : null}
+          <nav className="footer__links" aria-label={t.nav.footerNav}>
+            <Link href={`${localizedPath(locale)}#how-it-works`}>{t.nav.howItWorks}</Link>
+            <Link href={localizedPath(locale, '/events')}>{t.nav.festivals}</Link>
+            <Link href={localizedPath(locale, '/waitlist')}>{t.nav.waitlist}</Link>
+          </nav>
+        </div>
       </footer>
     </div>
   );

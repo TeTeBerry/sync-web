@@ -1,4 +1,4 @@
-import type { Activity, EventPostsPage, RecruitPost } from './types';
+import type { Activity, ActivityListPage } from './types';
 import { isActivityExpired } from './activity-date';
 
 const API_BASE =
@@ -10,13 +10,6 @@ type ApiEnvelope<T> = {
   code?: number;
   message?: string;
   data?: T;
-};
-
-type ActivityListPage = {
-  items?: Activity[];
-  total?: number;
-  skip?: number;
-  limit?: number;
 };
 
 function unwrap<T>(payload: T | ApiEnvelope<T>): T {
@@ -41,7 +34,7 @@ async function apiGet<T>(path: string, options?: RequestInit): Promise<T> {
     next: { revalidate: 120 },
   });
   if (!response.ok) {
-    throw new Error(`SYNC API ${path} failed: ${response.status}`);
+    throw new Error(`Raven API ${path} failed: ${response.status}`);
   }
   return unwrap<T>((await response.json()) as T | ApiEnvelope<T>);
 }
@@ -85,7 +78,6 @@ function normalizeActivity(raw: Activity): Activity {
     activityType: raw.activityType,
     hot: raw.hot,
     attendees: getNumber(raw.attendees),
-    recruitPostCount: getNumber(raw.recruitPostCount),
     lineupPublished: raw.lineupPublished,
     travelGuideSupported: raw.travelGuideSupported,
     externalUrl: getString(raw.externalUrl),
@@ -95,53 +87,71 @@ function normalizeActivity(raw: Activity): Activity {
   };
 }
 
-function normalizeRecruitPost(raw: RecruitPost): RecruitPost {
-  const targetPeople = raw.targetPeople ?? raw.slotsTotal;
-  const currentPeople = raw.currentPeople ?? raw.slotsFilled;
-  const unityTags = raw.unityTags ?? raw.recruitUnityTags ?? raw.tags;
-  return {
-    ...raw,
-    id: String(raw.id),
-    authorName: raw.authorName ?? raw.name,
-    body: raw.body ?? raw.bodyPreview ?? raw.content,
-    content: raw.content ?? raw.body ?? raw.bodyPreview,
-    recruitStatus: raw.recruitStatus,
-    currentPeople,
-    targetPeople,
-    unityTags,
-  };
+export type ActivitiesFetchStatus = 'ok' | 'empty' | 'error';
+
+export type ActivitiesFetchResult = {
+  activities: Activity[];
+  status: ActivitiesFetchStatus;
+};
+
+async function fetchActivitiesPayload(): Promise<Activity[]> {
+  const payload = await apiGet<Activity[] | ActivityListPage>('/activities');
+  const items = Array.isArray(payload) ? payload : (payload.items ?? []);
+  return items
+    .map(normalizeActivity)
+    .filter((item) => item.legacyId > 0 && !isActivityExpired(item));
+}
+
+export async function fetchActivities(): Promise<ActivitiesFetchResult> {
+  try {
+    const activities = await fetchActivitiesPayload();
+    return {
+      activities,
+      status: activities.length ? 'ok' : 'empty',
+    };
+  } catch {
+    return { activities: [], status: 'error' };
+  }
 }
 
 export async function listActivities(): Promise<Activity[]> {
-  try {
-    const payload = await apiGet<Activity[] | ActivityListPage>('/activities');
-    const items = Array.isArray(payload) ? payload : (payload.items ?? []);
-    return items
-      .map(normalizeActivity)
-      .filter((item) => item.legacyId > 0 && !isActivityExpired(item));
-  } catch {
-    return [];
-  }
+  const result = await fetchActivities();
+  return result.activities;
 }
 
-export async function getActivity(id: number): Promise<Activity | null> {
-  try {
-    const activity = await apiGet<Activity | null>(`/activities/${id}`);
-    return activity ? normalizeActivity(activity) : null;
-  } catch {
-    return null;
-  }
-}
+export type ActivityFetchStatus = 'ok' | 'not_found' | 'error';
 
-export async function listRecruitPosts(activityLegacyId: number): Promise<RecruitPost[]> {
+export type ActivityFetchResult = {
+  activity: Activity | null;
+  status: ActivityFetchStatus;
+};
+
+export async function getActivity(id: number): Promise<ActivityFetchResult> {
+  if (!Number.isFinite(id) || id <= 0) {
+    return { activity: null, status: 'not_found' };
+  }
+
   try {
-    const page = await apiGet<EventPostsPage | RecruitPost[]>(
-      `/posts?activityLegacyId=${activityLegacyId}&limit=6`,
-    );
-    const items = Array.isArray(page) ? page : (page.items ?? page.posts ?? []);
-    return items.map(normalizeRecruitPost);
+    const response = await fetch(`${normalizeBaseUrl(API_BASE)}/activities/${id}`, {
+      next: { revalidate: 120 },
+    });
+
+    if (response.status === 404) {
+      return { activity: null, status: 'not_found' };
+    }
+
+    if (!response.ok) {
+      return { activity: null, status: 'error' };
+    }
+
+    const payload = unwrap<Activity | null>((await response.json()) as Activity | ApiEnvelope<Activity | null>);
+    if (!payload) {
+      return { activity: null, status: 'not_found' };
+    }
+
+    return { activity: normalizeActivity(payload), status: 'ok' };
   } catch {
-    return [];
+    return { activity: null, status: 'error' };
   }
 }
 
@@ -172,15 +182,25 @@ export type ActivitySchedule = {
   djs?: ScheduleDj[];
 };
 
-export async function fetchActivitySchedule(
-  legacyId: number,
-): Promise<ActivitySchedule | null> {
+export type ScheduleFetchStatus = 'ok' | 'empty' | 'error';
+
+export type ScheduleFetchResult = {
+  schedule: ActivitySchedule | null;
+  status: ScheduleFetchStatus;
+};
+
+export async function fetchActivitySchedule(legacyId: number): Promise<ScheduleFetchResult> {
   try {
-    return await apiGet<ActivitySchedule>(
+    const schedule = await apiGet<ActivitySchedule>(
       `/activities/${legacyId}/itinerary/schedule`,
     );
+    const djs = schedule?.djs ?? [];
+    return {
+      schedule,
+      status: djs.length ? 'ok' : 'empty',
+    };
   } catch {
-    return null;
+    return { schedule: null, status: 'error' };
   }
 }
 
