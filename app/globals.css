@@ -796,6 +796,13 @@ textarea.field-input {
   transform: none;
 }
 
+/* Event detail primary content — lineup and AI summary sit on the main reading path */
+.section--detail-tight[data-reveal],
+.section--detail-body[data-reveal] {
+  opacity: 1;
+  transform: none;
+}
+
 [data-reveal-stagger] > * {
   opacity: 0;
   transform: translateY(calc(var(--reveal-distance) - 2px));
