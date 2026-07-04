@@ -7,6 +7,7 @@ import { getSiteUrl } from '../lib/site';
 import type { Activity } from '../lib/types';
 
 export const revalidate = 86_400;
+export const dynamic = 'force-static';
 
 function parseDate(value?: string): Date | undefined {
   if (!value) return undefined;
