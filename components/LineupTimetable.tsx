@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react';
 import type { LineupTimetableDay } from '../lib/lineup-timetable';
-import { formatLineupTimeRange } from '../lib/lineup-timetable';
-import { MISSING_GENRE_LABEL } from '../lib/lineup-genre';
+import { LineupTimetableSlot } from './LineupTimetableSlot';
 
 type LineupTimetableLabels = {
   time: string;
@@ -57,35 +56,14 @@ export function LineupTimetable({ days, labels }: LineupTimetableProps) {
                   </header>
 
                   <ol className="lineup-timetable__slots" aria-label={stage.stageLabel}>
-                    {stage.slots.map((slot) => {
-                      const missingGenre = slot.genreLabel === MISSING_GENRE_LABEL;
-
-                      return (
-                        <li
-                          className="lineup-timetable__slot"
-                          key={`${slot.artistId}-${slot.startMinutes}`}
-                        >
-                          <time
-                            className="lineup-timetable__slot-time"
-                            dateTime={slot.startTime}
-                            aria-label={labels.time}
-                          >
-                            {formatLineupTimeRange(slot.startTime, slot.endTime)}
-                          </time>
-                          <div className="lineup-timetable__slot-body">
-                            <span className="lineup-timetable__slot-artist">{slot.artistName}</span>
-                            {!missingGenre ? (
-                              <span
-                                className="lineup-timetable__slot-genre"
-                                style={{ '--genre-accent': slot.genreColor ?? accent } as CSSProperties}
-                              >
-                                {slot.genreLabel}
-                              </span>
-                            ) : null}
-                          </div>
-                        </li>
-                      );
-                    })}
+                    {stage.slots.map((slot) => (
+                      <LineupTimetableSlot
+                        key={`${slot.artistId}-${slot.startMinutes}`}
+                        slot={slot}
+                        timeLabel={labels.time}
+                        accent={accent}
+                      />
+                    ))}
                   </ol>
                 </article>
               );

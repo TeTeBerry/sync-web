@@ -2841,6 +2841,116 @@ h3 {
   border: 1px solid color-mix(in srgb, var(--genre-accent) 28%, transparent);
 }
 
+.lineup-timetable__slot--tooltip {
+  cursor: help;
+}
+
+.lineup-timetable__slot--tooltip:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--stage-accent) 65%, transparent);
+  outline-offset: 2px;
+}
+
+.lineup-timetable__slot--tooltip-open {
+  border-color: color-mix(in srgb, var(--stage-accent) 24%, rgba(255, 255, 255, 0.1));
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--stage-accent) 12%, transparent),
+    0 8px 24px rgba(7, 6, 15, 0.35);
+}
+
+.lineup-timetable__tooltip {
+  --stage-accent: var(--primary);
+  position: fixed;
+  z-index: 120;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 11px 14px 12px;
+  border-radius: var(--radius-md);
+  pointer-events: none;
+  color: var(--popover-foreground);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--stage-accent) 10%, rgba(12, 12, 18, 0.97)) 0%,
+      rgba(10, 10, 14, 0.98) 58%
+    );
+  border: 1px solid color-mix(in srgb, var(--stage-accent) 22%, rgba(255, 255, 255, 0.1));
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 0 28px color-mix(in srgb, var(--stage-accent) 16%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  transform: translate(-50%, calc(-100% - 2px)) scale(0.98);
+  opacity: 0;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.lineup-timetable__tooltip--visible {
+  opacity: 1;
+  transform: translate(-50%, -100%) scale(1);
+}
+
+.lineup-timetable__tooltip-text,
+.lineup-timetable__tooltip-artists {
+  display: block;
+  font-size: var(--type-body-sm);
+  font-weight: var(--fw-semibold);
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.lineup-timetable__tooltip-artists {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.lineup-timetable__tooltip-artist-part {
+  line-height: 1.35;
+}
+
+.lineup-timetable__tooltip-b2b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 0 7px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--stage-accent) 88%, white);
+  background: color-mix(in srgb, var(--stage-accent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--stage-accent) 34%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--stage-accent) 18%, transparent);
+}
+
+.lineup-timetable__tooltip-caret {
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  border-right: 1px solid color-mix(in srgb, var(--stage-accent) 22%, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid color-mix(in srgb, var(--stage-accent) 22%, rgba(255, 255, 255, 0.1));
+  background: rgba(10, 10, 14, 0.98);
+  box-shadow: 3px 3px 10px rgba(7, 6, 15, 0.28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lineup-timetable__tooltip {
+    transition: none;
+  }
+}
+
 /* ── Waitlist ────────────────────────────────────────────────────────────── */
 
 .waitlist-page {
