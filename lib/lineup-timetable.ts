@@ -150,18 +150,19 @@ export function countTimetableStats(days: LineupTimetableDay[]): {
   setCount: number;
   stageCount: number;
 } {
-  const stageKeys = new Set<string>();
+  const stageNames = new Set<string>();
   let setCount = 0;
 
   for (const day of days) {
     for (const stage of day.stages) {
-      stageKeys.add(`${day.dateKey}:${stage.stageKey}`);
+      const name = stage.stageLabel.trim().toLowerCase();
+      if (name) stageNames.add(name);
       setCount += stage.slots.length;
     }
   }
 
   return {
     setCount,
-    stageCount: stageKeys.size,
+    stageCount: stageNames.size,
   };
 }
