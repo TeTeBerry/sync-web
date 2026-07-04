@@ -13,6 +13,7 @@ import { LineupErrorState } from '../../../../components/states/LineupErrorState
 import { EmptyState } from '../../../../components/states/EmptyState';
 import { RelatedEventsError } from '../../../../components/states/RelatedEventsError';
 import { EventDetailActions } from '../../../../components/EventDetailActions';
+import { LineupTimetable } from '../../../../components/LineupTimetable';
 import { TrackedLink } from '../../../../components/TrackedLink';
 import { EventImage } from '../../../../components/EventImage';
 import {
@@ -21,9 +22,14 @@ import {
   getActivity,
   getActivityImage,
   getActivityTitle,
-  type ScheduleDj,
 } from '../../../../lib/api';
 import { buildEventAiSummary } from '../../../../lib/event-ai-summary';
+import {
+  buildLineupTimetable,
+  countTimetableStats,
+  hasLineupTimetable,
+} from '../../../../lib/lineup-timetable';
+import { groupByBroadGenre, otherGenreLabel } from '../../../../lib/lineup-genre';
 import { buildEventJsonLd, buildEventMetadata } from '../../../../lib/seo';
 import { cityPath } from '../../../../lib/seo-cities';
 import {
@@ -31,12 +37,13 @@ import {
   eventSlugMatches,
   parseEventLegacyId,
 } from '../../../../lib/event-slug';
+import { getActivityContinent } from '../../../../lib/activity-continent';
 import { getSiteUrl } from '../../../../lib/site';
 import {
   activityMetaForLocale,
   getActivityTypeLabel,
+  getContinentLabel,
   getMessages,
-  getRegionLabel,
   isLocale,
   localizeActivities,
   localizeActivity,
@@ -62,165 +69,6 @@ export async function generateMetadata({ params }: EventDetailProps): Promise<Me
   return buildEventMetadata(activityResult.activity, locale);
 }
 
-const GENRE_BROAD: Record<string, string> = {
-  House: 'House',
-  house: 'House',
-  'Chicago house': 'House',
-  'Deep House': 'House',
-  'deep house': 'House',
-  'Progressive House': 'House',
-  'Progressive house': 'House',
-  'Tech House': 'House',
-  'tech house': 'House',
-  'Euro House': 'House',
-  'Tropical House': 'House',
-  'piano house': 'House',
-  'Big Room': 'House',
-  'Hard House': 'House',
-  Electro: 'House',
-  Euro: 'House',
-  Disco: 'House',
-  Techno: 'Techno',
-  'Dub Techno': 'Techno',
-  'Minimal Techno': 'Techno',
-  'Melodic and cinematic techno': 'Techno',
-  Minimal: 'Techno',
-  Industrial: 'Techno',
-  'Hard Techno': 'Hard',
-  'Hard techno': 'Hard',
-  Hardstyle: 'Hardstyle',
-  hardstyle: 'Hardstyle',
-  'Dutch hardstyle': 'Hardstyle',
-  rawstyle: 'Hardstyle',
-  Hardcore: 'Hardcore',
-  'Hardcore box set': 'Hardcore',
-  'early hardcore': 'Hardcore',
-  'Happy Hardcore': 'Hardcore',
-  frenchcore: 'Hardcore',
-  Frenchcore: 'Hardcore',
-  Gabber: 'Hardcore',
-  'Industrial Techno & Hardcore': 'Hardcore',
-  Hard: 'Hard',
-  Trance: 'Trance',
-  'Progressive Trance': 'Trance',
-  Psytrance: 'Trance',
-  psytrance: 'Trance',
-  'Psy-Trance': 'Trance',
-  'Tech Trance': 'Trance',
-  'Hard Trance': 'Trance',
-  'uplifting electronic': 'Trance',
-  'Drum n Bass': 'Drum & Bass',
-  'Drum & Bass': 'Drum & Bass',
-  'DnB mixes': 'Drum & Bass',
-  Dubstep: 'Dubstep',
-  dubstep: 'Dubstep',
-  'Dubstep producer': 'Dubstep',
-  Bass: 'Bass',
-  'Future Bass': 'Bass',
-  'UK Bass': 'Bass',
-  'including bass and trap': 'Bass',
-  'EDM base with Trap': 'Bass',
-  'EDM blended with Cantopop': 'Bass',
-  Trap: 'Bass',
-  riddim: 'Bass',
-  Ambient: 'Ambient',
-  ambient: 'Ambient',
-  'Dark Ambient': 'Ambient',
-  'dark ambient': 'Ambient',
-  Breakbeat: 'Breaks',
-  'UK Garage': 'UK Garage',
-  Acid: 'Acid',
-  'Acid Jazz': 'Acid',
-  'hip hop': 'Hip Hop',
-  'hip-hop': 'Hip Hop',
-  Reggae: 'Reggae',
-  'Reggae Artist': 'Reggae',
-  latin: 'Latin',
-  merengue: 'Latin',
-};
-
-const GENRE_BROAD_COLORS: Record<string, string> = {
-  House: '#4cc9f0',
-  Techno: '#a855f7',
-  Hard: '#ff0066',
-  Hardstyle: '#f97316',
-  Hardcore: '#dc2626',
-  Trance: '#22c55e',
-  'Drum & Bass': '#eab308',
-  Dubstep: '#8b5cf6',
-  Bass: '#f59e0b',
-  Ambient: '#06b6d4',
-  Breaks: '#84cc16',
-  'UK Garage': '#ec4899',
-  Acid: '#14b8a6',
-  'Hip Hop': '#6366f1',
-  Reggae: '#fbbf24',
-  Latin: '#ef4444',
-};
-
-const NAME_GENRE_HINTS: Array<{ pattern: RegExp; broad: string }> = [
-  { pattern: /\bhardstyle\b/i, broad: 'Hardstyle' },
-  { pattern: /\bhardcore\b/i, broad: 'Hardcore' },
-  { pattern: /\btechno\b/i, broad: 'Techno' },
-  { pattern: /\btrance\b/i, broad: 'Trance' },
-  { pattern: /\bhouse\b/i, broad: 'House' },
-  { pattern: /\bdubstep\b/i, broad: 'Dubstep' },
-  { pattern: /\b(drum\s*(n|&)\s*bass|dnb)\b/i, broad: 'Drum & Bass' },
-  { pattern: /\bbass\b/i, broad: 'Bass' },
-];
-
-function genreBroadKey(dj: ScheduleDj, locale: Locale): string {
-  const primary = dj.genre?.trim();
-  if (primary && GENRE_BROAD[primary]) return GENRE_BROAD[primary];
-  if (primary && GENRE_BROAD[primary.toLowerCase()]) return GENRE_BROAD[primary.toLowerCase()];
-  const first = dj.genreLabel?.split('·')[0]?.trim();
-  if (first && GENRE_BROAD[first]) return GENRE_BROAD[first];
-  if (first && GENRE_BROAD[first.toLowerCase()]) return GENRE_BROAD[first.toLowerCase()];
-  const name = dj.name;
-  for (const hint of NAME_GENRE_HINTS) {
-    if (hint.pattern.test(name)) return hint.broad;
-  }
-  return otherGenreLabel(locale);
-}
-
-function otherGenreLabel(locale: Locale): string {
-  return getMessages(locale).eventDetail.lineupOtherGenre;
-}
-
-/** Normalize diacritics: HALŌ → HALO, ÉTÉ → ETE, etc. */
-function normalizeName(name: string): string {
-  return name
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .trim()
-    .toLowerCase();
-}
-
-function groupByBroadGenre(
-  djs: ScheduleDj[],
-  locale: Locale,
-): Map<string, { color: string; djs: ScheduleDj[] }> {
-  const seen = new Set<string>();
-  const groups = new Map<string, { color: string; djs: ScheduleDj[] }>();
-  for (const dj of djs) {
-    const key = normalizeName(dj.name);
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    const broad = genreBroadKey(dj, locale);
-    const entry = groups.get(broad);
-    if (entry) {
-      entry.djs.push(dj);
-    } else {
-      groups.set(broad, {
-        color: GENRE_BROAD_COLORS[broad] || dj.genreColor || 'var(--primary)',
-        djs: [dj],
-      });
-    }
-  }
-  return groups;
-}
-
 export default async function EventDetailPage({ params }: EventDetailProps) {
   const { locale: rawLocale, slug } = await params;
   if (!isLocale(rawLocale)) notFound();
@@ -242,6 +90,8 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
 
   const rawActivity = activityResult.activity;
   const activity = localizeActivity(rawActivity, locale);
+  const continent = getActivityContinent(activity);
+  const continentLabel = getContinentLabel(locale, continent);
 
   if (!eventSlugMatches(slug, rawActivity, locale)) {
     permanentRedirect(eventPath(locale, activity));
@@ -257,8 +107,12 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
   const related = allActivities.filter((item) => item.legacyId !== activity.legacyId).slice(0, 3);
   const relatedFetchFailed = activitiesResult.status === 'error';
 
-  const djs = scheduleResult.schedule?.djs ?? [];
+  const schedule = scheduleResult.schedule;
+  const djs = schedule?.djs ?? [];
   const lineupFetchFailed = scheduleResult.status === 'error';
+  const showTimetable = hasLineupTimetable(schedule);
+  const timetableDays = showTimetable && schedule ? buildLineupTimetable(schedule) : [];
+  const timetableStats = timetableDays.length ? countTimetableStats(timetableDays) : null;
   const genreGroups = groupByBroadGenre(djs, locale);
   const genreKeys = [...genreGroups.keys()].sort((a, b) => {
     const otherLabel = otherGenreLabel(locale);
@@ -319,9 +173,9 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
                     {getActivityTypeLabel(locale, activity.activityType)}
                   </span>
                 )}
-                {getRegionLabel(locale, activity.region) ? (
+                {continentLabel ? (
                   <span className="pill pill--accent">
-                    {getRegionLabel(locale, activity.region)}
+                    {continentLabel}
                   </span>
                 ) : null}
                 {activity.hot && <span className="pill pill--primary">{t.eventCard.hot}</span>}
@@ -365,10 +219,24 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
           <article className="detail-lineup">
             <header className="detail-lineup__header">
               <div>
-                <h2 className="detail-lineup__title">{t.eventDetail.lineupTitle}</h2>
-                <p className="detail-lineup__lead">{t.eventDetail.lineupLead}</p>
+                <h2 className="detail-lineup__title">
+                  {showTimetable ? t.eventDetail.lineupTimetableTitle : t.eventDetail.lineupTitle}
+                </h2>
+                <p className="detail-lineup__lead">
+                  {showTimetable ? t.eventDetail.lineupTimetableLead : t.eventDetail.lineupLead}
+                </p>
               </div>
-              {djs.length > 0 ? (
+              {showTimetable && timetableStats ? (
+                <div className="detail-lineup__stats" aria-label={t.ui.lineupStats}>
+                  <span>
+                    <strong>{timetableStats.setCount}</strong> {t.eventDetail.lineupTimetableSets}
+                  </span>
+                  <span className="detail-lineup__stats-divider" aria-hidden="true" />
+                  <span>
+                    <strong>{timetableStats.stageCount}</strong> {t.eventDetail.lineupTimetableStages}
+                  </span>
+                </div>
+              ) : djs.length > 0 ? (
                 <div className="detail-lineup__stats" aria-label={t.ui.lineupStats}>
                   <span>
                     <strong>{aiSummary.artistCount}</strong> {t.eventDetail.lineupStatsArtists}
@@ -389,6 +257,15 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
                   lead: t.eventDetail.lineupErrorLead,
                   retry: t.eventDetail.lineupErrorRetry,
                   browse: t.eventDetail.lineupEmptyBrowse,
+                }}
+              />
+            ) : showTimetable && timetableDays.length > 0 ? (
+              <LineupTimetable
+                days={timetableDays}
+                labels={{
+                  time: t.eventDetail.lineupTimetableTime,
+                  artist: t.eventDetail.lineupTimetableArtist,
+                  genre: t.eventDetail.lineupTimetableGenre,
                 }}
               />
             ) : djs.length > 0 ? (
@@ -460,7 +337,7 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
                 </div>
                 <div className="detail-facts__row">
                   <dt>{t.eventDetail.region}</dt>
-                  <dd>{getRegionLabel(locale, activity.region) ?? '-'}</dd>
+                  <dd>{continentLabel ?? '-'}</dd>
                 </div>
                 {activity.attendees != null ? (
                   <div className="detail-facts__row">

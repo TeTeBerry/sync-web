@@ -7,11 +7,12 @@ import { eventPath } from '../lib/event-slug';
 import type { Activity } from '../lib/types';
 import {
   getActivityTypeLabel,
+  getContinentLabel,
   getMessages,
-  getRegionLabel,
   localizeActivity,
   type Locale,
 } from '../lib/i18n';
+import { getActivityContinent } from '../lib/activity-continent';
 import { EventImage } from './EventImage';
 
 type EventCardProps = {
@@ -40,6 +41,8 @@ export function EventCard({
   const meta = activityMeta(localizedActivity);
   const [datePart] = meta.split(' · ');
   const artists = lineupCount(activity);
+  const continent = getActivityContinent(localizedActivity);
+  const continentLabel = getContinentLabel(locale, continent);
 
   return (
     <Link
@@ -72,8 +75,8 @@ export function EventCard({
               {getActivityTypeLabel(locale, activity.activityType)}
             </span>
           ) : null}
-          {getRegionLabel(locale, activity.region) ? (
-            <span className="pill pill--accent">{getRegionLabel(locale, activity.region)}</span>
+          {continentLabel ? (
+            <span className="pill pill--accent">{continentLabel}</span>
           ) : null}
         </div>
         <h3>{title}</h3>

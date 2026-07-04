@@ -29,6 +29,7 @@ export type Activity = {
   externalUrl?: string;
   infoSource?: string;
   infoUpdatedAt?: string;
+  updatedAt?: string;
   damaiProjectId?: string;
 };
 

@@ -6,7 +6,7 @@ type SearchSuccessBannerProps = {
   locale: Locale;
   query: string;
   country: string;
-  region: string;
+  continent: string;
   count: number;
   eventsPath: string;
   waitlistPath: string;
@@ -19,21 +19,21 @@ type SearchSuccessBannerProps = {
   };
 };
 
-function buildFilterSummary(query: string, country: string, region: string): string | null {
-  const parts = [query, country, region].filter(Boolean);
+function buildFilterSummary(query: string, country: string, continent: string): string | null {
+  const parts = [query, country, continent].filter(Boolean);
   return parts.length ? parts.join(' · ') : null;
 }
 
 export function SearchSuccessBanner({
   query,
   country,
-  region,
+  continent,
   count,
   eventsPath,
   waitlistPath,
   labels,
 }: SearchSuccessBannerProps) {
-  const filterSummary = buildFilterSummary(query, country, region);
+  const filterSummary = buildFilterSummary(query, country, continent);
   const title = query
     ? labels.titleWithQuery.replace('{count}', String(count)).replace('{query}', query)
     : labels.title.replace('{count}', String(count));

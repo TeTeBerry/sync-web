@@ -1,4 +1,5 @@
 import type { Activity, ActivityCatalogType, ActivityRegion } from './types';
+import type { ActivityContinent } from './activity-continent';
 import { compactMeta } from './format';
 
 export const LOCALES = ['zh', 'en'] as const;
@@ -215,6 +216,12 @@ export const messages = {
       regionDomestic: '国内',
       regionOverseas: '海外',
       regionHmt: '港澳台',
+      continentAll: '全部',
+      continentAsia: '亚洲',
+      continentEurope: '欧洲',
+      continentNorthAmerica: '北美',
+      continentMiddleEast: '中东',
+      continentFilterLabel: '地区',
       clearFilters: '清除筛选',
       resultsOne: '场电音节',
       resultsMany: '场电音节',
@@ -337,13 +344,21 @@ export const messages = {
       aboutEyebrow: '关于',
       aboutTitle: '活动信息',
       type: '类型',
-      region: '区域',
+      region: '地区',
       attendees: '关注人数',
       externalUrl: '购票 / 官网',
       infoSource: '信息来源',
       lineupEyebrow: '阵容',
       lineupTitle: '阵容',
       lineupLead: '按风格浏览艺人，标记值得追的 Set。',
+      lineupTimetableTitle: '演出时刻表',
+      lineupTimetableLead: '按舞台查看完整 Set 时间，快速规划转场路线。',
+      lineupTimetableTime: '时间',
+      lineupTimetableArtist: '艺人',
+      lineupTimetableGenre: '风格',
+      lineupTimetableStage: '舞台',
+      lineupTimetableSets: '场 Set',
+      lineupTimetableStages: '个舞台',
       lineupStatsArtists: '位艺人',
       lineupStatsGenres: '种风格',
       lineupOtherGenre: '其他',
@@ -405,6 +420,15 @@ export const messages = {
         domestic: '国内',
         overseas: '海外',
         hmt: '港澳台',
+      },
+      continents: {
+        asia: '亚洲',
+        europe: '欧洲',
+        north_america: '北美',
+        middle_east: '中东',
+        oceania: '大洋洲',
+        south_america: '南美',
+        africa: '非洲',
       },
     },
     states: {
@@ -633,6 +657,12 @@ export const messages = {
       regionDomestic: 'China',
       regionOverseas: 'International',
       regionHmt: 'HK / TW / MO',
+      continentAll: 'All',
+      continentAsia: 'Asia',
+      continentEurope: 'Europe',
+      continentNorthAmerica: 'North America',
+      continentMiddleEast: 'Middle East',
+      continentFilterLabel: 'Region',
       clearFilters: 'Clear filters',
       resultsOne: 'festival',
       resultsMany: 'festivals',
@@ -772,6 +802,14 @@ export const messages = {
       lineupEyebrow: 'Lineup',
       lineupTitle: 'Lineup',
       lineupLead: 'Browse by genre. Mark the sets worth catching.',
+      lineupTimetableTitle: 'Set timetable',
+      lineupTimetableLead: 'Browse by stage with exact set times — plan your moves between stages.',
+      lineupTimetableTime: 'Time',
+      lineupTimetableArtist: 'Artist',
+      lineupTimetableGenre: 'Genre',
+      lineupTimetableStage: 'Stage',
+      lineupTimetableSets: 'sets',
+      lineupTimetableStages: 'stages',
       lineupStatsArtists: 'artists',
       lineupStatsGenres: 'genres',
       lineupOtherGenre: 'Other',
@@ -838,6 +876,15 @@ export const messages = {
         domestic: 'Mainland China',
         overseas: 'Overseas',
         hmt: 'HK/MO/TW',
+      },
+      continents: {
+        asia: 'Asia',
+        europe: 'Europe',
+        north_america: 'North America',
+        middle_east: 'Middle East',
+        oceania: 'Oceania',
+        south_america: 'South America',
+        africa: 'Africa',
       },
     },
     states: {
@@ -912,6 +959,14 @@ export function getActivityTypeLabel(locale: Locale, value?: ActivityCatalogType
 export function getRegionLabel(locale: Locale, value?: ActivityRegion): string | undefined {
   if (!value || value === 'overseas') return undefined;
   return messages[locale].eventCard.regions[value] ?? value;
+}
+
+export function getContinentLabel(
+  locale: Locale,
+  value?: ActivityContinent,
+): string | undefined {
+  if (!value) return undefined;
+  return messages[locale].eventCard.continents[value] ?? value;
 }
 
 type ActivityLocaleContent = Partial<

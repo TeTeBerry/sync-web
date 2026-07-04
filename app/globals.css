@@ -2627,6 +2627,220 @@ h3 {
   white-space: nowrap;
 }
 
+/* ── Lineup timetable (stage-grouped) ───────────────────────────────────── */
+
+.lineup-timetable {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(32px, 4.5vw, 44px);
+}
+
+.lineup-timetable__day {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 2.5vw, 20px);
+}
+
+.lineup-timetable__day-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.lineup-timetable__day-accent {
+  width: 3px;
+  height: 100%;
+  min-height: 40px;
+  margin-top: 2px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+  flex-shrink: 0;
+  box-shadow: 0 0 16px rgba(var(--primary-rgb), 0.35);
+}
+
+.lineup-timetable__day-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.lineup-timetable__day-eyebrow {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--type-meta);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground-dim);
+  line-height: 1.2;
+}
+
+.lineup-timetable__day-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.4vw, 26px);
+  font-weight: var(--fw-extrabold);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--foreground);
+}
+
+.lineup-timetable__stages {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: clamp(12px, 2vw, 16px);
+  align-items: start;
+}
+
+.lineup-timetable__stage {
+  --stage-accent: var(--primary);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.012) 100%),
+    rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+  box-shadow: var(--shadow-inset-border);
+}
+
+.lineup-timetable__stage-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background:
+    linear-gradient(90deg, rgba(var(--primary-rgb), 0.06) 0%, transparent 72%),
+    rgba(0, 0, 0, 0.12);
+}
+
+.lineup-timetable__stage-accent {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  background: var(--stage-accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--stage-accent) 55%, transparent);
+}
+
+.lineup-timetable__stage-title {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: var(--type-small);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lineup-timetable__stage-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--type-meta);
+  font-weight: var(--fw-bold);
+  color: var(--muted-foreground);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.lineup-timetable__slots {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lineup-timetable__slot {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.lineup-timetable__slot:hover {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045);
+  transform: translateY(-1px);
+}
+
+.lineup-timetable__slot-time {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  font-family: ui-monospace, 'SF Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  font-size: var(--type-meta);
+  font-weight: var(--fw-semibold);
+  font-style: normal;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  white-space: nowrap;
+}
+
+.lineup-timetable__slot-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+}
+
+.lineup-timetable__slot-artist {
+  font-size: var(--type-body-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--foreground);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.lineup-timetable__slot-genre {
+  --genre-accent: var(--stage-accent);
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--type-meta);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.88);
+  background: color-mix(in srgb, var(--genre-accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--genre-accent) 28%, transparent);
+}
+
 /* ── Waitlist ────────────────────────────────────────────────────────────── */
 
 .waitlist-page {
@@ -6298,6 +6512,29 @@ h3 {
 
   .lineup-genre-grid {
     grid-template-columns: 1fr;
+  }
+
+  .lineup-timetable__stages {
+    grid-template-columns: 1fr;
+  }
+
+  .lineup-timetable__slot {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .lineup-timetable__slot-time {
+    width: fit-content;
+    justify-content: flex-start;
+  }
+
+  .lineup-timetable__slot-body {
+    gap: 6px;
+  }
+
+  .lineup-timetable__slot-artist {
+    white-space: normal;
   }
 
   .filter-bar {

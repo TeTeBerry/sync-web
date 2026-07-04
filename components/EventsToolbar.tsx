@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef } from 'react';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { type ActivityContinent } from '../lib/activity-continent';
 import { CountrySelect } from './CountrySelect';
-import type { ActivityRegion } from '../lib/types';
 
 type SortOption = 'popular' | 'upcoming' | 'name';
 
@@ -13,7 +13,7 @@ type EventsToolbarProps = {
   basePath: string;
   query: string;
   country: string;
-  region: ActivityRegion | '';
+  continent: ActivityContinent | '';
   sort: SortOption;
   countries: string[];
   labels: {
@@ -24,22 +24,24 @@ type EventsToolbarProps = {
     sortUpcoming: string;
     sortName: string;
     sortLabel: string;
-    regionAll: string;
-    regionDomestic: string;
-    regionOverseas: string;
-    regionHmt: string;
+    continentAll: string;
+    continentAsia: string;
+    continentEurope: string;
+    continentNorthAmerica: string;
+    continentMiddleEast: string;
+    continentFilterLabel: string;
     clearFilters: string;
   };
 };
 
 function buildEventsHref(
   basePath: string,
-  params: { q?: string; country?: string; region?: string; sort?: string },
+  params: { q?: string; country?: string; continent?: string; sort?: string },
 ): string {
   const search = new URLSearchParams();
   if (params.q?.trim()) search.set('q', params.q.trim());
   if (params.country?.trim()) search.set('country', params.country.trim());
-  if (params.region?.trim()) search.set('region', params.region.trim());
+  if (params.continent?.trim()) search.set('continent', params.continent.trim());
   if (params.sort && params.sort !== 'popular') search.set('sort', params.sort);
   const qs = search.toString();
   return qs ? `${basePath}?${qs}` : basePath;
@@ -49,20 +51,21 @@ export function EventsToolbar({
   basePath,
   query,
   country,
-  region,
+  continent,
   sort,
   countries,
   labels,
 }: EventsToolbarProps) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
-  const hasFilters = Boolean(query || country || region || sort !== 'popular');
+  const hasFilters = Boolean(query || country || continent || sort !== 'popular');
 
-  const regionOptions: Array<{ value: ActivityRegion | ''; label: string }> = [
-    { value: '', label: labels.regionAll },
-    { value: 'domestic', label: labels.regionDomestic },
-    { value: 'overseas', label: labels.regionOverseas },
-    { value: 'hmt', label: labels.regionHmt },
+  const continentOptions: Array<{ value: ActivityContinent | ''; label: string }> = [
+    { value: '', label: labels.continentAll },
+    { value: 'asia', label: labels.continentAsia },
+    { value: 'europe', label: labels.continentEurope },
+    { value: 'north_america', label: labels.continentNorthAmerica },
+    { value: 'middle_east', label: labels.continentMiddleEast },
   ];
 
   function handleSortChange(nextSort: string) {
@@ -75,7 +78,7 @@ export function EventsToolbar({
       buildEventsHref(basePath, {
         q,
         country: nextCountry,
-        region: region || undefined,
+        continent: continent || undefined,
         sort: nextSort,
       }),
     );
@@ -95,7 +98,7 @@ export function EventsToolbar({
             autoComplete="off"
             enterKeyHint="search"
           />
-          {region ? <input type="hidden" name="region" value={region} /> : null}
+          {continent ? <input type="hidden" name="continent" value={continent} /> : null}
           {sort !== 'popular' ? <input type="hidden" name="sort" value={sort} /> : null}
           <button className="button button--inverse button--compact events-toolbar__submit" type="submit">
             {labels.search}
@@ -103,22 +106,26 @@ export function EventsToolbar({
         </div>
 
         <div className="events-toolbar__controls">
-          <div className="events-toolbar__filters" role="group" aria-label={labels.sortLabel}>
+          <div
+            className="events-toolbar__filters"
+            role="group"
+            aria-label={labels.continentFilterLabel}
+          >
             <span className="events-toolbar__filters-label">
               <SlidersHorizontal size={14} strokeWidth={1.75} aria-hidden />
             </span>
             <div className="events-filter-chips">
-              {regionOptions.map((option) => (
+              {continentOptions.map((option) => (
                 <Link
                   key={option.value || 'all'}
                   href={buildEventsHref(basePath, {
                     q: query || undefined,
                     country: country || undefined,
-                    region: option.value || undefined,
+                    continent: option.value || undefined,
                     sort,
                   })}
-                  className={`events-filter-chip${region === option.value ? ' is-active' : ''}`}
-                  aria-current={region === option.value ? 'true' : undefined}
+                  className={`events-filter-chip${continent === option.value ? ' is-active' : ''}`}
+                  aria-current={continent === option.value ? 'true' : undefined}
                 >
                   {option.label}
                 </Link>

@@ -109,6 +109,7 @@ function normalizeActivity(raw: Activity): Activity {
     externalUrl: getString(raw.externalUrl),
     infoSource: getString(raw.infoSource),
     infoUpdatedAt: getString(raw.infoUpdatedAt),
+    updatedAt: getString(raw.updatedAt),
     damaiProjectId: getString(raw.damaiProjectId),
   };
 }
@@ -202,10 +203,37 @@ export type ScheduleDj = {
   genreColor?: string;
 };
 
+export type ScheduleSession = {
+  dateKey: string;
+  label: string;
+  bannerDateLabel: string;
+};
+
+export type SchedulePerformance = {
+  artistId: string;
+  artistName: string;
+  dateKey: string;
+  dateLabel: string;
+  genre: string;
+  genreLabel: string;
+  stage: string;
+  stageLabel: string;
+  startTime: string;
+  endTime: string;
+  startMinutes: number;
+  endMinutes: number;
+  popularity: number;
+  avatarSeed: string;
+  genreColor: string;
+};
+
 export type ActivitySchedule = {
   activityLegacyId: number;
   eventMeta?: string;
+  schedulePublished?: boolean;
+  sessions?: ScheduleSession[];
   djs?: ScheduleDj[];
+  performances?: SchedulePerformance[];
 };
 
 export type ScheduleFetchStatus = 'ok' | 'empty' | 'error';
@@ -221,9 +249,11 @@ export async function fetchActivitySchedule(legacyId: number): Promise<ScheduleF
       `/activities/${legacyId}/itinerary/schedule`,
     );
     const djs = schedule?.djs ?? [];
+    const performances = schedule?.performances ?? [];
+    const hasContent = djs.length > 0 || performances.length > 0;
     return {
       schedule,
-      status: djs.length ? 'ok' : 'empty',
+      status: hasContent ? 'ok' : 'empty',
     };
   } catch {
     return { schedule: null, status: 'error' };
@@ -232,6 +262,26 @@ export async function fetchActivitySchedule(legacyId: number): Promise<ScheduleF
 
 
 
+function activityImageVersion(activity?: Activity | null): string | undefined {
+  const stamp = activity?.updatedAt?.trim() || activity?.infoUpdatedAt?.trim();
+  if (!stamp) return undefined;
+  const parsed = Date.parse(stamp);
+  return Number.isFinite(parsed) ? String(parsed) : stamp;
+}
+
 export function getActivityImage(activity?: Activity | null): string | undefined {
-  return activity?.image?.trim() || undefined;
+  const image = activity?.image?.trim();
+  if (!image) return undefined;
+
+  const version = activityImageVersion(activity);
+  if (!version) return image;
+
+  try {
+    const url = new URL(image);
+    url.searchParams.set('v', version);
+    return url.toString();
+  } catch {
+    const separator = image.includes('?') ? '&' : '?';
+    return `${image}${separator}v=${encodeURIComponent(version)}`;
+  }
 }

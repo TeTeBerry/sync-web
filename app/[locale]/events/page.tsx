@@ -13,6 +13,7 @@ import { listCityGroups, cityPath } from '../../../lib/seo-cities';
 import { Breadcrumbs } from '../../../components/Breadcrumbs';
 import {
   getMessages,
+  getContinentLabel,
   isLocale,
   localizeActivities,
   localizedPath,
@@ -23,7 +24,12 @@ import {
   absoluteLocalizedUrl,
   buildSocialMetadata,
 } from '../../../lib/seo';
-import type { Activity, ActivityRegion } from '../../../lib/types';
+import {
+  activityMatchesContinent,
+  isActivityContinent,
+  type ActivityContinent,
+} from '../../../lib/activity-continent';
+import type { Activity } from '../../../lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,17 +40,13 @@ type EventsPageProps = {
   searchParams?: Promise<{
     q?: string;
     country?: string;
-    region?: string;
+    continent?: string;
     sort?: string;
   }>;
 };
 
 function isSortOption(value: string | undefined): value is SortOption {
   return value === 'popular' || value === 'upcoming' || value === 'name';
-}
-
-function isActivityRegion(value: string | undefined): value is ActivityRegion {
-  return value === 'domestic' || value === 'overseas' || value === 'hmt';
 }
 
 function activitySearchText(activity: Activity): string {
@@ -120,8 +122,8 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
   const activities = localizeActivities(rawActivities, locale);
   const query = queryParams.q?.trim().toLowerCase() ?? '';
   const country = queryParams.country?.trim() ?? '';
-  const rawRegion = queryParams.region?.trim() ?? '';
-  const region: ActivityRegion | '' = isActivityRegion(rawRegion) ? rawRegion : '';
+  const rawContinent = queryParams.continent?.trim() ?? '';
+  const continent: ActivityContinent | '' = isActivityContinent(rawContinent) ? rawContinent : '';
   const rawSort = queryParams.sort?.trim();
   const sort: SortOption = isSortOption(rawSort) ? rawSort : 'popular';
   const cityGroups = listCityGroups(rawActivities, locale).slice(0, 12);
@@ -132,13 +134,13 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
     activities.filter((activity) => {
       const matchesQuery = query ? activitySearchText(activity).includes(query) : true;
       const matchesCountry = country ? activity.area === country : true;
-      const matchesRegion = region ? activity.region === region : true;
-      return matchesQuery && matchesCountry && matchesRegion;
+      const matchesContinent = continent ? activityMatchesContinent(activity, continent) : true;
+      return matchesQuery && matchesCountry && matchesContinent;
     }),
     sort,
   );
 
-  const hasActiveFilters = Boolean(query || country || region || sort !== 'popular');
+  const hasActiveFilters = Boolean(query || country || continent || sort !== 'popular');
   const emptyVariant =
     fetchStatus === 'error'
       ? 'error'
@@ -187,7 +189,7 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
             basePath={eventsPath}
             query={query}
             country={country}
-            region={region}
+            continent={continent}
             sort={sort}
             countries={countries}
             labels={{
@@ -198,10 +200,12 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
               sortUpcoming: t.events.sortUpcoming,
               sortName: t.events.sortName,
               sortLabel: t.events.sortLabel,
-              regionAll: t.events.regionAll,
-              regionDomestic: t.events.regionDomestic,
-              regionOverseas: t.events.regionOverseas,
-              regionHmt: t.events.regionHmt,
+              continentAll: t.events.continentAll,
+              continentAsia: t.events.continentAsia,
+              continentEurope: t.events.continentEurope,
+              continentNorthAmerica: t.events.continentNorthAmerica,
+              continentMiddleEast: t.events.continentMiddleEast,
+              continentFilterLabel: t.events.continentFilterLabel,
               clearFilters: t.events.clearFilters,
             }}
           />
@@ -227,7 +231,7 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
                   locale={locale}
                   query={query}
                   country={country}
-                  region={region}
+                  continent={continent ? getContinentLabel(locale, continent) ?? '' : ''}
                   count={filtered.length}
                   eventsPath={eventsPath}
                   waitlistPath={localizedPath(locale, '/waitlist')}
