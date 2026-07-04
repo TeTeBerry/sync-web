@@ -4,8 +4,9 @@ import { LOCALES, localizedPath } from '../lib/i18n';
 import { eventPath } from '../lib/event-slug';
 import { cityAlternateLanguages, cityPath, listCityGroups } from '../lib/seo-cities';
 import { getSiteUrl } from '../lib/site';
+import type { Activity } from '../lib/types';
 
-const siteUrl = getSiteUrl();
+export const revalidate = 86_400;
 
 function parseDate(value?: string): Date | undefined {
   if (!value) return undefined;
@@ -20,7 +21,10 @@ function getAlternateLanguages(path = '') {
   };
 }
 
-function absoluteLanguages(languages: Record<string, string>): Record<string, string> {
+function absoluteLanguages(
+  siteUrl: string,
+  languages: Record<string, string>,
+): Record<string, string> {
   return Object.fromEntries(
     Object.entries(languages).map(([language, path]) => [
       language,
@@ -29,59 +33,92 @@ function absoluteLanguages(languages: Record<string, string>): Record<string, st
   );
 }
 
-function getActivityLastModified(activity: Awaited<ReturnType<typeof listActivities>>[number]): Date | undefined {
+function getActivityLastModified(activity: Activity): Date | undefined {
   return parseDate(activity.infoUpdatedAt) ?? parseDate(activity.date);
 }
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const activities = await listActivities();
-  const latestActivityModified = activities
-    .map(getActivityLastModified)
-    .filter((value): value is Date => Boolean(value))
-    .sort((a, b) => b.getTime() - a.getTime())[0];
-
+function buildCoreEntries(siteUrl: string, lastModified: Date): MetadataRoute.Sitemap {
   return LOCALES.flatMap((locale) => [
     {
       url: `${siteUrl}${localizedPath(locale)}`,
-      lastModified: latestActivityModified ?? new Date(),
+      lastModified,
       changeFrequency: 'weekly' as const,
       priority: locale === 'zh' ? 1 : 0.9,
       alternates: {
-        languages: absoluteLanguages(getAlternateLanguages()),
+        languages: absoluteLanguages(siteUrl, getAlternateLanguages()),
       },
     },
     {
       url: `${siteUrl}${localizedPath(locale, '/events')}`,
-      lastModified: latestActivityModified ?? new Date(),
+      lastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.9,
       alternates: {
-        languages: absoluteLanguages(getAlternateLanguages('/events')),
+        languages: absoluteLanguages(siteUrl, getAlternateLanguages('/events')),
       },
     },
     {
       url: `${siteUrl}${localizedPath(locale, '/waitlist')}`,
-      lastModified: latestActivityModified ?? new Date(),
+      lastModified,
       changeFrequency: 'monthly' as const,
       priority: 0.7,
       alternates: {
-        languages: absoluteLanguages(getAlternateLanguages('/waitlist')),
+        languages: absoluteLanguages(siteUrl, getAlternateLanguages('/waitlist')),
+      },
+    },
+  ]);
+}
+
+function buildSitemapEntries(siteUrl: string, activities: Activity[]): MetadataRoute.Sitemap {
+  const latestActivityModified = activities
+    .map(getActivityLastModified)
+    .filter((value): value is Date => Boolean(value))
+    .sort((a, b) => b.getTime() - a.getTime())[0];
+  const lastModified = latestActivityModified ?? new Date();
+
+  return LOCALES.flatMap((locale) => [
+    {
+      url: `${siteUrl}${localizedPath(locale)}`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: locale === 'zh' ? 1 : 0.9,
+      alternates: {
+        languages: absoluteLanguages(siteUrl, getAlternateLanguages()),
+      },
+    },
+    {
+      url: `${siteUrl}${localizedPath(locale, '/events')}`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+      alternates: {
+        languages: absoluteLanguages(siteUrl, getAlternateLanguages('/events')),
+      },
+    },
+    {
+      url: `${siteUrl}${localizedPath(locale, '/waitlist')}`,
+      lastModified,
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+      alternates: {
+        languages: absoluteLanguages(siteUrl, getAlternateLanguages('/waitlist')),
       },
     },
     ...listCityGroups(activities, locale).map((group) => {
       const firstActivity = group.activities[0];
-      const lastModified = group.activities
+      const cityLastModified = group.activities
         .map(getActivityLastModified)
         .filter((value): value is Date => Boolean(value))
         .sort((a, b) => b.getTime() - a.getTime())[0];
 
       return {
         url: `${siteUrl}${cityPath(locale, group.city)}`,
-        lastModified: lastModified ?? latestActivityModified ?? new Date(),
+        lastModified: cityLastModified ?? lastModified,
         changeFrequency: 'weekly' as const,
         priority: 0.72,
         alternates: {
           languages: absoluteLanguages(
+            siteUrl,
             firstActivity
               ? cityAlternateLanguages(activities, firstActivity.legacyId)
               : getAlternateLanguages('/events'),
@@ -91,15 +128,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
     ...activities.map((activity) => ({
       url: `${siteUrl}${eventPath(locale, activity)}`,
-      lastModified: getActivityLastModified(activity) ?? latestActivityModified ?? new Date(),
+      lastModified: getActivityLastModified(activity) ?? lastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
       alternates: {
-        languages: absoluteLanguages({
+        languages: absoluteLanguages(siteUrl, {
           'zh-CN': eventPath('zh', activity),
           en: eventPath('en', activity),
         }),
       },
     })),
   ]);
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const siteUrl = getSiteUrl();
+  const lastModified = new Date();
+
+  try {
+    const activities = await listActivities();
+    if (!activities.length) {
+      return buildCoreEntries(siteUrl, lastModified);
+    }
+    return buildSitemapEntries(siteUrl, activities);
+  } catch {
+    return buildCoreEntries(siteUrl, lastModified);
+  }
 }

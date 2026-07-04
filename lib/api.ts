@@ -51,9 +51,12 @@ function normalizeBaseUrl(value: string): string {
   return value.replace(/\/$/, '');
 }
 
+const API_FETCH_TIMEOUT_MS = 8_000;
+
 async function apiGet<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${normalizeBaseUrl(API_BASE)}${path}`, {
     ...options,
+    signal: options?.signal ?? AbortSignal.timeout(API_FETCH_TIMEOUT_MS),
     next: { revalidate: 120 },
   });
   if (!response.ok) {
