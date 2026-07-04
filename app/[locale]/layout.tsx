@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Sparkles } from 'lucide-react';
+import { BrandLogo } from '../../components/BrandLogo';
 import { ScrollRevealInit } from '../../components/ScrollRevealInit';
 import { SiteNav } from '../../components/SiteNav';
 import {
@@ -45,10 +45,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       <header className="site-header">
         <div className="site-header__inner">
           <Link className="brand" href={localizedPath(locale)} aria-label={t.nav.brandHome}>
-            <span className="brand__mark" aria-hidden>
-              <Sparkles size={16} strokeWidth={2.25} />
-            </span>
-            <span>RAVEN</span>
+            <BrandLogo className="brand__logo" height={28} />
           </Link>
           <SiteNav
             locale={locale}
@@ -71,8 +68,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       <footer className="footer">
         <div className="container footer__inner">
           <div className="footer__brand">
-            <Sparkles size={14} strokeWidth={2} aria-hidden />
-            <span>RAVEN</span>
+            <BrandLogo className="brand__logo brand__logo--footer" height={22} />
           </div>
           <p>{t.footer.tagline}</p>
           <p className="footer__note">{t.footer.wechat}</p>

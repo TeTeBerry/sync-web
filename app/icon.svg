@@ -1,21 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="RAVEN">
-  <rect width="512" height="512" rx="112" fill="#050507"/>
-  <circle cx="256" cy="256" r="184" fill="#0d0f12" stroke="#f8fafc" stroke-width="34"/>
-  <circle cx="256" cy="256" r="130" fill="none" stroke="#4cc9f0" stroke-width="16" stroke-opacity="0.9"/>
-  <circle cx="256" cy="256" r="95" fill="none" stroke="#ff0066" stroke-width="10" stroke-opacity="0.22"/>
-  <g stroke-linecap="round">
-    <path d="M142 256h30" stroke="#4cc9f0" stroke-width="22"/>
-    <path d="M340 256h30" stroke="#4cc9f0" stroke-width="22"/>
-    <path d="M192 220v72" stroke="#22d3ee" stroke-width="24"/>
-    <path d="M226 184v144" stroke="#ff0066" stroke-width="24"/>
-    <path d="M260 214v84" stroke="#f8fafc" stroke-width="24"/>
-    <path d="M294 164v184" stroke="#ff0066" stroke-width="24"/>
-    <path d="M328 218v76" stroke="#22d3ee" stroke-width="24"/>
-  </g>
-  <g fill="#f8fafc">
-    <circle cx="184" cy="170" r="10"/>
-    <circle cx="338" cy="168" r="10"/>
-    <circle cx="170" cy="338" r="10"/>
-    <circle cx="340" cy="338" r="10"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Rraven">
+  <defs>
+    <linearGradient id="raven-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050507" />
+      <stop offset="100%" stop-color="#1a1a1f" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#raven-bg)" />
+  <g
+    fill="#f8fafc"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-weight="700"
+    transform="translate(24 0)"
+  >
+    <text x="56" y="292" font-size="176">R</text>
+    <text x="188" y="272" font-size="102">raven</text>
   </g>
 </svg>

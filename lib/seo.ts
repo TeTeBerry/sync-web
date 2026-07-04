@@ -18,10 +18,10 @@ import type { Activity } from './types';
 const siteUrl = getSiteUrl();
 
 const DEFAULT_OG_IMAGE = {
-  url: '/icon.svg',
+  url: '/icon-512.png',
   width: 512,
   height: 512,
-  alt: 'Raven',
+  alt: 'Rraven',
 } as const;
 
 const OG_LOCALE: Record<Locale, string> = {

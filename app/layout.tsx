@@ -36,10 +36,6 @@ export const metadata: Metadata = {
   },
   description:
     'Your AI festival companion. Discover festivals, read lineups, and plan the trip in one conversation.',
-  icons: {
-    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
-    apple: [{ url: '/icon.svg', type: 'image/svg+xml' }],
-  },
   ...buildSocialMetadata({
     title: 'Raven | AI Festival Companion',
     description: 'Less planning. More floor time.',
