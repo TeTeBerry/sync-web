@@ -103,7 +103,7 @@ export const messages = {
         trip: {
           flight: { label: '航班', route: '曼谷 → 普吉 · 12/11', detail: 'AirAsia · 07:40 出发' },
           hotel: { label: '酒店', name: 'Rhythm Park 附近', detail: '2 晚 · 含接驳' },
-          shuttle: { label: '接驳', route: '酒店 ↔ 音乐节场地', detail: '每日 16:00 / 02:30' },
+          shuttle: { label: '接驳', route: '酒店 ↔ 电音节场地', detail: '每日 16:00 / 02:30' },
           days: [
             { label: 'Day 1', summary: '主舞台黄金时段 · 场地接驳 · 夜场收尾' },
             { label: 'Day 2', summary: 'Deep House 分区 · 朋友会合 · 凌晨返程' },
@@ -114,7 +114,7 @@ export const messages = {
           total: '¥4,200',
           perPerson: '人均预算',
           items: [
-            { label: '音乐节门票', amount: '¥1,800', share: 43 },
+            { label: '电音节门票', amount: '¥1,800', share: 43 },
             { label: '机票', amount: '¥980', share: 23 },
             { label: '酒店', amount: '¥860', share: 20 },
             { label: '接驳与本地交通', amount: '¥320', share: 8 },
@@ -153,9 +153,9 @@ export const messages = {
           synced: '已同步到行程日历',
           events: [
             { date: '12/11', title: '飞往普吉', kind: '交通' },
-            { date: '12/12', title: '音乐节 Day 1', kind: '电音节' },
-            { date: '12/13', title: '音乐节 Day 2', kind: '电音节' },
-            { date: '12/14', title: '音乐节 Day 3 · 返程', kind: '电音节' },
+            { date: '12/12', title: '电音节 Day 1', kind: '电音节' },
+            { date: '12/13', title: '电音节 Day 2', kind: '电音节' },
+            { date: '12/14', title: '电音节 Day 3 · 返程', kind: '电音节' },
             { date: '12/15', title: '曼谷缓冲日', kind: '休整' },
           ],
         },
@@ -186,7 +186,7 @@ export const messages = {
         ariaLabel:
           'Raven 产品流程演示：发现电音节、挑选 DJ、生成计划、查看行程报告、同步到日历',
         steps: [
-          { label: '发现音乐节' },
+          { label: '发现电音节' },
           { label: '挑选 DJ' },
           { label: '生成计划' },
           { label: '行程报告' },
@@ -226,7 +226,7 @@ export const messages = {
           meta: 'Tomorrowland Thailand · 12/12–14 · 3 人',
           rows: [
             { icon: '✈', label: '航班', value: '曼谷 → 普吉' },
-            { icon: '🎵', label: '音乐节时间线', value: '12 场已标记', highlight: true },
+            { icon: '🎵', label: '电音节时间线', value: '12 场已标记', highlight: true },
             { icon: '💰', label: '预算', value: '人均 ¥4,200' },
           ],
         },
@@ -247,11 +247,11 @@ export const messages = {
         },
       },
       howEyebrow: '如何操作',
-      howTitle: '三步，规划你的音乐节',
+      howTitle: '三步，规划你的电音节',
       steps: [
         {
           index: '①',
-          title: '发现音乐节',
+          title: '发现电音节',
           imageSrc: '/images/home/discover-festivals.png',
           imageAlt: 'Raven 活动库界面：浏览热门电音节卡片与阵容信息',
         },
@@ -264,7 +264,7 @@ export const messages = {
         {
           index: '③',
           title: 'AI 生成计划',
-          imageAlt: 'Raven AI 行程报告：航班、酒店、音乐节时间线与预算一览',
+          imageAlt: 'Raven AI 行程报告：航班、酒店、电音节时间线与预算一览',
         },
       ],
       planReport: {
@@ -274,7 +274,7 @@ export const messages = {
         sections: [
           { icon: '✈', label: '航班', value: '曼谷 → 普吉 · 12/11' },
           { icon: '🏨', label: '酒店', value: 'Rhythm Park 附近 · 2 晚' },
-          { icon: '🎵', label: '音乐节时间线', value: '12 场 Set 已标记', highlight: true },
+          { icon: '🎵', label: '电音节时间线', value: '12 场 Set 已标记', highlight: true },
           { icon: '💰', label: '预算', value: '人均 ¥4,200' },
           { icon: '🎒', label: '行李清单', value: '8 项已备好' },
           { icon: '⚠', label: '本地贴士', value: '5 条注意事项' },
@@ -286,7 +286,7 @@ export const messages = {
       timelineTitle: '三天行程，一场不落',
       timelineLead: '从抵达到压轴，整周末按时间自动串联。',
       timeline: {
-        ariaLabel: '周末音乐节三日行程时间线示例',
+        ariaLabel: '周末电音节三日行程时间线示例',
         days: [
           {
             label: '周五',
@@ -323,7 +323,7 @@ export const messages = {
       featuresTitle: '一次生成，五项交付',
       featuresLead: '时间线、预算、行李、贴士、日历——从同一次对话自动产出。',
       features: [
-        { id: 'timeline' as const, title: '音乐节时间线' },
+        { id: 'timeline' as const, title: '电音节时间线' },
         { id: 'budget' as const, title: '预算估算' },
         { id: 'packing' as const, title: '行李清单' },
         { id: 'tips' as const, title: '出行贴士' },
@@ -336,7 +336,7 @@ export const messages = {
       futureTitle: '组队规划',
       futureComingSoon: '即将推出',
       futureImageAlt: '朋友们一起在电音节现场',
-      ctaTitle: '准备好迎接下一场音乐节了吗？',
+      ctaTitle: '准备好迎接下一场电音节了吗？',
       ctaButton: '加入等候名单',
     },
     events: {
