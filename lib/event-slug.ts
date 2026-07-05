@@ -1,5 +1,5 @@
 import { getActivityTitle } from './api';
-import { localizeActivity, localizedPath, type Locale } from './i18n';
+import { localizeActivity, localizedPath, DEFAULT_LOCALE, type Locale } from './i18n';
 import type { Activity } from './types';
 
 function slugifyTitle(value: string): string {
@@ -46,7 +46,9 @@ export function eventAlternateLanguages(
 ): Record<string, string> {
   const zh = zhActivity ?? activity;
   const en = enActivity ?? activity;
+  const defaultActivity = DEFAULT_LOCALE === 'zh' ? zh : en;
   return {
+    'x-default': localizedPath(DEFAULT_LOCALE, `/events/${eventSlug(defaultActivity, DEFAULT_LOCALE)}`),
     'zh-CN': localizedPath('zh', `/events/${eventSlug(zh, 'zh')}`),
     en: localizedPath('en', `/events/${eventSlug(en, 'en')}`),
   };

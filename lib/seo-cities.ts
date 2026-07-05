@@ -1,6 +1,6 @@
 import { getActivityTitle } from './api';
 import type { Activity } from './types';
-import { localizeActivities, localizedPath, type Locale } from './i18n';
+import { localizeActivities, localizedPath, DEFAULT_LOCALE, type Locale } from './i18n';
 
 export type CityGroup = {
   city: string;
@@ -105,7 +105,12 @@ export function cityAlternateLanguages(
     group.activities.some((activity) => activity.legacyId === targetLegacyId),
   );
 
+  const defaultGroup = DEFAULT_LOCALE === 'zh' ? zhGroup : enGroup;
+
   return {
+    'x-default': defaultGroup
+      ? cityPath(DEFAULT_LOCALE, defaultGroup.city)
+      : localizedPath(DEFAULT_LOCALE, '/events'),
     'zh-CN': zhGroup ? cityPath('zh', zhGroup.city) : localizedPath('zh', '/events'),
     en: enGroup ? cityPath('en', enGroup.city) : localizedPath('en', '/events'),
   };

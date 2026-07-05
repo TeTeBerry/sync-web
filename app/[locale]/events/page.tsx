@@ -13,6 +13,7 @@ import { listCityGroups, cityPath } from '../../../lib/seo-cities';
 import { Breadcrumbs } from '../../../components/Breadcrumbs';
 import {
   getMessages,
+  DEFAULT_LOCALE,
   getContinentLabel,
   isLocale,
   localizeActivities,
@@ -89,7 +90,7 @@ function sortActivities(activities: Activity[], sort: SortOption): Activity[] {
 
 export async function generateMetadata({ params }: EventsPageProps): Promise<Metadata> {
   const { locale: rawLocale } = await params;
-  const locale = isLocale(rawLocale) ? rawLocale : 'zh';
+  const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
   const t = getMessages(locale);
   const url = absoluteLocalizedUrl(locale, '/events');
 

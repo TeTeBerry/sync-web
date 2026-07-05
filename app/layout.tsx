@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Outfit, DM_Sans } from 'next/font/google';
-import { getMessages, normalizeLocale } from '../lib/i18n';
+import { DEFAULT_LOCALE, getMessages, normalizeLocale } from '../lib/i18n';
 import { getSiteUrl } from '../lib/site';
 import { buildSocialMetadata } from '../lib/seo';
 import './globals.css';
@@ -27,20 +27,20 @@ const dmSans = DM_Sans({
 });
 
 const siteUrl = getSiteUrl();
+const defaultMessages = getMessages(DEFAULT_LOCALE);
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'Raven | AI Festival Companion',
+    default: defaultMessages.siteTitle,
     template: '%s | Raven',
   },
-  description:
-    'Your AI festival companion. Discover festivals, read lineups, and plan the trip in one conversation.',
+  description: defaultMessages.siteDescription,
   ...buildSocialMetadata({
-    title: 'Raven | AI Festival Companion',
-    description: 'Less planning. More floor time.',
+    title: defaultMessages.siteTitle,
+    description: defaultMessages.ogDescription,
     url: siteUrl,
-    locale: 'en',
+    locale: DEFAULT_LOCALE,
   }),
 };
 

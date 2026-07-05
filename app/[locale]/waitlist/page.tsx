@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { WaitlistForm } from './WaitlistForm';
 import {
   getMessages,
+  DEFAULT_LOCALE,
   isLocale,
   localizedPath,
   type Locale,
@@ -20,7 +21,7 @@ type WaitlistPageProps = {
 
 export async function generateMetadata({ params }: WaitlistPageProps): Promise<Metadata> {
   const { locale: rawLocale } = await params;
-  const locale = isLocale(rawLocale) ? rawLocale : 'zh';
+  const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
   const t = getMessages(locale);
   const url = absoluteLocalizedUrl(locale, '/waitlist');
 

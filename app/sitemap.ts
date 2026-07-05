@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { listActivities } from '../lib/api';
-import { LOCALES, localizedPath } from '../lib/i18n';
-import { eventPath } from '../lib/event-slug';
+import { LOCALES, DEFAULT_LOCALE, alternateLanguages, localizedPath } from '../lib/i18n';
+import { eventAlternateLanguages, eventPath } from '../lib/event-slug';
 import { cityAlternateLanguages, cityPath, listCityGroups } from '../lib/seo-cities';
 import { getSiteUrl } from '../lib/site';
 import type { Activity } from '../lib/types';
@@ -13,13 +13,6 @@ function parseDate(value?: string): Date | undefined {
   if (!value) return undefined;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
-}
-
-function getAlternateLanguages(path = '') {
-  return {
-    'zh-CN': localizedPath('zh', path),
-    en: localizedPath('en', path),
-  };
 }
 
 function absoluteLanguages(
@@ -44,9 +37,9 @@ function buildCoreEntries(siteUrl: string, lastModified: Date): MetadataRoute.Si
       url: `${siteUrl}${localizedPath(locale)}`,
       lastModified,
       changeFrequency: 'weekly' as const,
-      priority: locale === 'zh' ? 1 : 0.9,
+      priority: locale === DEFAULT_LOCALE ? 1 : 0.9,
       alternates: {
-        languages: absoluteLanguages(siteUrl, getAlternateLanguages()),
+        languages: absoluteLanguages(siteUrl, alternateLanguages()),
       },
     },
     {
@@ -55,7 +48,7 @@ function buildCoreEntries(siteUrl: string, lastModified: Date): MetadataRoute.Si
       changeFrequency: 'weekly' as const,
       priority: 0.9,
       alternates: {
-        languages: absoluteLanguages(siteUrl, getAlternateLanguages('/events')),
+        languages: absoluteLanguages(siteUrl, alternateLanguages('/events')),
       },
     },
     {
@@ -64,7 +57,7 @@ function buildCoreEntries(siteUrl: string, lastModified: Date): MetadataRoute.Si
       changeFrequency: 'monthly' as const,
       priority: 0.7,
       alternates: {
-        languages: absoluteLanguages(siteUrl, getAlternateLanguages('/waitlist')),
+        languages: absoluteLanguages(siteUrl, alternateLanguages('/waitlist')),
       },
     },
   ]);
@@ -82,9 +75,9 @@ function buildSitemapEntries(siteUrl: string, activities: Activity[]): MetadataR
       url: `${siteUrl}${localizedPath(locale)}`,
       lastModified,
       changeFrequency: 'weekly' as const,
-      priority: locale === 'zh' ? 1 : 0.9,
+      priority: locale === DEFAULT_LOCALE ? 1 : 0.9,
       alternates: {
-        languages: absoluteLanguages(siteUrl, getAlternateLanguages()),
+        languages: absoluteLanguages(siteUrl, alternateLanguages()),
       },
     },
     {
@@ -93,7 +86,7 @@ function buildSitemapEntries(siteUrl: string, activities: Activity[]): MetadataR
       changeFrequency: 'weekly' as const,
       priority: 0.9,
       alternates: {
-        languages: absoluteLanguages(siteUrl, getAlternateLanguages('/events')),
+        languages: absoluteLanguages(siteUrl, alternateLanguages('/events')),
       },
     },
     {
@@ -102,7 +95,7 @@ function buildSitemapEntries(siteUrl: string, activities: Activity[]): MetadataR
       changeFrequency: 'monthly' as const,
       priority: 0.7,
       alternates: {
-        languages: absoluteLanguages(siteUrl, getAlternateLanguages('/waitlist')),
+        languages: absoluteLanguages(siteUrl, alternateLanguages('/waitlist')),
       },
     },
     ...listCityGroups(activities, locale).map((group) => {
@@ -122,7 +115,7 @@ function buildSitemapEntries(siteUrl: string, activities: Activity[]): MetadataR
             siteUrl,
             firstActivity
               ? cityAlternateLanguages(activities, firstActivity.legacyId)
-              : getAlternateLanguages('/events'),
+              : alternateLanguages('/events'),
           ),
         },
       };
@@ -133,10 +126,7 @@ function buildSitemapEntries(siteUrl: string, activities: Activity[]): MetadataR
       changeFrequency: 'weekly' as const,
       priority: 0.8,
       alternates: {
-        languages: absoluteLanguages(siteUrl, {
-          'zh-CN': eventPath('zh', activity),
-          en: eventPath('en', activity),
-        }),
+        languages: absoluteLanguages(siteUrl, eventAlternateLanguages(activity)),
       },
     })),
   ]);

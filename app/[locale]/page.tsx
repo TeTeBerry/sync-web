@@ -14,6 +14,7 @@ import { TrackedLink } from '../../components/TrackedLink';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import {
   getMessages,
+  DEFAULT_LOCALE,
   isLocale,
   localizedPath,
   type Locale,
@@ -43,7 +44,7 @@ const AiPlannerExperience = nextDynamic(
 
 export async function generateMetadata({ params }: HomePageProps): Promise<Metadata> {
   const { locale: rawLocale } = await params;
-  const locale = isLocale(rawLocale) ? rawLocale : 'zh';
+  const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
   const t = getMessages(locale);
   const url = absoluteLocalizedUrl(locale);
 

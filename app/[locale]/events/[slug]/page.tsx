@@ -41,6 +41,7 @@ import { getActivityContinent } from '../../../../lib/activity-continent';
 import { getSiteUrl } from '../../../../lib/site';
 import {
   activityMetaForLocale,
+  DEFAULT_LOCALE,
   getActivityTypeLabel,
   getContinentLabel,
   getMessages,
@@ -59,7 +60,7 @@ export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: EventDetailProps): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
-  const locale = isLocale(rawLocale) ? rawLocale : 'zh';
+  const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
   const legacyId = parseEventLegacyId(slug);
   if (!legacyId) return {};
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createWaitlistSubmission, findWaitlistContact } from '../../../lib/waitlist';
+import { DEFAULT_LOCALE, normalizeLocale } from '../../../lib/i18n';
 
 const TO_EMAIL = 'czy250714751cn@sina.cn';
 const FROM_EMAIL = 'noreply@raven-festival.com';
@@ -16,7 +17,7 @@ function readEventLegacyId(value: string): number | null {
 }
 
 export async function POST(request: Request) {
-  let locale = 'zh';
+  let locale = DEFAULT_LOCALE;
 
   try {
     const payload = await request.json();
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
     const event = readText(payload.event);
     const note = readText(payload.note);
     const sourcePath = readText(payload.sourcePath);
-    locale = readText(payload.locale) || 'zh';
+    locale = normalizeLocale(readText(payload.locale) || undefined);
     const userAgent = request.headers.get('user-agent')?.trim() ?? '';
 
     if (!email && !note) {

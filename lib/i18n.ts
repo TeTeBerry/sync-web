@@ -5,7 +5,7 @@ import { compactMeta } from './format';
 export const LOCALES = ['zh', 'en'] as const;
 export type Locale = (typeof LOCALES)[number];
 
-export const DEFAULT_LOCALE: Locale = 'zh';
+export const DEFAULT_LOCALE: Locale = 'en';
 
 export function isLocale(value: string): value is Locale {
   return (LOCALES as readonly string[]).includes(value);
@@ -38,6 +38,7 @@ export function localizedPath(locale: Locale, path = ''): string {
 
 export function alternateLanguages(path = ''): Record<string, string> {
   return {
+    'x-default': localizedPath(DEFAULT_LOCALE, path),
     'zh-CN': localizedPath('zh', path),
     en: localizedPath('en', path),
   };

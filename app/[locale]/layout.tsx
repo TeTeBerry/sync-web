@@ -17,7 +17,7 @@ type LocaleLayoutProps = {
 };
 
 export function generateStaticParams() {
-  return [{ locale: 'zh' }, { locale: 'en' }];
+  return [{ locale: 'en' }, { locale: 'zh' }];
 }
 
 export default async function LocaleLayout({ children, params }: LocaleLayoutProps) {

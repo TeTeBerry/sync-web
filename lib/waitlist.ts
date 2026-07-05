@@ -24,13 +24,13 @@ async function ensureWaitlistTable(): Promise<void> {
           note TEXT NOT NULL DEFAULT '',
           source_path TEXT NOT NULL DEFAULT '',
           user_agent TEXT NOT NULL DEFAULT '',
-          locale TEXT NOT NULL DEFAULT 'zh',
+          locale TEXT NOT NULL DEFAULT 'en',
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
       `;
       await sql`
         ALTER TABLE waitlist_submissions
-        ADD COLUMN IF NOT EXISTS locale TEXT NOT NULL DEFAULT 'zh'
+        ADD COLUMN IF NOT EXISTS locale TEXT NOT NULL DEFAULT 'en'
       `;
     })();
   }

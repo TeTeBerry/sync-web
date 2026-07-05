@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { PageErrorState } from '../../../../components/states/PageErrorState';
-import { isLocale, type Locale } from '../../../../lib/i18n';
+import { isLocale, DEFAULT_LOCALE, type Locale } from '../../../../lib/i18n';
 
 type EventDetailErrorProps = {
   reset: () => void;
@@ -10,8 +10,8 @@ type EventDetailErrorProps = {
 
 export default function EventDetailError({ reset }: EventDetailErrorProps) {
   const params = useParams();
-  const rawLocale = typeof params.locale === 'string' ? params.locale : 'zh';
-  const locale: Locale = isLocale(rawLocale) ? rawLocale : 'zh';
+  const rawLocale = typeof params.locale === 'string' ? params.locale : DEFAULT_LOCALE;
+  const locale: Locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
 
   return <PageErrorState locale={locale} reset={reset} />;
 }
