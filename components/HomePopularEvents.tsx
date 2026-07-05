@@ -65,6 +65,7 @@ export async function HomePopularEvents({ locale }: HomePopularEventsProps) {
           activity={activity}
           locale={locale}
           featured={index === 0}
+          priorityImage={index === 0}
           key={activity.legacyId}
           style={{ '--card-index': index } as CSSProperties}
         />

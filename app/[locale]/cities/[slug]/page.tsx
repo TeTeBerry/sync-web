@@ -102,8 +102,13 @@ export default async function CityPage({ params }: CityPageProps) {
           </div>
 
           <div className="event-grid city-landing__grid">
-            {group.activities.map((activity) => (
-              <EventCard activity={activity} locale={locale} key={activity.legacyId} />
+            {group.activities.map((activity, index) => (
+              <EventCard
+                activity={activity}
+                locale={locale}
+                priorityImage={index === 0}
+                key={activity.legacyId}
+              />
             ))}
           </div>
 

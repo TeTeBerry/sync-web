@@ -251,7 +251,7 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
                     activity={activity}
                     locale={locale}
                     featured={activity.legacyId === featuredId}
-                    priorityImage={index < 2}
+                    priorityImage={index < 3}
                     key={activity.legacyId}
                     style={{ '--card-index': index } as CSSProperties}
                   />
