@@ -600,10 +600,13 @@ textarea.field-input {
   gap: 6px;
   min-height: var(--control-height-sm);
   padding: 0 12px;
+  border: none;
+  background: transparent;
   color: var(--ink-dim);
   font-size: var(--type-small);
   font-weight: var(--fw-medium);
   text-decoration: none;
+  cursor: pointer;
   transition:
     color var(--duration-normal) var(--ease-out),
     gap var(--duration-normal) var(--ease-out);
