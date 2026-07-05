@@ -7788,6 +7788,35 @@ h3 {
     min-height: 280px;
   }
 
+  .detail-page .section--detail-tight {
+    padding-block: clamp(20px, 3.5vw, 28px);
+  }
+
+  .detail-page .section--detail-body {
+    padding-block: clamp(24px, 4vw, 32px);
+    padding-bottom: 0;
+  }
+
+  .detail-page .section--detail-body + .section--detail-related {
+    padding-top: clamp(16px, 3vw, 24px);
+  }
+
+  .detail-page .section--detail-related {
+    padding-block: clamp(28px, 4.5vw, 40px);
+  }
+
+  .detail-page .section--detail-related .section__header {
+    margin-bottom: 12px;
+  }
+
+  .detail-page .detail-layout {
+    gap: 16px;
+  }
+
+  .detail-page .detail-rail {
+    gap: 12px;
+  }
+
   .event-ai-summary__grid {
     grid-template-columns: 1fr;
   }
