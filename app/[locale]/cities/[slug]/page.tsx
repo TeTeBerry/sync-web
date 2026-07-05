@@ -106,7 +106,7 @@ export default async function CityPage({ params }: CityPageProps) {
               <EventCard
                 activity={activity}
                 locale={locale}
-                priorityImage={index === 0}
+                priorityImage={index < 3}
                 key={activity.legacyId}
               />
             ))}

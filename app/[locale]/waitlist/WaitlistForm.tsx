@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Check, Shield, Sparkles, UserCheck } from 'lucide-react';
 import { track } from '@vercel/analytics';
@@ -226,7 +225,7 @@ export function WaitlistForm({ initialEvent = '', initialNote = '', locale }: Wa
         </div>
 
         <div className="container ai-hero__grid waitlist-hero__grid">
-          <div className="waitlist-hero__copy" data-reveal>
+          <div className="waitlist-hero__copy">
             <div className="ai-badge">
               <Sparkles size={13} strokeWidth={2.25} aria-hidden />
               <span>{t.waitlist.badge}</span>
@@ -260,7 +259,7 @@ export function WaitlistForm({ initialEvent = '', initialNote = '', locale }: Wa
             </div>
           </div>
 
-          <div className="waitlist-hero__panel" data-reveal style={{ '--reveal-delay': '0.1s' } as CSSProperties}>
+          <div className="waitlist-hero__panel">
             <WaitlistAccessCard
               badge={t.waitlist.card.badge}
               status={t.waitlist.card.status}

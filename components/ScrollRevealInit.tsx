@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 function revealElement(el: Element) {
-  el.classList.add('is-revealed');
+  el.setAttribute('data-revealed', '');
 }
 
 function isInViewport(el: Element): boolean {
@@ -39,7 +39,7 @@ function initScrollReveal() {
   );
 
   targets.forEach((el) => {
-    if (el.classList.contains('is-revealed')) return;
+    if (el.hasAttribute('data-revealed')) return;
     if (isInViewport(el)) {
       revealElement(el);
       return;

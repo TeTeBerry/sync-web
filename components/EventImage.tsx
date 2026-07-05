@@ -23,7 +23,6 @@ export function EventImage({
       sizes={sizes}
       className={className}
       priority={priority}
-      loading={priority ? 'eager' : 'lazy'}
       quality={priority ? 85 : 75}
     />
   );

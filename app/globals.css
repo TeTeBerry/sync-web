@@ -767,7 +767,8 @@ textarea.field-input {
   will-change: opacity, transform;
 }
 
-[data-reveal].is-revealed {
+[data-reveal].is-revealed,
+[data-reveal][data-revealed] {
   opacity: 1;
   transform: translateY(0);
   will-change: auto;
@@ -824,7 +825,8 @@ textarea.field-input {
   max-width: 100%;
 }
 
-[data-reveal-stagger].is-revealed>* {
+[data-reveal-stagger].is-revealed>*,
+[data-reveal-stagger][data-revealed]>* {
   opacity: 1;
   transform: translateY(0);
   will-change: auto;
@@ -1820,7 +1822,8 @@ h3 {
   object-position: center top;
 }
 
-[data-reveal].is-revealed .detail-hero__media {
+[data-reveal].is-revealed .detail-hero__media,
+[data-reveal][data-revealed] .detail-hero__media {
   box-shadow:
     var(--shadow-lg),
     inset 0 1px 0 rgba(255, 255, 255, 0.07),

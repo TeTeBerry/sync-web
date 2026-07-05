@@ -322,12 +322,6 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
                   <dt>{t.eventDetail.region}</dt>
                   <dd>{continentLabel ?? '-'}</dd>
                 </div>
-                {activity.attendees != null ? (
-                  <div className="detail-facts__row">
-                    <dt>{t.eventDetail.attendees}</dt>
-                    <dd>{activity.attendees.toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US')}</dd>
-                  </div>
-                ) : null}
                 {activity.infoSource ? (
                   <div className="detail-facts__row">
                     <dt>{t.eventDetail.infoSource}</dt>
