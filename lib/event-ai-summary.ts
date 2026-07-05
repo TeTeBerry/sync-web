@@ -1,6 +1,7 @@
 import type { ScheduleDj } from './api';
 import type { Activity } from './types';
 import type { Locale } from './i18n';
+import { resolveGenreBroadToken } from './lineup-genre';
 
 export type EventAiSummary = {
   vibe: string;
@@ -11,87 +12,17 @@ export type EventAiSummary = {
   genreCount: number;
 };
 
-const GENRE_BROAD: Record<string, string> = {
-  House: 'House',
-  house: 'House',
-  'Chicago house': 'House',
-  'Deep House': 'House',
-  'deep house': 'House',
-  'Progressive House': 'House',
-  'Progressive house': 'House',
-  'Tech House': 'House',
-  'tech house': 'House',
-  'Euro House': 'House',
-  'Tropical House': 'House',
-  'piano house': 'House',
-  'Big Room': 'House',
-  'Hard House': 'House',
-  Electro: 'House',
-  Euro: 'House',
-  Disco: 'House',
-  Techno: 'Techno',
-  'Dub Techno': 'Techno',
-  'Minimal Techno': 'Techno',
-  'Melodic and cinematic techno': 'Techno',
-  Minimal: 'Techno',
-  Industrial: 'Techno',
-  'Hard Techno': 'Hard',
-  'Hard techno': 'Hard',
-  Hardstyle: 'Hardstyle',
-  hardstyle: 'Hardstyle',
-  'Dutch hardstyle': 'Hardstyle',
-  rawstyle: 'Hardstyle',
-  Hardcore: 'Hardcore',
-  'Hardcore box set': 'Hardcore',
-  'early hardcore': 'Hardcore',
-  'Happy Hardcore': 'Hardcore',
-  frenchcore: 'Hardcore',
-  Frenchcore: 'Hardcore',
-  Gabber: 'Hardcore',
-  'Industrial Techno & Hardcore': 'Hardcore',
-  Hard: 'Hard',
-  Trance: 'Trance',
-  'Progressive Trance': 'Trance',
-  Psytrance: 'Trance',
-  psytrance: 'Trance',
-  'Psy-Trance': 'Trance',
-  'Tech Trance': 'Trance',
-  'Hard Trance': 'Trance',
-  'uplifting electronic': 'Trance',
-  'Drum n Bass': 'Drum & Bass',
-  'Drum & Bass': 'Drum & Bass',
-  'DnB mixes': 'Drum & Bass',
-  Dubstep: 'Dubstep',
-  dubstep: 'Dubstep',
-  'Dubstep producer': 'Dubstep',
-  Bass: 'Bass',
-  'Future Bass': 'Bass',
-  'UK Bass': 'Bass',
-  Trap: 'Bass',
-  riddim: 'Bass',
-  Ambient: 'Ambient',
-  ambient: 'Ambient',
-  'Dark Ambient': 'Ambient',
-  'dark ambient': 'Ambient',
-  Breakbeat: 'Breaks',
-  'UK Garage': 'UK Garage',
-  Acid: 'Acid',
-  'Acid Jazz': 'Acid',
-  'hip hop': 'Hip Hop',
-  'hip-hop': 'Hip Hop',
-  Reggae: 'Reggae',
-  'Reggae Artist': 'Reggae',
-  latin: 'Latin',
-  merengue: 'Latin',
-};
-
 function broadGenre(dj: ScheduleDj): string {
   const primary = dj.genre?.trim();
-  if (primary && GENRE_BROAD[primary]) return GENRE_BROAD[primary];
-  if (primary && GENRE_BROAD[primary.toLowerCase()]) return GENRE_BROAD[primary.toLowerCase()];
+  if (primary) {
+    const mapped = resolveGenreBroadToken(primary);
+    if (mapped) return mapped;
+  }
   const first = dj.genreLabel?.split('·')[0]?.trim();
-  if (first && GENRE_BROAD[first]) return GENRE_BROAD[first];
-  if (first && GENRE_BROAD[first.toLowerCase()]) return GENRE_BROAD[first.toLowerCase()];
+  if (first) {
+    const mapped = resolveGenreBroadToken(first);
+    if (mapped) return mapped;
+  }
   return 'Other';
 }
 

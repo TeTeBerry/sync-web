@@ -54,7 +54,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   const t = getMessages(locale);
 
   return (
-    <html lang={t.htmlLang} className={`${outfit.variable} ${dmSans.variable}`}>
+    <html lang={t.htmlLang} className={`${outfit.variable} ${dmSans.variable}`} data-scroll-behavior="smooth">
       <body>
         <div className="ambient-bg" aria-hidden="true">
           <div className="ambient-bg__orb ambient-bg__orb--purple" />

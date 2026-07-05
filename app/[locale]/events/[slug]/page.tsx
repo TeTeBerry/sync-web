@@ -13,7 +13,7 @@ import { LineupErrorState } from '../../../../components/states/LineupErrorState
 import { EmptyState } from '../../../../components/states/EmptyState';
 import { RelatedEventsError } from '../../../../components/states/RelatedEventsError';
 import { EventDetailActions } from '../../../../components/EventDetailActions';
-import { LineupTimetable } from '../../../../components/LineupTimetable';
+import { DetailLineupContent } from '../../../../components/lineup/DetailLineupContent';
 import { TrackedLink } from '../../../../components/TrackedLink';
 import { EventImage } from '../../../../components/EventImage';
 import {
@@ -119,6 +119,14 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
     if (a === otherLabel) return 1;
     if (b === otherLabel) return -1;
     return (genreGroups.get(b)?.djs.length ?? 0) - (genreGroups.get(a)?.djs.length ?? 0);
+  });
+  const genreGroupData = genreKeys.map((genreLabel) => {
+    const group = genreGroups.get(genreLabel)!;
+    return {
+      genreLabel,
+      color: group.color,
+      djs: group.djs,
+    };
   });
   const aiSummary = buildEventAiSummary(activity, djs, locale);
   const eventTitle = getActivityTitle(activity);
@@ -259,48 +267,23 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
                   browse: t.eventDetail.lineupEmptyBrowse,
                 }}
               />
-            ) : showTimetable && timetableDays.length > 0 ? (
-              <LineupTimetable
-                days={timetableDays}
-                labels={{
+            ) : (showTimetable && timetableDays.length > 0) || djs.length > 0 ? (
+              <DetailLineupContent
+                activityLegacyId={activity.legacyId}
+                showTimetable={showTimetable && timetableDays.length > 0}
+                timetableDays={timetableDays}
+                genreGroups={genreGroupData}
+                timetableLabels={{
                   time: t.eventDetail.lineupTimetableTime,
                   artist: t.eventDetail.lineupTimetableArtist,
                   genre: t.eventDetail.lineupTimetableGenre,
                 }}
+                selectionLabels={{
+                  hint: t.eventDetail.lineupPickHint,
+                  count: t.eventDetail.lineupPickCount,
+                  clear: t.eventDetail.lineupPickClear,
+                }}
               />
-            ) : djs.length > 0 ? (
-              <div className="lineup-genre-groups">
-                {genreKeys.map((genreLabel) => {
-                  const { color, djs: groupDjs } = genreGroups.get(genreLabel)!;
-                  return (
-                    <section className="lineup-section" key={genreLabel}>
-                      <div className="lineup-section__header">
-                        <h3 className="lineup-section__title">
-                          <span
-                            className="lineup-section__accent"
-                            style={{ background: color }}
-                          />
-                          {genreLabel}
-                        </h3>
-                        <span className="lineup-section__count">{groupDjs.length}</span>
-                      </div>
-                      <div className="lineup-genre-grid">
-                        {groupDjs.map((dj) => (
-                          <div className="artist-card" key={dj.id} style={{ '--artist-accent': color } as CSSProperties}>
-                            <span className="artist-card__bar" aria-hidden="true" />
-                            <div className="artist-card__copy">
-                              <span className="artist-card__name">{dj.name}</span>
-                              {dj.stageLabel || dj.stage ? (
-                                <span className="artist-card__stage">{dj.stageLabel ?? dj.stage}</span>
-                              ) : null}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  );
-                })}
-              </div>
             ) : (
               <LineupEmptyState
                 locale={locale}

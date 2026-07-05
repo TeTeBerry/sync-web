@@ -44,16 +44,18 @@ export function HomeLoading({ locale }: HomeLoadingProps) {
         <div className="container">
           <div className="section__header section__header--center">
             <Skeleton style={{ width: 120, height: 12, margin: '0 auto' }} rounded="sm" />
-            <Skeleton style={{ width: 'min(100%, 240px)', height: 32, margin: '12px auto 0' }} delay={1} />
-            <Skeleton style={{ width: 'min(100%, 360px)', height: 16, margin: '12px auto 0' }} delay={2} />
+            <Skeleton style={{ width: 'min(100%, 280px)', height: 32, margin: '12px auto 0' }} delay={1} />
           </div>
-          <ol className="how-steps">
+          <ol className="product-flow">
             {[0, 1, 2].map((index) => (
-              <li className="how-step page-loading__step" key={index}>
-                <Skeleton style={{ width: 28, height: 14 }} delay={index as 0 | 1 | 2} />
-                <Skeleton style={{ width: '72%', height: 18 }} delay={index as 0 | 1 | 2} />
-                <Skeleton style={{ width: '100%', height: 14 }} delay={index as 0 | 1 | 2} />
-                <Skeleton style={{ width: '88%', height: 14 }} delay={index as 0 | 1 | 2} />
+              <li className="product-flow__step page-loading__step" key={index}>
+                <Skeleton style={{ width: 140, height: 20 }} delay={index as 0 | 1 | 2} rounded="sm" />
+                <Skeleton
+                  style={{ width: '100%', height: index === 2 ? 168 : 156 }}
+                  delay={index as 0 | 1 | 2}
+                  rounded="lg"
+                />
+                {index < 2 ? <Skeleton style={{ width: 16, height: 16, margin: '0 auto' }} delay={index as 0 | 1 | 2} /> : null}
               </li>
             ))}
           </ol>
@@ -66,23 +68,35 @@ export function HomeLoading({ locale }: HomeLoadingProps) {
             <Skeleton style={{ width: 'min(100%, 220px)', height: 32, margin: '0 auto' }} />
             <Skeleton style={{ width: 'min(100%, 320px)', height: 16, margin: '12px auto 0' }} delay={1} />
           </div>
-          <AiPlannerSkeleton thinkingLabel={t.states.aiThinking} />
+          <AiPlannerSkeleton />
         </div>
       </section>
 
-      <section className="section capabilities-section page-loading__section" style={{ animationDelay: '0.14s' }}>
-        <div className="container capabilities-layout">
-          <div className="capabilities-layout__intro">
-            <Skeleton style={{ width: 'min(100%, 240px)', height: 32 }} />
-            <Skeleton style={{ width: 'min(100%, 320px)', height: 16, marginTop: 12 }} delay={1} />
+      <section className="section festival-timeline-section page-loading__section" style={{ animationDelay: '0.12s' }}>
+        <div className="container festival-timeline-layout">
+          <div className="festival-timeline-layout__intro">
+            <Skeleton style={{ width: 88, height: 12 }} rounded="sm" />
+            <Skeleton style={{ width: 'min(100%, 260px)', height: 32, marginTop: 12 }} delay={1} />
+            <Skeleton style={{ width: 'min(100%, 320px)', height: 16, marginTop: 12 }} delay={2} />
           </div>
-          <div className="capability-rail">
-            {[0, 1, 2, 3].map((index) => (
-              <article className="capability-rail__item page-loading__step" key={index}>
-                <Skeleton style={{ width: 36, height: 36 }} delay={index as 0 | 1 | 2 | 3} rounded="md" />
-                <Skeleton style={{ width: '70%', height: 16 }} delay={index as 0 | 1 | 2 | 3} />
-                <Skeleton style={{ width: '100%', height: 14 }} delay={index as 0 | 1 | 2 | 3} />
-              </article>
+          <Skeleton style={{ width: '100%', maxWidth: 420, height: 380, marginLeft: 'auto' }} delay={1} rounded="xl" />
+        </div>
+      </section>
+
+      <section className="section features-section page-loading__section" style={{ animationDelay: '0.14s' }}>
+        <div className="container">
+          <div className="section__header section__header--center">
+            <Skeleton style={{ width: 96, height: 12, margin: '0 auto' }} rounded="sm" />
+            <Skeleton style={{ width: 'min(100%, 260px)', height: 32, margin: '12px auto 0' }} delay={1} />
+            <Skeleton style={{ width: 'min(100%, 360px)', height: 16, margin: '12px auto 0' }} delay={2} />
+          </div>
+          <div className="feature-deliverables">
+            {[0, 1, 2, 3, 4].map((index) => (
+              <div className="feature-deliverables__item page-loading__step" key={index}>
+                <Skeleton style={{ width: 32, height: 32 }} delay={index as 0 | 1 | 2 | 3 | 4} rounded="md" />
+                <Skeleton style={{ width: '56%', height: 16 }} delay={index as 0 | 1 | 2 | 3 | 4} />
+                <Skeleton style={{ width: 14, height: 14 }} delay={index as 0 | 1 | 2 | 3 | 4} />
+              </div>
             ))}
           </div>
         </div>
@@ -98,6 +112,20 @@ export function HomeLoading({ locale }: HomeLoadingProps) {
             <Skeleton style={{ width: 96, height: 16 }} delay={2} />
           </div>
           <PopularEventsSkeleton />
+        </div>
+      </section>
+
+      <section className="section future-section page-loading__section" style={{ animationDelay: '0.2s' }}>
+        <div className="container">
+          <div className="section__header section__header--center">
+            <Skeleton style={{ width: 72, height: 12, margin: '0 auto' }} rounded="sm" />
+            <Skeleton style={{ width: 'min(100%, 220px)', height: 32, margin: '12px auto 0' }} delay={1} />
+          </div>
+          <Skeleton
+            style={{ width: '100%', maxWidth: 960, height: 420, margin: '0 auto' }}
+            delay={2}
+            rounded="xl"
+          />
         </div>
       </section>
     </main>

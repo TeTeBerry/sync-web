@@ -1,3 +1,5 @@
+'use client';
+
 import type { CSSProperties } from 'react';
 import type { LineupTimetableDay } from '../lib/lineup-timetable';
 import { LineupTimetableSlot } from './LineupTimetableSlot';

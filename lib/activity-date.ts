@@ -94,14 +94,6 @@ export function getActivityEndYmd(activity: Activity): string | null {
   return null;
 }
 
-/** @deprecated Prefer `getActivityEndYmd` for expiry checks. */
-export function getActivityEndDate(activity: Activity): Date | null {
-  const ymd = getActivityEndYmd(activity);
-  if (!ymd) return null;
-  const [year, month, day] = ymd.split('-').map(Number);
-  return new Date(year, month - 1, day, 23, 59, 59, 999);
-}
-
 /** YYYY-MM-DD in the catalog timezone (China, UTC+8). */
 export function formatYmdInCatalogTz(
   date: Date,

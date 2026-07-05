@@ -118,6 +118,10 @@ function mapGenreToken(token: string): string | undefined {
   return undefined;
 }
 
+export function resolveGenreBroadToken(token: string): string | undefined {
+  return mapGenreToken(token);
+}
+
 function resolveBroadGenreFromFields(input: {
   genre?: string;
   genreLabel?: string;

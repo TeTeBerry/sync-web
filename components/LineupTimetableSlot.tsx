@@ -13,6 +13,8 @@ import { createPortal } from 'react-dom';
 import type { LineupTimetableSlot as TimetableSlot } from '../lib/lineup-timetable';
 import { formatLineupTimeRange } from '../lib/lineup-timetable';
 import { MISSING_GENRE_LABEL } from '../lib/lineup-genre';
+import { timetableSlotSelectionId } from '../lib/lineup-selection';
+import { useLineupSelection } from './lineup/LineupSelectionContext';
 
 type LineupTimetableSlotProps = {
   slot: TimetableSlot;
@@ -48,8 +50,11 @@ function ArtistTooltipContent({ name }: { name: string }) {
 }
 
 export function LineupTimetableSlot({ slot, timeLabel, accent }: LineupTimetableSlotProps) {
+  const { isSelected, toggle } = useLineupSelection();
+  const selectionId = timetableSlotSelectionId(slot.artistId, slot.startMinutes);
+  const selected = isSelected(selectionId);
   const tooltipId = useId();
-  const slotRef = useRef<HTMLLIElement>(null);
+  const slotRef = useRef<HTMLButtonElement>(null);
   const artistRef = useRef<HTMLSpanElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
@@ -146,43 +151,48 @@ export function LineupTimetableSlot({ slot, timeLabel, accent }: LineupTimetable
 
   return (
     <>
-      <li
-        ref={slotRef}
-        className={[
-          'lineup-timetable__slot',
-          showTooltip ? 'lineup-timetable__slot--tooltip' : '',
-          isTooltipVisible ? 'lineup-timetable__slot--tooltip-open' : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-        style={{ '--stage-accent': accent } as CSSProperties}
-        onMouseEnter={handleShowTooltip}
-        onMouseLeave={handleHideTooltip}
-        onFocus={handleShowTooltip}
-        onBlur={handleHideTooltip}
-        tabIndex={showTooltip ? 0 : undefined}
-        aria-describedby={showTooltip && isTooltipVisible ? tooltipId : undefined}
-      >
-        <time
-          className="lineup-timetable__slot-time"
-          dateTime={slot.startTime}
-          aria-label={timeLabel}
+      <li className="lineup-timetable__slot-item">
+        <button
+          ref={slotRef}
+          type="button"
+          className={[
+            'lineup-timetable__slot',
+            selected ? 'lineup-timetable__slot--selected' : '',
+            showTooltip ? 'lineup-timetable__slot--tooltip' : '',
+            isTooltipVisible ? 'lineup-timetable__slot--tooltip-open' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          style={{ '--stage-accent': accent } as CSSProperties}
+          aria-pressed={selected}
+          onClick={() => toggle(selectionId)}
+          onMouseEnter={handleShowTooltip}
+          onMouseLeave={handleHideTooltip}
+          onFocus={handleShowTooltip}
+          onBlur={handleHideTooltip}
+          aria-describedby={showTooltip && isTooltipVisible ? tooltipId : undefined}
         >
-          {formatLineupTimeRange(slot.startTime, slot.endTime)}
-        </time>
-        <div className="lineup-timetable__slot-body">
-          <span ref={artistRef} className="lineup-timetable__slot-artist">
-            {slot.artistName}
-          </span>
-          {!missingGenre ? (
-            <span
-              className="lineup-timetable__slot-genre"
-              style={{ '--genre-accent': slot.genreColor ?? accent } as CSSProperties}
-            >
-              {slot.genreLabel}
+          <time
+            className="lineup-timetable__slot-time"
+            dateTime={slot.startTime}
+            aria-label={timeLabel}
+          >
+            {formatLineupTimeRange(slot.startTime, slot.endTime)}
+          </time>
+          <div className="lineup-timetable__slot-body">
+            <span ref={artistRef} className="lineup-timetable__slot-artist">
+              {slot.artistName}
             </span>
-          ) : null}
-        </div>
+            {!missingGenre ? (
+              <span
+                className="lineup-timetable__slot-genre"
+                style={{ '--genre-accent': slot.genreColor ?? accent } as CSSProperties}
+              >
+                {slot.genreLabel}
+              </span>
+            ) : null}
+          </div>
+        </button>
       </li>
 
       {showTooltip && isTooltipVisible

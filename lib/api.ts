@@ -186,12 +186,6 @@ export function getActivityTitle(activity: Activity): string {
   return activity.title ?? activity.name;
 }
 
-export function getActivityLineup(activity: Activity): string[] {
-  return [...(activity.lineup ?? []), ...(activity.artists ?? [])]
-    .filter(Boolean)
-    .slice(0, 12);
-}
-
 export type ScheduleDj = {
   id: string;
   name: string;

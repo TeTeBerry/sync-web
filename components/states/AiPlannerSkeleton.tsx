@@ -1,51 +1,39 @@
-import { Sparkles } from 'lucide-react';
 import { Skeleton } from './Skeleton';
-import { ThinkingDots } from './ThinkingDots';
 
-type AiPlannerSkeletonProps = {
-  thinkingLabel: string;
-};
-
-export function AiPlannerSkeleton({ thinkingLabel }: AiPlannerSkeletonProps) {
+export function AiPlannerSkeleton() {
   return (
     <div className="ai-planner-skeleton" aria-hidden="true">
       <div className="ai-planner-skeleton__panel">
-        <header className="ai-planner-skeleton__header">
-          <span className="ai-planner-skeleton__avatar">
-            <Sparkles size={14} strokeWidth={2.25} />
-          </span>
-          <div className="ai-planner-skeleton__header-copy">
-            <Skeleton style={{ width: 72, height: 12 }} rounded="sm" />
-            <Skeleton style={{ width: 48, height: 10 }} delay={1} rounded="sm" />
+        <header className="ai-planner-skeleton__topbar">
+          <div className="ai-planner-skeleton__topbar-copy">
+            <Skeleton style={{ width: 88, height: 24 }} rounded="full" />
+            <Skeleton style={{ width: 220, height: 22, marginTop: 10 }} rounded="sm" />
+            <Skeleton style={{ width: 160, height: 12, marginTop: 8 }} delay={1} rounded="sm" />
           </div>
+          <Skeleton style={{ width: 56, height: 28 }} rounded="full" />
         </header>
 
-        <div className="ai-planner-skeleton__thread">
-          <div className="ai-planner-skeleton__message--user">
-            <Skeleton style={{ width: 'min(72%, 320px)', height: 44 }} rounded="lg" />
-          </div>
+        <div className="ai-planner-skeleton__tabs">
+          <Skeleton style={{ width: 88, height: 36 }} rounded="sm" />
+          <Skeleton style={{ width: 72, height: 36 }} delay={1} rounded="sm" />
+          <Skeleton style={{ width: 84, height: 36 }} delay={2} rounded="sm" />
+          <Skeleton style={{ width: 76, height: 36 }} delay={3} rounded="sm" />
+          <Skeleton style={{ width: 80, height: 36 }} delay={1} rounded="sm" />
+        </div>
 
-          <div className="ai-planner-skeleton__thinking">
-            <span className="ai-planner-skeleton__thinking-avatar">
-              <Sparkles size={11} strokeWidth={2.25} />
-            </span>
-            <div className="ai-planner-skeleton__thinking-body">
-              <ThinkingDots size="sm" />
-              <span className="ai-planner-skeleton__thinking-text">{thinkingLabel}</span>
-            </div>
-          </div>
-
+        <div className="ai-planner-skeleton__body">
           <div className="ai-planner-skeleton__cards">
+            <Skeleton className="ai-planner-skeleton__card" rounded="lg" />
             <Skeleton className="ai-planner-skeleton__card" delay={1} rounded="lg" />
             <Skeleton className="ai-planner-skeleton__card" delay={2} rounded="lg" />
-            <Skeleton className="ai-planner-skeleton__card" delay={3} rounded="lg" />
           </div>
-          <Skeleton className="ai-planner-skeleton__bar" delay={2} rounded="lg" />
+          <Skeleton style={{ width: '100%', height: 52, marginTop: 12 }} delay={1} rounded="lg" />
+          <Skeleton style={{ width: '100%', height: 52, marginTop: 8 }} delay={2} rounded="lg" />
         </div>
 
-        <div className="ai-planner-skeleton__composer">
-          <Skeleton style={{ width: '100%', height: 52 }} rounded="xl" />
-        </div>
+        <footer className="ai-planner-skeleton__footer">
+          <Skeleton style={{ width: 220, height: 44 }} rounded="lg" />
+        </footer>
       </div>
     </div>
   );
