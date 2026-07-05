@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 100" role="img" aria-label="Rraven">
+  <text
+    x="0"
+    y="78"
+    fill="#f8fafc"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="88"
+    font-weight="700"
+  >
+    R
+  </text>
+  <text
+    x="62"
+    y="72"
+    fill="#f8fafc"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="52"
+    font-weight="700"
+  >
+    raven
+  </text>
+</svg>
