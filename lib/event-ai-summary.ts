@@ -27,19 +27,19 @@ function broadGenre(dj: ScheduleDj): string {
 }
 
 function uniqueArtists(djs: ScheduleDj[]): ScheduleDj[] {
-  const seen = new Set<string>();
-  const result: ScheduleDj[] = [];
+  const byName = new Map<string, ScheduleDj>();
   for (const dj of djs) {
     const key = dj.name
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .trim()
       .toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push(dj);
+    const existing = byName.get(key);
+    if (!existing || (dj.popularity ?? 0) > (existing.popularity ?? 0)) {
+      byName.set(key, dj);
+    }
   }
-  return result;
+  return [...byName.values()];
 }
 
 function topGenres(djs: ScheduleDj[], limit = 3): string[] {
@@ -55,9 +55,13 @@ function topGenres(djs: ScheduleDj[], limit = 3): string[] {
     .slice(0, limit);
 }
 
-function mustSeeArtists(djs: ScheduleDj[], limit = 4): string[] {
+function mustSeeArtists(djs: ScheduleDj[], locale: Locale, limit = 4): string[] {
   return uniqueArtists(djs)
-    .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0))
+    .sort((a, b) => {
+      const byPopularity = (b.popularity ?? 0) - (a.popularity ?? 0);
+      if (byPopularity !== 0) return byPopularity;
+      return a.name.localeCompare(b.name, locale === 'zh' ? 'zh-CN' : 'en');
+    })
     .slice(0, limit)
     .map((dj) => dj.name);
 }
@@ -188,7 +192,7 @@ export function buildEventAiSummary(
   return {
     vibe: buildVibe(locale, activity, genres, artists.length),
     genres: genres.length ? genres : locale === 'zh' ? ['待公布'] : ['TBA'],
-    mustSee: mustSeeArtists(djs),
+    mustSee: mustSeeArtists(djs, locale),
     travel: buildTravelTip(locale, activity),
     artistCount: artists.length,
     genreCount: genreKeys.has('Other') ? genreKeys.size - 1 : genreKeys.size,
