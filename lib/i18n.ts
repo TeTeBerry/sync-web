@@ -1282,7 +1282,7 @@ const EN_ACTIVITY_CONTENT: Record<number, ActivityLocaleContent> = {
     infoSource: 'MDLBEAST Soundstorm official website',
   },
   15: {
-    location: 'Split, Poljud Stadium',
+    location: 'Split, Park Mladeži',
     city: 'Split',
     area: 'Croatia',
     infoSource: 'Ultra Europe official website',
