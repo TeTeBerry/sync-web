@@ -1,6 +1,7 @@
 'use client';
 
 import type { ScheduleDj } from '../../lib/api';
+import { resolveCatalogGenreDisplay } from '../../lib/lineup-genre';
 import { SelectableArtistCard } from './SelectableArtistCard';
 
 export type LineupGenreGroup = {
@@ -32,6 +33,10 @@ export function LineupGenreBoard({ groups }: LineupGenreBoardProps) {
                 id={dj.id}
                 name={dj.name}
                 accent={color}
+                genre={resolveCatalogGenreDisplay({
+                  genre: dj.genre,
+                  genreLabel: dj.genreLabel,
+                })}
                 stage={dj.stageLabel ?? dj.stage}
               />
             ))}

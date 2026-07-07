@@ -11,6 +11,14 @@ export const GENRE_BROAD: Record<string, string> = {
   'Progressive house': 'House',
   'Tech House': 'House',
   'tech house': 'House',
+  'Funky House': 'House',
+  'funky house': 'House',
+  'Jackin House': 'House',
+  'jackin house': 'House',
+  'Soulful House': 'House',
+  'soulful house': 'House',
+  'Nu Disco': 'House',
+  'nu disco': 'House',
   'Euro House': 'House',
   'Tropical House': 'House',
   'piano house': 'House',
@@ -97,18 +105,39 @@ export const GENRE_BROAD_COLORS: Record<string, string> = {
   Latin: '#ef4444',
 };
 
-const NAME_GENRE_HINTS: Array<{ pattern: RegExp; broad: string }> = [
+const GENRE_LEXICON_HINTS: Array<{ pattern: RegExp; broad: string }> = [
   { pattern: /\bhardstyle\b/i, broad: 'Hardstyle' },
   { pattern: /\bhardcore\b/i, broad: 'Hardcore' },
   { pattern: /\btechno\b/i, broad: 'Techno' },
   { pattern: /\btrance\b/i, broad: 'Trance' },
   { pattern: /\bhouse\b/i, broad: 'House' },
+  { pattern: /\bdisco\b/i, broad: 'House' },
   { pattern: /\bdubstep\b/i, broad: 'Dubstep' },
   { pattern: /\b(drum\s*(n|&)\s*bass|dnb)\b/i, broad: 'Drum & Bass' },
   { pattern: /\bbass\b/i, broad: 'Bass' },
 ];
 
+const NAME_GENRE_HINTS = GENRE_LEXICON_HINTS;
+
 export const MISSING_GENRE_LABEL = '—';
+const GENRE_PLACEHOLDER = '风格待补充';
+
+function splitGenreLabelTokens(genreLabel?: string): string[] {
+  if (!genreLabel?.trim()) return [];
+  return genreLabel
+    .split(/\s*[·/|]\s*/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function inferBroadGenreFromText(value: string): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  for (const hint of GENRE_LEXICON_HINTS) {
+    if (hint.pattern.test(trimmed)) return hint.broad;
+  }
+  return undefined;
+}
 
 function mapGenreToken(token: string): string | undefined {
   const trimmed = token.trim();
@@ -128,12 +157,14 @@ function resolveBroadGenreFromFields(input: {
   artistName?: string;
 }): string | undefined {
   const primary = input.genre?.trim();
-  const mappedPrimary = primary ? mapGenreToken(primary) : undefined;
-  if (mappedPrimary) return mappedPrimary;
+  if (primary && primary !== GENRE_PLACEHOLDER) {
+    const mappedPrimary = mapGenreToken(primary) ?? inferBroadGenreFromText(primary);
+    if (mappedPrimary) return mappedPrimary;
+  }
 
-  const genreTokens = input.genreLabel?.split('·') ?? [];
-  for (const token of genreTokens) {
-    const mapped = mapGenreToken(token);
+  for (const token of splitGenreLabelTokens(input.genreLabel)) {
+    if (token === GENRE_PLACEHOLDER) continue;
+    const mapped = mapGenreToken(token) ?? inferBroadGenreFromText(token);
     if (mapped) return mapped;
   }
 
@@ -143,6 +174,21 @@ function resolveBroadGenreFromFields(input: {
   }
 
   return undefined;
+}
+
+/** Primary catalog genre for card / timetable display (e.g. Funky House). */
+export function resolveCatalogGenreDisplay(input: {
+  genre?: string;
+  genreLabel?: string;
+}): string {
+  const genre = input.genre?.trim();
+  if (genre && genre !== GENRE_PLACEHOLDER) return genre;
+
+  for (const token of splitGenreLabelTokens(input.genreLabel)) {
+    if (token !== GENRE_PLACEHOLDER) return token;
+  }
+
+  return '';
 }
 
 export function otherGenreLabel(locale: Locale): string {

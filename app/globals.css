@@ -2533,6 +2533,15 @@ h3 {
   line-height: 1.35;
 }
 
+.artist-card__genre {
+  font-size: var(--type-meta);
+  color: var(--artist-accent, var(--primary));
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .artist-card__stage {
   font-size: var(--type-meta);
   color: var(--muted-foreground-dim);

@@ -2,6 +2,8 @@ import type { ActivitySchedule, SchedulePerformance } from './api';
 import {
   formatTimetableGenreLabel,
   genreColorForBroad,
+  MISSING_GENRE_LABEL,
+  resolveCatalogGenreDisplay,
   resolveTimetableBroadGenre,
   sanitizeTimetableArtistName,
 } from './lineup-genre';
@@ -43,11 +45,17 @@ export function hasLineupTimetable(schedule?: ActivitySchedule | null): boolean 
 
 function toSlot(performance: SchedulePerformance, stageLabel: string): LineupTimetableSlot {
   const broadGenre = resolveTimetableBroadGenre(performance);
+  const catalogGenre = resolveCatalogGenreDisplay({
+    genre: performance.genre,
+    genreLabel: performance.genreLabel,
+  });
+  const genreLabel =
+    catalogGenre || formatTimetableGenreLabel(broadGenre) || MISSING_GENRE_LABEL;
 
   return {
     artistId: performance.artistId,
     artistName: sanitizeTimetableArtistName(performance.artistName, stageLabel),
-    genreLabel: formatTimetableGenreLabel(broadGenre),
+    genreLabel,
     genreColor: broadGenre
       ? genreColorForBroad(broadGenre, performance.genreColor)
       : performance.genreColor,
