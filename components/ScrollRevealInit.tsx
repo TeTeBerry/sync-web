@@ -21,6 +21,7 @@ function shouldSkipReveal(el: Element): boolean {
   if (el.classList.contains('section--detail-tight')) return true;
   if (el.classList.contains('section--detail-block')) return true;
   if (el.classList.contains('events-hero')) return true;
+  if (el.classList.contains('plan-context')) return true;
   if (el.closest('.home')?.classList.contains('home') && el.classList.contains('section')) {
     return true;
   }

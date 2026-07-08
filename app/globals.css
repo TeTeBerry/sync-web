@@ -792,6 +792,12 @@ textarea.field-input {
   transform: none;
 }
 
+/* AI planner context header — above the fold on /events/[slug]/plan */
+.plan-context[data-reveal] {
+  opacity: 1;
+  transform: none;
+}
+
 /* Homepage primary sections — visible before reveal JS runs (SPA nav back) */
 .home .section[data-reveal] {
   opacity: 1;
