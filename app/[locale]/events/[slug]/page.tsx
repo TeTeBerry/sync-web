@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '../../../../components/Breadcrumbs';
 import { EventCard } from '../../../../components/EventCard';
 import { EventPlannerPromo } from '../../../../components/event-detail/EventPlannerPromo';
+import { EventCountdown } from '../../../../components/event-detail/EventCountdown';
 import { FestivalSnapshot } from '../../../../components/event-detail/FestivalSnapshot';
 import { LineupPreview } from '../../../../components/event-detail/LineupPreview';
 import { TravelPreview } from '../../../../components/event-detail/TravelPreview';
@@ -22,6 +23,8 @@ import {
   getActivity,
   getActivityImage,
 } from '../../../../lib/api';
+import { getActivityEndYmd, getActivityStartYmd } from '../../../../lib/activity-date';
+import { resolveActivityTimezone } from '../../../../lib/activity-timezone';
 import { loadEventPageData } from '../../../../lib/event-page';
 import { buildEventJsonLd, buildEventMetadata, buildFaqJsonLd } from '../../../../lib/seo';
 import { cityPath } from '../../../../lib/seo-cities';
@@ -179,6 +182,23 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
               />
             </div>
           </div>
+        </div>
+      </section>
+
+      <section
+        className="section section--detail-countdown"
+        data-reveal
+        style={{ '--reveal-delay': '0.04s' } as CSSProperties}
+      >
+        <div className="container">
+          <EventCountdown
+            eventStartDate={getActivityStartYmd(activity)}
+            eventEndDate={getActivityEndYmd(activity)}
+            timezone={resolveActivityTimezone(activity)}
+            location={metaLocation || activity.location || activity.city}
+            displayDate={metaDate}
+            labels={t.eventDetail.countdown}
+          />
         </div>
       </section>
 

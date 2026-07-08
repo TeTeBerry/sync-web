@@ -35,6 +35,12 @@ export function EventDetailLoading({ locale }: EventDetailLoadingProps) {
         </div>
       </section>
 
+      <section className="section section--detail-countdown page-loading__section" style={{ animationDelay: '0.05s' }}>
+        <div className="container">
+          <Skeleton className="event-countdown-skeleton" delay={1} rounded="lg" />
+        </div>
+      </section>
+
       <div className="detail-journey">
         <section className="section section--detail-tight page-loading__section" style={{ animationDelay: '0.08s' }}>
           <div className="container">

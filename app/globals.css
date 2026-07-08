@@ -785,6 +785,7 @@ textarea.field-input {
 
 /* Event detail primary content — lineup and AI summary sit on the main reading path */
 .section--detail-tight[data-reveal],
+.section--detail-countdown[data-reveal],
 .section--detail-body[data-reveal],
 .section--detail-block[data-reveal],
 .detail-sub-hero[data-reveal] {
@@ -1731,6 +1732,10 @@ h3 {
 
 .section--detail-tight {
   padding-block: clamp(28px, 4vw, 40px);
+}
+
+.section--detail-countdown {
+  padding-block: clamp(8px, 1.5vw, 16px) clamp(20px, 3vw, 28px);
 }
 
 .section--detail-body {
@@ -10968,6 +10973,200 @@ h3 {
 
 .detail-page--journey .detail-journey > .section + .section {
   border-top: 1px solid var(--border-soft);
+}
+
+/* ── Event countdown ───────────────────────────────────────────────────────── */
+
+.event-countdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(24px, 4vw, 48px);
+  padding: clamp(22px, 3vw, 30px) clamp(24px, 3.5vw, 40px);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.55s var(--ease-out),
+    transform 0.55s var(--ease-out);
+}
+
+.event-countdown::before {
+  content: '';
+  position: absolute;
+  inset: -40% auto -40% -20%;
+  width: min(420px, 55%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--primary-rgb), 0.1) 0%, transparent 72%);
+  pointer-events: none;
+}
+
+.event-countdown--ready {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.event-countdown__primary {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: clamp(10px, 1.6vw, 14px);
+  min-width: 0;
+}
+
+.event-countdown__label {
+  font-family: var(--font-display);
+  font-size: var(--type-meta);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-foreground-dim);
+}
+
+.event-countdown__ticker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: clamp(10px, 1.8vw, 18px);
+}
+
+.event-countdown__unit {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.42em;
+  white-space: nowrap;
+}
+
+.event-countdown__number {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4.2vw, 44px);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.event-countdown__number[data-animate='true'] {
+  animation: event-countdown-tick 0.38s var(--ease-out);
+}
+
+.event-countdown__unit-label {
+  font-family: var(--font-display);
+  font-size: clamp(11px, 1.4vw, 13px);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.event-countdown__status {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(30px, 4.5vw, 48px);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--foreground);
+}
+
+.event-countdown__status--live {
+  color: var(--primary-hover);
+}
+
+.event-countdown__status--ended {
+  color: var(--ink-muted);
+}
+
+.event-countdown__context {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 6px;
+  flex-shrink: 0;
+  max-width: 240px;
+  text-align: right;
+}
+
+.event-countdown__date,
+.event-countdown__location,
+.event-countdown__hint {
+  margin: 0;
+  font-size: var(--type-small);
+  line-height: 1.45;
+}
+
+.event-countdown__date {
+  font-weight: var(--fw-semibold);
+  color: var(--ink-body);
+}
+
+.event-countdown__location {
+  color: var(--ink-muted);
+}
+
+.event-countdown__local-time {
+  margin: 0;
+  font-size: var(--type-caption);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.event-countdown__hint {
+  margin-top: 4px;
+  color: var(--primary-hover);
+  font-weight: var(--fw-medium);
+}
+
+.event-countdown-skeleton {
+  width: 100%;
+  min-height: clamp(108px, 14vw, 132px);
+}
+
+@keyframes event-countdown-tick {
+  from {
+    opacity: 0.35;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-countdown {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .event-countdown__number[data-animate='true'] {
+    animation: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .event-countdown {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: clamp(18px, 4vw, 24px);
+  }
+
+  .event-countdown__context {
+    max-width: none;
+    width: 100%;
+    text-align: left;
+    padding-top: 4px;
+    border-top: 1px solid var(--border-soft);
+  }
+
+  .event-countdown__ticker {
+    gap: clamp(8px, 2.5vw, 14px);
+  }
 }
 
 /* ── Festival snapshot ───────────────────────────────────────────────────── */

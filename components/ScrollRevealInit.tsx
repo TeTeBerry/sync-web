@@ -19,6 +19,7 @@ function shouldSkipReveal(el: Element): boolean {
   if (el.classList.contains('detail-sub-hero')) return true;
   if (el.classList.contains('section--detail-body')) return true;
   if (el.classList.contains('section--detail-tight')) return true;
+  if (el.classList.contains('section--detail-countdown')) return true;
   if (el.classList.contains('section--detail-block')) return true;
   if (el.classList.contains('events-hero')) return true;
   if (el.classList.contains('plan-context')) return true;
