@@ -23,6 +23,18 @@ export function eventPath(locale: Locale, activity: Activity): string {
   return localizedPath(locale, `/events/${eventSlug(activity, locale)}`);
 }
 
+export function eventPlanPath(locale: Locale, activity: Activity): string {
+  return `${eventPath(locale, activity)}/plan`;
+}
+
+export function eventLineupPath(locale: Locale, activity: Activity): string {
+  return `${eventPath(locale, activity)}/lineup`;
+}
+
+export function eventTravelPath(locale: Locale, activity: Activity): string {
+  return `${eventPath(locale, activity)}/travel`;
+}
+
 export function parseEventLegacyId(slugParam: string): number | null {
   const decoded = decodeURIComponent(slugParam).trim();
   if (/^\d+$/.test(decoded)) return Number(decoded);

@@ -150,6 +150,22 @@ type BreadcrumbItem = {
   url?: string;
 };
 
+export function buildFaqJsonLd(items: { question: string; answer: string }[]) {
+  if (!items.length) return null;
+
+  return {
+    '@type': 'FAQPage',
+    mainEntity: items.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
+  };
+}
+
 export function buildBreadcrumbJsonLd(items: BreadcrumbItem[]) {
   return {
     '@type': 'BreadcrumbList',

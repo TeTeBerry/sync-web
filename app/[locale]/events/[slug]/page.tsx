@@ -2,52 +2,44 @@ import type { CSSProperties } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
-import { notFound, permanentRedirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '../../../../components/Breadcrumbs';
-import { EventAiSummary } from '../../../../components/EventAiSummary';
 import { EventCard } from '../../../../components/EventCard';
+import { EventPlannerPromo } from '../../../../components/event-detail/EventPlannerPromo';
+import { FestivalSnapshot } from '../../../../components/event-detail/FestivalSnapshot';
+import { LineupPreview } from '../../../../components/event-detail/LineupPreview';
+import { TravelPreview } from '../../../../components/event-detail/TravelPreview';
 import { EventLoadError } from '../../../../components/states/EventLoadError';
 import { EventUnavailableState } from '../../../../components/states/EventUnavailableState';
-import { LineupEmptyState } from '../../../../components/states/LineupEmptyState';
-import { LineupErrorState } from '../../../../components/states/LineupErrorState';
 import { EmptyState } from '../../../../components/states/EmptyState';
 import { RelatedEventsError } from '../../../../components/states/RelatedEventsError';
 import { EventDetailActions } from '../../../../components/EventDetailActions';
-import { DetailLineupContent } from '../../../../components/lineup/DetailLineupContent';
+import { TravelFAQ } from '../../../../components/travel/TravelFAQ';
 import { TrackedLink } from '../../../../components/TrackedLink';
 import { EventImage } from '../../../../components/EventImage';
 import {
   fetchActivities,
-  fetchActivitySchedule,
   getActivity,
   getActivityImage,
-  getActivityTitle,
 } from '../../../../lib/api';
-import { buildEventAiSummary } from '../../../../lib/event-ai-summary';
-import {
-  buildLineupTimetable,
-  countTimetableStats,
-  hasLineupTimetable,
-} from '../../../../lib/lineup-timetable';
-import { groupByBroadGenre, otherGenreLabel } from '../../../../lib/lineup-genre';
-import { buildEventJsonLd, buildEventMetadata } from '../../../../lib/seo';
+import { loadEventPageData } from '../../../../lib/event-page';
+import { buildEventJsonLd, buildEventMetadata, buildFaqJsonLd } from '../../../../lib/seo';
 import { cityPath } from '../../../../lib/seo-cities';
 import {
+  eventLineupPath,
   eventPath,
-  eventSlugMatches,
+  eventPlanPath,
+  eventTravelPath,
   parseEventLegacyId,
 } from '../../../../lib/event-slug';
-import { getActivityContinent } from '../../../../lib/activity-continent';
 import { getSiteUrl } from '../../../../lib/site';
 import {
   activityMetaForLocale,
   DEFAULT_LOCALE,
   getActivityTypeLabel,
-  getContinentLabel,
   getMessages,
   isLocale,
   localizeActivities,
-  localizeActivity,
   localizedPath,
   type Locale,
 } from '../../../../lib/i18n';
@@ -76,61 +68,28 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
 
   const locale = rawLocale as Locale;
   const t = getMessages(locale);
-  const legacyId = parseEventLegacyId(slug);
-  if (!legacyId) notFound();
+  const pageData = await loadEventPageData(locale, slug);
 
-  const activityResult = await getActivity(legacyId);
+  if (pageData === 'error') return <EventLoadError locale={locale} />;
+  if (pageData === 'not_found') return <EventUnavailableState locale={locale} />;
 
-  if (activityResult.status === 'error') {
-    return <EventLoadError locale={locale} />;
-  }
-
-  if (activityResult.status === 'not_found' || !activityResult.activity) {
-    return <EventUnavailableState locale={locale} />;
-  }
-
-  const rawActivity = activityResult.activity;
-  const activity = localizeActivity(rawActivity, locale);
-  const continent = getActivityContinent(activity);
-  const continentLabel = getContinentLabel(locale, continent);
-
-  if (!eventSlugMatches(slug, rawActivity, locale)) {
-    permanentRedirect(eventPath(locale, activity));
-  }
+  const {
+    activity,
+    eventTitle,
+    continentLabel,
+    aiSummary,
+    travelData,
+    featuredArtists,
+    stageLabels,
+  } = pageData;
 
   const siteUrl = getSiteUrl();
-  const [activitiesResult, scheduleResult] = await Promise.all([
-    fetchActivities(),
-    fetchActivitySchedule(activity.legacyId),
-  ]);
+  const activitiesResult = await fetchActivities();
   const allActivities = localizeActivities(activitiesResult.activities, locale);
   const image = getActivityImage(activity);
   const related = allActivities.filter((item) => item.legacyId !== activity.legacyId).slice(0, 3);
   const relatedFetchFailed = activitiesResult.status === 'error';
 
-  const schedule = scheduleResult.schedule;
-  const djs = schedule?.djs ?? [];
-  const lineupFetchFailed = scheduleResult.status === 'error';
-  const showTimetable = hasLineupTimetable(schedule);
-  const timetableDays = showTimetable && schedule ? buildLineupTimetable(schedule) : [];
-  const timetableStats = timetableDays.length ? countTimetableStats(timetableDays) : null;
-  const genreGroups = groupByBroadGenre(djs, locale);
-  const genreKeys = [...genreGroups.keys()].sort((a, b) => {
-    const otherLabel = otherGenreLabel(locale);
-    if (a === otherLabel) return 1;
-    if (b === otherLabel) return -1;
-    return (genreGroups.get(b)?.djs.length ?? 0) - (genreGroups.get(a)?.djs.length ?? 0);
-  });
-  const genreGroupData = genreKeys.map((genreLabel) => {
-    const group = genreGroups.get(genreLabel)!;
-    return {
-      genreLabel,
-      color: group.color,
-      djs: group.djs,
-    };
-  });
-  const aiSummary = buildEventAiSummary(activity, djs, locale);
-  const eventTitle = getActivityTitle(activity);
   const metaLine = activityMetaForLocale(activity, locale);
   const [metaDate, ...metaLocationParts] = metaLine.split(' · ');
   const metaLocation = metaLocationParts.join(' · ');
@@ -139,21 +98,34 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
     sourcePath: eventPath(locale, activity),
     locale,
   };
+  const planHref = eventPlanPath(locale, activity);
+  const lineupHref = eventLineupPath(locale, activity);
+  const travelHref = eventTravelPath(locale, activity);
   const breadcrumbItems = [
     { name: t.breadcrumbs.home, url: `${siteUrl}${localizedPath(locale)}` },
     { name: t.breadcrumbs.events, url: `${siteUrl}${localizedPath(locale, '/events')}` },
     { name: eventTitle },
   ];
-  const jsonLd = buildEventJsonLd(activity, djs, locale, breadcrumbItems);
+  const faqJsonLd = buildFaqJsonLd(travelData.faq);
+  const jsonLd = faqJsonLd
+    ? {
+        '@context': 'https://schema.org',
+        '@graph': [
+          ...buildEventJsonLd(activity, pageData.djs, locale, breadcrumbItems)['@graph'],
+          faqJsonLd,
+        ],
+      }
+    : buildEventJsonLd(activity, pageData.djs, locale, breadcrumbItems);
 
   return (
-    <main className="detail-page">
+    <main className="detail-page detail-page--journey">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
         }}
       />
+
       <section className="detail-hero" data-reveal>
         <div className="container">
           <Breadcrumbs
@@ -183,9 +155,7 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
                   </span>
                 )}
                 {continentLabel ? (
-                  <span className="pill pill--accent">
-                    {continentLabel}
-                  </span>
+                  <span className="pill pill--accent">{continentLabel}</span>
                 ) : null}
                 {activity.hot && <span className="pill pill--primary">{t.eventCard.hot}</span>}
               </div>
@@ -203,6 +173,7 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
                 legacyId={activity.legacyId}
                 eventTitle={eventTitle}
                 locale={locale}
+                planHref={planHref}
                 externalUrl={activity.externalUrl}
                 subscribeEventProperties={subscribeEventProperties}
               />
@@ -211,142 +182,80 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
         </div>
       </section>
 
-      <section className="section section--detail-tight" data-reveal style={{ '--reveal-delay': '0.08s' } as CSSProperties}>
-        <div className="container">
-          <EventAiSummary
-            summary={aiSummary}
-            locale={locale}
-            eventTitle={eventTitle}
-            labels={t.eventDetail.aiSummary}
-            subscribeEventProperties={subscribeEventProperties}
-          />
-        </div>
-      </section>
+      <div className="detail-journey">
+        <section
+          className="section section--detail-tight"
+          data-reveal
+          style={{ '--reveal-delay': '0.06s' } as CSSProperties}
+        >
+          <div className="container">
+            <FestivalSnapshot
+              activity={activity}
+              summary={aiSummary}
+              metaDate={metaDate}
+              metaLocation={metaLocation}
+              labels={t.eventDetail.snapshot}
+            />
+          </div>
+        </section>
 
-      <section className="section section--detail-body" data-reveal style={{ '--reveal-delay': '0.12s' } as CSSProperties}>
-        <div className="container detail-layout detail-layout--lineup">
-          <article className="detail-lineup">
-            <header className="detail-lineup__header">
-              <div>
-                <h2 className="detail-lineup__title">
-                  {showTimetable ? t.eventDetail.lineupTimetableTitle : t.eventDetail.lineupTitle}
-                </h2>
-                <p className="detail-lineup__lead">
-                  {showTimetable ? t.eventDetail.lineupTimetableLead : t.eventDetail.lineupLead}
-                </p>
-              </div>
-              {showTimetable && timetableStats ? (
-                <div className="detail-lineup__stats" aria-label={t.ui.lineupStats}>
-                  <span>
-                    <strong>{timetableStats.setCount}</strong> {t.eventDetail.lineupTimetableSets}
-                  </span>
-                  <span className="detail-lineup__stats-divider" aria-hidden="true" />
-                  <span>
-                    <strong>{timetableStats.stageCount}</strong> {t.eventDetail.lineupTimetableStages}
-                  </span>
-                </div>
-              ) : djs.length > 0 ? (
-                <div className="detail-lineup__stats" aria-label={t.ui.lineupStats}>
-                  <span>
-                    <strong>{aiSummary.artistCount}</strong> {t.eventDetail.lineupStatsArtists}
-                  </span>
-                  <span className="detail-lineup__stats-divider" aria-hidden="true" />
-                  <span>
-                    <strong>{aiSummary.genreCount}</strong> {t.eventDetail.lineupStatsGenres}
-                  </span>
-                </div>
-              ) : null}
-            </header>
+        <section
+          className="section section--detail-block"
+          data-reveal
+          style={{ '--reveal-delay': '0.1s' } as CSSProperties}
+        >
+          <div className="container">
+            <LineupPreview
+              artists={featuredArtists}
+              genres={aiSummary.genres}
+              stageLabels={stageLabels}
+              artistCount={aiSummary.artistCount}
+              lineupHref={lineupHref}
+              labels={t.eventDetail.lineupPreview}
+              subscribeEventProperties={subscribeEventProperties}
+            />
+          </div>
+        </section>
 
-            {lineupFetchFailed ? (
-              <LineupErrorState
-                locale={locale}
-                labels={{
-                  title: t.eventDetail.lineupErrorTitle,
-                  lead: t.eventDetail.lineupErrorLead,
-                  retry: t.eventDetail.lineupErrorRetry,
-                  browse: t.eventDetail.lineupEmptyBrowse,
-                }}
-              />
-            ) : (showTimetable && timetableDays.length > 0) || djs.length > 0 ? (
-              <DetailLineupContent
-                activityLegacyId={activity.legacyId}
-                showTimetable={showTimetable && timetableDays.length > 0}
-                timetableDays={timetableDays}
-                genreGroups={genreGroupData}
-                timetableLabels={{
-                  time: t.eventDetail.lineupTimetableTime,
-                  artist: t.eventDetail.lineupTimetableArtist,
-                  genre: t.eventDetail.lineupTimetableGenre,
-                }}
-                selectionLabels={{
-                  hint: t.eventDetail.lineupPickHint,
-                  count: t.eventDetail.lineupPickCount,
-                  clear: t.eventDetail.lineupPickClear,
-                }}
-              />
-            ) : (
-              <LineupEmptyState
-                locale={locale}
-                eventTitle={eventTitle}
-                subscribeEventProperties={subscribeEventProperties}
-                labels={{
-                  title: t.eventDetail.lineupEmptyTitle,
-                  lead: t.eventDetail.lineupEmptyLead,
-                  action: t.eventDetail.lineupEmptyAction,
-                  browseAction: t.eventDetail.lineupEmptyBrowse,
-                }}
-              />
-            )}
-          </article>
+        <section
+          className="section section--detail-block"
+          data-reveal
+          style={{ '--reveal-delay': '0.14s' } as CSSProperties}
+        >
+          <div className="container">
+            <TravelPreview
+              data={travelData}
+              travelHref={travelHref}
+              labels={t.eventDetail.travelPreview}
+              subscribeEventProperties={subscribeEventProperties}
+            />
+          </div>
+        </section>
 
-          <aside className="detail-rail">
-            <article className="detail-panel detail-panel--compact">
-              <h2 className="detail-panel__title">{t.eventDetail.aboutTitle}</h2>
-              {activity.description ? (
-                <p className="detail-panel__description">{activity.description}</p>
-              ) : (
-                <p className="detail-panel__description detail-panel__description--empty">
-                  {t.eventDetail.aboutEmpty}
-                </p>
-              )}
-              <dl className="detail-facts">
-                <div className="detail-facts__row">
-                  <dt>{t.eventDetail.type}</dt>
-                  <dd>
-                    {activity.activityType
-                      ? getActivityTypeLabel(locale, activity.activityType)
-                      : getActivityTypeLabel(locale, 'festival')}
-                  </dd>
-                </div>
-                <div className="detail-facts__row">
-                  <dt>{t.eventDetail.region}</dt>
-                  <dd>{continentLabel ?? '-'}</dd>
-                </div>
-                {activity.infoSource ? (
-                  <div className="detail-facts__row">
-                    <dt>{t.eventDetail.infoSource}</dt>
-                    <dd>{activity.infoSource}</dd>
-                  </div>
-                ) : null}
-              </dl>
-            </article>
+        <section
+          className="section section--detail-block"
+          data-reveal
+          style={{ '--reveal-delay': '0.18s' } as CSSProperties}
+        >
+          <div className="container">
+            <EventPlannerPromo
+              planHref={planHref}
+              labels={t.eventDetail.plannerPromo}
+              subscribeEventProperties={subscribeEventProperties}
+            />
+          </div>
+        </section>
 
-            <article className="detail-cta-card">
-              <h2 className="detail-cta-card__title">{t.eventDetail.ctaTitle}</h2>
-              <p className="detail-cta-card__copy">{t.eventDetail.ctaCopy}</p>
-              <TrackedLink
-                className="button button--glow detail-cta-card__button"
-                href={`${localizedPath(locale, '/waitlist')}?event=${encodeURIComponent(eventTitle)}`}
-                eventName="event_subscribe_click"
-                eventProperties={subscribeEventProperties}
-              >
-                {t.eventDetail.join}
-              </TrackedLink>
-            </article>
-          </aside>
-        </div>
-      </section>
+        <section
+          className="section section--detail-block"
+          data-reveal
+          style={{ '--reveal-delay': '0.22s' } as CSSProperties}
+        >
+          <div className="container">
+            <TravelFAQ items={travelData.faq} title={t.eventDetail.faqTitle} />
+          </div>
+        </section>
+      </div>
 
       {relatedFetchFailed ? (
         <section className="section section--detail-related" data-reveal>

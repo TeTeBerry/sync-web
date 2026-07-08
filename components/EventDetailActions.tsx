@@ -8,6 +8,7 @@ type EventDetailActionsProps = {
   legacyId: number;
   eventTitle: string;
   locale: Locale;
+  planHref: string;
   externalUrl?: string;
   subscribeEventProperties: Record<string, string>;
 };
@@ -16,6 +17,7 @@ export function EventDetailActions({
   legacyId,
   eventTitle,
   locale,
+  planHref,
   externalUrl,
   subscribeEventProperties,
 }: EventDetailActionsProps) {
@@ -25,8 +27,8 @@ export function EventDetailActions({
     <div className="detail-hero__actions">
       <TrackedLink
         className="button"
-        href={`${localizedPath(locale, '/waitlist')}?event=${encodeURIComponent(eventTitle)}`}
-        eventName="event_subscribe_click"
+        href={planHref}
+        eventName="event_plan_click"
         eventProperties={subscribeEventProperties}
       >
         {t.eventDetail.planCta}

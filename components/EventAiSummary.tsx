@@ -9,6 +9,7 @@ type EventAiSummaryProps = {
   summary: EventAiSummaryData;
   locale: Locale;
   eventTitle: string;
+  planHref: string;
   labels: {
     badge: string;
     title: string;
@@ -29,6 +30,7 @@ export function EventAiSummary({
   summary,
   locale,
   eventTitle,
+  planHref,
   labels,
   subscribeEventProperties,
 }: EventAiSummaryProps) {
@@ -46,7 +48,7 @@ export function EventAiSummary({
         </div>
         <TrackedLink
           className="button button--compact event-ai-summary__cta"
-          href={waitlistHref}
+          href={planHref}
           eventName="event_ai_plan_click"
           eventProperties={subscribeEventProperties}
         >

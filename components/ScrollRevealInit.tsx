@@ -7,16 +7,32 @@ function revealElement(el: Element) {
   el.setAttribute('data-revealed', '');
 }
 
-function isInViewport(el: Element): boolean {
-  const rect = el.getBoundingClientRect();
-  const viewHeight = window.innerHeight || document.documentElement.clientHeight;
-  const viewWidth = window.innerWidth || document.documentElement.clientWidth;
-  return rect.bottom > 0 && rect.top < viewHeight && rect.right > 0 && rect.left < viewWidth;
+/**
+ * Elements that globals.css already renders visible without `data-revealed`.
+ * Skipping them avoids pointless DOM mutations and hydration races on above-fold
+ * event detail / hero sections.
+ */
+function shouldSkipReveal(el: Element): boolean {
+  if (!(el instanceof HTMLElement)) return false;
+
+  if (el.classList.contains('detail-hero')) return true;
+  if (el.classList.contains('detail-sub-hero')) return true;
+  if (el.classList.contains('section--detail-body')) return true;
+  if (el.classList.contains('section--detail-tight')) return true;
+  if (el.classList.contains('section--detail-block')) return true;
+  if (el.classList.contains('events-hero')) return true;
+  if (el.closest('.home')?.classList.contains('home') && el.classList.contains('section')) {
+    return true;
+  }
+
+  return false;
 }
 
 function initScrollReveal() {
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const targets = document.querySelectorAll('[data-reveal], [data-reveal-stagger]');
+  const targets = [...document.querySelectorAll('[data-reveal], [data-reveal-stagger]')].filter(
+    (el) => !shouldSkipReveal(el),
+  );
 
   if (!targets.length) return () => undefined;
 
@@ -38,16 +54,32 @@ function initScrollReveal() {
     { rootMargin: '0px 0px -6% 0px', threshold: 0 },
   );
 
+  // Always observe — never synchronously reveal in-viewport nodes. Sync reads +
+  // setAttribute can run before React finishes hydrating route segments.
   targets.forEach((el) => {
     if (el.hasAttribute('data-revealed')) return;
-    if (isInViewport(el)) {
-      revealElement(el);
-      return;
-    }
     observer.observe(el);
   });
 
   return () => observer.disconnect();
+}
+
+function afterHydration(task: () => void): () => void {
+  let cancelled = false;
+  let frame1 = 0;
+  let frame2 = 0;
+
+  frame1 = window.requestAnimationFrame(() => {
+    frame2 = window.requestAnimationFrame(() => {
+      if (!cancelled) task();
+    });
+  });
+
+  return () => {
+    cancelled = true;
+    window.cancelAnimationFrame(frame1);
+    window.cancelAnimationFrame(frame2);
+  };
 }
 
 export function ScrollRevealInit() {
@@ -62,23 +94,27 @@ export function ScrollRevealInit() {
     if (!hydrated) return;
 
     let cleanup: (() => void) | undefined;
+    let cancelAfterHydration: (() => void) | undefined;
     let cancelled = false;
 
     const run = () => {
       if (cancelled) return;
-      cleanup?.();
-      cleanup = initScrollReveal();
+      cancelAfterHydration?.();
+      cancelAfterHydration = afterHydration(() => {
+        if (cancelled) return;
+        cleanup?.();
+        cleanup = initScrollReveal();
+      });
     };
 
-    // Wait until the new route segment has hydrated before mutating className.
-    // Immediate timers (setTimeout 0 / rAF) can still race client navigations.
-    const timeoutId = window.setTimeout(run, 50);
-    const retryId = window.setTimeout(run, 250);
+    // Retry covers client navigations where segment children hydrate after layout effects.
+    run();
+    const retryId = window.setTimeout(run, 300);
 
     return () => {
       cancelled = true;
-      window.clearTimeout(timeoutId);
       window.clearTimeout(retryId);
+      cancelAfterHydration?.();
       cleanup?.();
     };
   }, [pathname, hydrated]);
