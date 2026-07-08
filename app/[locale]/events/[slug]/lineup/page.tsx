@@ -71,6 +71,7 @@ export default async function EventLineupPage({ params }: LineupPageProps) {
     timetableStats,
     genreGroupData,
     aiSummary,
+    schedulePublished,
   } = pageData;
 
   const planHref = eventPlanPath(locale, activity);
@@ -93,6 +94,7 @@ export default async function EventLineupPage({ params }: LineupPageProps) {
     />
   ) : (showTimetable && timetableDays.length > 0) || djs.length > 0 ? (
     <DetailLineupContent
+      locale={locale}
       activityLegacyId={activity.legacyId}
       showTimetable={showTimetable && timetableDays.length > 0}
       timetableDays={timetableDays}
@@ -107,6 +109,7 @@ export default async function EventLineupPage({ params }: LineupPageProps) {
         count: t.eventDetail.lineupPickCount,
         clear: t.eventDetail.lineupPickClear,
       }}
+      stagesPublished={schedulePublished}
     />
   ) : (
     <LineupEmptyState

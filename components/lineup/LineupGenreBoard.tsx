@@ -2,6 +2,8 @@
 
 import type { ScheduleDj } from '../../lib/api';
 import { resolveCatalogGenreDisplay } from '../../lib/lineup-genre';
+import { resolveLineupStageLabel } from '../../lib/lineup-display';
+import type { Locale } from '../../lib/i18n';
 import { SelectableArtistCard } from './SelectableArtistCard';
 
 export type LineupGenreGroup = {
@@ -12,9 +14,15 @@ export type LineupGenreGroup = {
 
 type LineupGenreBoardProps = {
   groups: LineupGenreGroup[];
+  locale: Locale;
+  stagesPublished: boolean;
 };
 
-export function LineupGenreBoard({ groups }: LineupGenreBoardProps) {
+export function LineupGenreBoard({
+  groups,
+  locale,
+  stagesPublished,
+}: LineupGenreBoardProps) {
   return (
     <div className="lineup-genre-groups">
       {groups.map(({ genreLabel, color, djs }) => (
@@ -33,11 +41,18 @@ export function LineupGenreBoard({ groups }: LineupGenreBoardProps) {
                 id={dj.id}
                 name={dj.name}
                 accent={color}
-                genre={resolveCatalogGenreDisplay({
-                  genre: dj.genre,
-                  genreLabel: dj.genreLabel,
-                })}
-                stage={dj.stageLabel ?? dj.stage}
+                genre={resolveCatalogGenreDisplay(
+                  {
+                    genre: dj.genre,
+                    genreLabel: dj.genreLabel,
+                  },
+                  locale,
+                )}
+                stage={resolveLineupStageLabel(
+                  locale,
+                  { stage: dj.stage, stageLabel: dj.stageLabel },
+                  { stagesPublished },
+                )}
               />
             ))}
           </div>

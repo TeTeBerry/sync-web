@@ -1,5 +1,6 @@
 import type { ScheduleDj } from './api';
 import { resolveCatalogGenreDisplay } from './lineup-genre';
+import { resolveLineupStageLabel } from './lineup-display';
 import type { Locale } from './i18n';
 
 export type FeaturedArtist = {
@@ -26,7 +27,12 @@ function uniqueArtists(djs: ScheduleDj[]): ScheduleDj[] {
   return [...byName.values()];
 }
 
-export function buildFeaturedArtists(djs: ScheduleDj[], locale: Locale, limit = 6): FeaturedArtist[] {
+export function buildFeaturedArtists(
+  djs: ScheduleDj[],
+  locale: Locale,
+  options?: { stagesPublished?: boolean },
+  limit = 6,
+): FeaturedArtist[] {
   return uniqueArtists(djs)
     .sort((a, b) => {
       const byPopularity = (b.popularity ?? 0) - (a.popularity ?? 0);
@@ -37,17 +43,37 @@ export function buildFeaturedArtists(djs: ScheduleDj[], locale: Locale, limit = 
     .map((dj) => ({
       id: dj.id,
       name: dj.name,
-      genre: resolveCatalogGenreDisplay({ genre: dj.genre, genreLabel: dj.genreLabel }),
-      stage: dj.stageLabel ?? dj.stage,
+      genre: resolveCatalogGenreDisplay(
+        { genre: dj.genre, genreLabel: dj.genreLabel },
+        locale,
+      ),
+      stage: resolveLineupStageLabel(
+        locale,
+        { stage: dj.stage, stageLabel: dj.stageLabel },
+        options,
+      ),
       accent: dj.genreColor ?? '#8b7cf8',
     }));
 }
 
-export function buildStageLabels(djs: ScheduleDj[], limit = 5): string[] {
+export function buildStageLabels(
+  djs: ScheduleDj[],
+  locale: Locale,
+  options?: { stagesPublished?: boolean },
+  limit = 5,
+): string[] {
+  if (options?.stagesPublished === false) {
+    return [];
+  }
+
   const stages = new Set<string>();
   for (const dj of djs) {
-    const stage = dj.stageLabel ?? dj.stage;
-    if (stage?.trim()) stages.add(stage.trim());
+    const stage = resolveLineupStageLabel(
+      locale,
+      { stage: dj.stage, stageLabel: dj.stageLabel },
+      options,
+    );
+    if (stage) stages.add(stage);
   }
   return [...stages].slice(0, limit);
 }

@@ -42,6 +42,7 @@ export type EventPageData = {
   travelData: ReturnType<typeof buildEventTravelData>;
   featuredArtists: ReturnType<typeof buildFeaturedArtists>;
   stageLabels: string[];
+  schedulePublished: boolean;
 };
 
 export async function loadEventPageData(
@@ -65,8 +66,10 @@ export async function loadEventPageData(
   const scheduleResult = await fetchActivitySchedule(activity.legacyId);
   const schedule = scheduleResult.schedule;
   const djs = schedule?.djs ?? [];
+  const schedulePublished = schedule?.schedulePublished ?? false;
+  const stageOptions = { stagesPublished: schedulePublished };
   const showTimetable = hasLineupTimetable(schedule);
-  const timetableDays = showTimetable && schedule ? buildLineupTimetable(schedule) : [];
+  const timetableDays = showTimetable && schedule ? buildLineupTimetable(schedule, locale) : [];
   const timetableStats = timetableDays.length ? countTimetableStats(timetableDays) : null;
   const genreGroups = groupByBroadGenre(djs, locale);
   const genreKeys = [...genreGroups.keys()].sort((a, b) => {
@@ -92,7 +95,8 @@ export async function loadEventPageData(
     }),
     aiSummary: buildEventAiSummary(activity, djs, locale),
     travelData: buildEventTravelData(activity, locale),
-    featuredArtists: buildFeaturedArtists(djs, locale),
-    stageLabels: buildStageLabels(djs),
+    featuredArtists: buildFeaturedArtists(djs, locale, stageOptions),
+    stageLabels: buildStageLabels(djs, locale, stageOptions),
+    schedulePublished,
   };
 }

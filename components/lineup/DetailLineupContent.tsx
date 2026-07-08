@@ -5,8 +5,10 @@ import { LineupGenreBoard, type LineupGenreGroup } from './LineupGenreBoard';
 import { LineupSelectionBar } from './LineupSelectionBar';
 import { LineupSelectionProvider } from './LineupSelectionContext';
 import { LineupTimetable } from '../LineupTimetable';
+import type { Locale } from '../../lib/i18n';
 
 type DetailLineupContentProps = {
+  locale: Locale;
   activityLegacyId: number;
   showTimetable: boolean;
   timetableDays: LineupTimetableDay[];
@@ -21,15 +23,18 @@ type DetailLineupContentProps = {
     count: string;
     clear: string;
   };
+  stagesPublished: boolean;
 };
 
 export function DetailLineupContent({
+  locale,
   activityLegacyId,
   showTimetable,
   timetableDays,
   genreGroups,
   timetableLabels,
   selectionLabels,
+  stagesPublished,
 }: DetailLineupContentProps) {
   return (
     <LineupSelectionProvider activityLegacyId={activityLegacyId}>
@@ -41,7 +46,11 @@ export function DetailLineupContent({
       {showTimetable ? (
         <LineupTimetable days={timetableDays} labels={timetableLabels} />
       ) : (
-        <LineupGenreBoard groups={genreGroups} />
+        <LineupGenreBoard
+          groups={genreGroups}
+          locale={locale}
+          stagesPublished={stagesPublished}
+        />
       )}
     </LineupSelectionProvider>
   );

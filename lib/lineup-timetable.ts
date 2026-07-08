@@ -7,6 +7,8 @@ import {
   resolveTimetableBroadGenre,
   sanitizeTimetableArtistName,
 } from './lineup-genre';
+import { localizeSessionLabel, localizeStageLabel } from './lineup-display';
+import type { Locale } from './i18n';
 
 export type LineupTimetableSlot = {
   artistId: string;
@@ -43,12 +45,19 @@ export function hasLineupTimetable(schedule?: ActivitySchedule | null): boolean 
   return performances.some(hasTimedStageSlot);
 }
 
-function toSlot(performance: SchedulePerformance, stageLabel: string): LineupTimetableSlot {
+function toSlot(
+  performance: SchedulePerformance,
+  stageLabel: string,
+  locale: Locale,
+): LineupTimetableSlot {
   const broadGenre = resolveTimetableBroadGenre(performance);
-  const catalogGenre = resolveCatalogGenreDisplay({
-    genre: performance.genre,
-    genreLabel: performance.genreLabel,
-  });
+  const catalogGenre = resolveCatalogGenreDisplay(
+    {
+      genre: performance.genre,
+      genreLabel: performance.genreLabel,
+    },
+    locale,
+  );
   const genreLabel =
     catalogGenre || formatTimetableGenreLabel(broadGenre) || MISSING_GENRE_LABEL;
 
@@ -69,8 +78,8 @@ function stageKeyFor(performance: SchedulePerformance): string {
   return performance.stage?.trim() || performance.stageLabel?.trim() || 'stage';
 }
 
-function stageLabelFor(performance: SchedulePerformance): string {
-  return performance.stageLabel?.trim() || performance.stage?.trim() || 'Stage';
+function stageLabelFor(performance: SchedulePerformance, locale: Locale): string {
+  return localizeStageLabel(locale, performance.stageLabel) ?? '';
 }
 
 function stageSortMinutes(
@@ -85,6 +94,7 @@ function stageSortMinutes(
 
 export function buildLineupTimetable(
   schedule: ActivitySchedule,
+  locale: Locale,
 ): LineupTimetableDay[] {
   const performances = (schedule.performances ?? []).filter(hasTimedStageSlot);
   if (!performances.length) return [];
@@ -118,28 +128,34 @@ export function buildLineupTimetable(
           stageSortMinutes(dayPerformances, a) - stageSortMinutes(dayPerformances, b),
       );
 
-      const stages: LineupTimetableStage[] = stageKeys.map((stageKey) => {
-        const stagePerformances = dayPerformances
-          .filter((performance) => stageKeyFor(performance) === stageKey)
-          .sort((a, b) => a.startMinutes - b.startMinutes);
-        const label = stageLabelFor(stagePerformances[0]!);
+      const stages: LineupTimetableStage[] = stageKeys
+        .map((stageKey) => {
+          const stagePerformances = dayPerformances
+            .filter((performance) => stageKeyFor(performance) === stageKey)
+            .sort((a, b) => a.startMinutes - b.startMinutes);
+          const label = stageLabelFor(stagePerformances[0]!, locale);
+          if (!label) {
+            return null;
+          }
 
-        return {
-          stageKey,
-          stageLabel: label,
-          slots: stagePerformances.map((performance) => toSlot(performance, label)),
-        };
-      });
+          return {
+            stageKey,
+            stageLabel: label,
+            slots: stagePerformances.map((performance) =>
+              toSlot(performance, label, locale),
+            ),
+          };
+        })
+        .filter((stage): stage is LineupTimetableStage => stage !== null);
 
       const session = sessionMeta.get(dateKey);
+      const rawLabel = session?.label ?? dayPerformances[0]?.dateLabel ?? dateKey;
+      const rawBanner =
+        session?.bannerDateLabel ?? session?.label ?? dayPerformances[0]?.dateLabel ?? dateKey;
       return {
         dateKey,
-        label: session?.label ?? dayPerformances[0]?.dateLabel ?? dateKey,
-        bannerDateLabel:
-          session?.bannerDateLabel ??
-          session?.label ??
-          dayPerformances[0]?.dateLabel ??
-          dateKey,
+        label: localizeSessionLabel(locale, rawLabel),
+        bannerDateLabel: localizeSessionLabel(locale, rawBanner),
         stages,
       };
     })

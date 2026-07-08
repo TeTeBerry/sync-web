@@ -1,5 +1,6 @@
 import type { ScheduleDj, SchedulePerformance } from './api';
 import { getMessages, type Locale } from './i18n';
+import { genrePendingLabel, isGenrePlaceholder } from './lineup-display';
 
 export const GENRE_BROAD: Record<string, string> = {
   House: 'House',
@@ -157,13 +158,13 @@ function resolveBroadGenreFromFields(input: {
   artistName?: string;
 }): string | undefined {
   const primary = input.genre?.trim();
-  if (primary && primary !== GENRE_PLACEHOLDER) {
+  if (primary && !isGenrePlaceholder(primary)) {
     const mappedPrimary = mapGenreToken(primary) ?? inferBroadGenreFromText(primary);
     if (mappedPrimary) return mappedPrimary;
   }
 
   for (const token of splitGenreLabelTokens(input.genreLabel)) {
-    if (token === GENRE_PLACEHOLDER) continue;
+    if (isGenrePlaceholder(token)) continue;
     const mapped = mapGenreToken(token) ?? inferBroadGenreFromText(token);
     if (mapped) return mapped;
   }
@@ -177,15 +178,18 @@ function resolveBroadGenreFromFields(input: {
 }
 
 /** Primary catalog genre for card / timetable display (e.g. Funky House). */
-export function resolveCatalogGenreDisplay(input: {
-  genre?: string;
-  genreLabel?: string;
-}): string {
+export function resolveCatalogGenreDisplay(
+  input: {
+    genre?: string;
+    genreLabel?: string;
+  },
+  locale?: Locale,
+): string {
   const genre = input.genre?.trim();
-  if (genre && genre !== GENRE_PLACEHOLDER) return genre;
+  if (genre && !isGenrePlaceholder(genre)) return genre;
 
   for (const token of splitGenreLabelTokens(input.genreLabel)) {
-    if (token !== GENRE_PLACEHOLDER) return token;
+    if (!isGenrePlaceholder(token)) return token;
   }
 
   return '';
