@@ -10,6 +10,10 @@ export type Activity = {
   code?: string;
   alias?: string[];
   date?: string;
+  /** ISO calendar date (YYYY-MM-DD) for SEO, sorting, and integrations. */
+  startDate?: string;
+  /** ISO calendar date (YYYY-MM-DD) for SEO, sorting, and integrations. */
+  endDate?: string;
   location?: string;
   city?: string;
   area?: string;

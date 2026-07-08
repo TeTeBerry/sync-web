@@ -90,6 +90,8 @@ function normalizeActivity(raw: Activity): Activity {
     name: getString(raw.name) ?? getString(raw.title) ?? '未命名活动',
     code: getString(raw.code),
     date: getString(raw.date),
+    startDate: getString(raw.startDate),
+    endDate: getString(raw.endDate),
     location: getString(raw.location),
     city: inferCity(raw),
     area: getString(raw.area),

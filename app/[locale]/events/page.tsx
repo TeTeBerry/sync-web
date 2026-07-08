@@ -9,6 +9,7 @@ import { EventsEmptyState } from '../../../components/states/EventsEmptyState';
 import { SearchSuccessBanner } from '../../../components/states/SearchSuccessBanner';
 import { TrackedLink } from '../../../components/TrackedLink';
 import { fetchActivities } from '../../../lib/api';
+import { getActivityStartYmd } from '../../../lib/activity-date';
 import { listCityGroups, cityPath } from '../../../lib/seo-cities';
 import { Breadcrumbs } from '../../../components/Breadcrumbs';
 import {
@@ -70,8 +71,8 @@ function sortActivities(activities: Activity[], sort: SortOption): Activity[] {
 
   if (sort === 'upcoming') {
     return items.sort((left, right) => {
-      const leftDate = left.date ?? '';
-      const rightDate = right.date ?? '';
+      const leftDate = getActivityStartYmd(left) ?? left.date ?? '';
+      const rightDate = getActivityStartYmd(right) ?? right.date ?? '';
       if (leftDate && rightDate) return leftDate.localeCompare(rightDate);
       if (leftDate) return -1;
       if (rightDate) return 1;

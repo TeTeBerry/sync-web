@@ -3,37 +3,99 @@ import type { Activity } from './types';
 /** Festival catalog dates follow China local calendar (UTC+8). */
 export const CATALOG_TIMEZONE = 'Asia/Shanghai';
 
+function normalizeYmd(value: string): string | null {
+  const trimmed = value.trim();
+  const iso = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (iso) {
+    const [, year, month, day] = iso;
+    return toYmd(Number(year), Number(month), Number(day));
+  }
+  return null;
+}
+
+/**
+ * Parse a (possibly free-form) activity `date` string and return the
+ * first calendar day (YYYY-MM-DD), or `null` when it cannot be parsed.
+ */
+export function parseActivityStartYmd(raw?: string): string | null {
+  const value = raw?.trim();
+  if (!value) return null;
+
+  const multiWeek = value.split(/\s*&\s*/).filter(Boolean);
+  const head = multiWeek[0] ?? value;
+
+  const rangeParts = head.split(/\s[-–—]+\s|\s*[-–—]+\s*/).filter(Boolean);
+  const firstPart = rangeParts[0] ?? head;
+
+  const isoMatch = firstPart.match(/^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$/);
+  if (isoMatch) {
+    const year = Number(isoMatch[1]);
+    const month = Number(isoMatch[2]);
+    const day = isoMatch[3] ? Number(isoMatch[3]) : 1;
+    return toYmd(year, month, day);
+  }
+
+  const slashFullYear = firstPart.match(/^(\d{4})\/(\d{1,2})(?:\/(\d{1,2}))?$/);
+  if (slashFullYear) {
+    const year = Number(slashFullYear[1]);
+    const month = Number(slashFullYear[2]);
+    const day = slashFullYear[3] ? Number(slashFullYear[3]) : 1;
+    return toYmd(year, month, day);
+  }
+
+  const mmddRange = head.match(/^(\d{1,2})\/(\d{1,2})-(\d{1,2})$/);
+  if (mmddRange) {
+    const year = currentYearInCatalogTz();
+    const month = Number(mmddRange[1]);
+    const dayStart = Number(mmddRange[2]);
+    return toYmd(year, month, dayStart);
+  }
+
+  const mmdd = firstPart.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (mmdd) {
+    const year = currentYearInCatalogTz();
+    const month = Number(mmdd[1]);
+    const day = Number(mmdd[2]);
+    return toYmd(year, month, day);
+  }
+
+  const quarterMatch = head.match(/^(\d{4})\s*Q([1-4])$/i);
+  if (quarterMatch) {
+    const year = Number(quarterMatch[1]);
+    const quarter = Number(quarterMatch[2]);
+    const month = (quarter - 1) * 3 + 1;
+    return toYmd(year, month, 1);
+  }
+
+  const yearMatch = head.match(/^(\d{4})$/);
+  if (yearMatch) {
+    const year = Number(yearMatch[1]);
+    return toYmd(year, 1, 1);
+  }
+
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    return formatYmdInCatalogTz(parsed);
+  }
+
+  return null;
+}
+
 /**
  * Parse a (possibly free-form) activity `date` string and return the
  * last calendar day (YYYY-MM-DD) when the activity is considered over,
  * or `null` when it cannot be parsed (we then keep showing the activity).
- *
- * Supported formats:
- * - `2026-10-17 - 2026-10-18`  (ISO range, uses the latest date)
- * - `2026-10-17`               (single ISO date)
- * - `2026-01`                  (year-month, end of that month)
- * - `2026 Q4`                  (quarter, end of the quarter's last month)
- * - `2026`                     (bare year, end of December)
- * - `10/17-18`                 (MM/DD-DD, year = current year in catalog TZ)
- * - `06/25-28`                 (same)
- * - `07/17-19 & 07/24-26`     (multi-week range, uses the latest date)
- * - `12/11-13`                 (MM/DD-DD)
- * - `2026/10/17 - 2026/10/18`  (slash full-date range)
  */
-export function getActivityEndYmd(activity: Activity): string | null {
-  const raw = activity.date?.trim();
-  if (!raw) return null;
+export function parseActivityEndYmd(raw?: string): string | null {
+  const value = raw?.trim();
+  if (!value) return null;
 
-  // 1) Multi-week like "07/17-19 & 07/24-26" — pick the last segment.
-  const multiWeek = raw.split(/\s*&\s*/).filter(Boolean);
-  const tail = multiWeek.length > 1 ? multiWeek[multiWeek.length - 1] : raw;
+  const multiWeek = value.split(/\s*&\s*/).filter(Boolean);
+  const tail = multiWeek.length > 1 ? multiWeek[multiWeek.length - 1] : value;
 
-  // 2) Range with separator like "2026-10-17 - 2026-10-18" or
-  //    "10/17-18" — take the last date token.
   const rangeParts = tail.split(/\s[-–—]+\s|\s*[-–—]+\s*/).filter(Boolean);
   const lastPart = rangeParts.length > 1 ? rangeParts[rangeParts.length - 1] : tail;
 
-  // 3) ISO date: 2026-10-17 or 2026-10
   const isoMatch = lastPart.match(/^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$/);
   if (isoMatch) {
     const year = Number(isoMatch[1]);
@@ -42,7 +104,6 @@ export function getActivityEndYmd(activity: Activity): string | null {
     return toYmd(year, month, day);
   }
 
-  // 4) Slash full-date: 2026/10/17 or 2026/10
   const slashFullYear = lastPart.match(/^(\d{4})\/(\d{1,2})(?:\/(\d{1,2}))?$/);
   if (slashFullYear) {
     const year = Number(slashFullYear[1]);
@@ -51,7 +112,6 @@ export function getActivityEndYmd(activity: Activity): string | null {
     return toYmd(year, month, day);
   }
 
-  // 5) MM/DD-DD like "10/17-18" — month + range of days, year = catalog year.
   const mmddRange = tail.match(/^(\d{1,2})\/(\d{1,2})-(\d{1,2})$/);
   if (mmddRange) {
     const year = currentYearInCatalogTz();
@@ -60,7 +120,6 @@ export function getActivityEndYmd(activity: Activity): string | null {
     return toYmd(year, month, dayEnd);
   }
 
-  // 6) Single MM/DD like "10/17"
   const mmdd = lastPart.match(/^(\d{1,2})\/(\d{1,2})$/);
   if (mmdd) {
     const year = currentYearInCatalogTz();
@@ -69,7 +128,6 @@ export function getActivityEndYmd(activity: Activity): string | null {
     return toYmd(year, month, day);
   }
 
-  // 7) Quarter like "2026 Q4"
   const quarterMatch = tail.match(/^(\d{4})\s*Q([1-4])$/i);
   if (quarterMatch) {
     const year = Number(quarterMatch[1]);
@@ -78,20 +136,47 @@ export function getActivityEndYmd(activity: Activity): string | null {
     return toYmd(year, month, lastDayOfMonth(year, month));
   }
 
-  // 8) Bare year like "2026"
   const yearMatch = tail.match(/^(\d{4})$/);
   if (yearMatch) {
     const year = Number(yearMatch[1]);
     return toYmd(year, 12, 31);
   }
 
-  // 9) Fallback: let Date constructor try, then map to catalog calendar day.
-  const parsed = new Date(raw);
+  const parsed = new Date(value);
   if (!Number.isNaN(parsed.getTime())) {
     return formatYmdInCatalogTz(parsed);
   }
 
   return null;
+}
+
+export function getActivityStartYmd(activity: Activity): string | null {
+  const structured = activity.startDate ? normalizeYmd(activity.startDate) : null;
+  if (structured) return structured;
+  return parseActivityStartYmd(activity.date);
+}
+
+export function getActivityEndYmd(activity: Activity): string | null {
+  const structured = activity.endDate ? normalizeYmd(activity.endDate) : null;
+  if (structured) return structured;
+  return parseActivityEndYmd(activity.date);
+}
+
+export function getActivityDateRange(
+  activity: Activity,
+): { start: string; end: string } | null {
+  const start = getActivityStartYmd(activity);
+  const end = getActivityEndYmd(activity);
+  if (!start || !end) return null;
+  return { start, end };
+}
+
+/** schema.org Event dates expect ISO 8601; catalog dates are calendar days in UTC. */
+export function ymdToSchemaIsoDate(ymd: string): string {
+  const normalized = normalizeYmd(ymd);
+  if (!normalized) return ymd;
+  const [year, month, day] = normalized.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).toISOString();
 }
 
 /** YYYY-MM-DD in the catalog timezone (China, UTC+8). */

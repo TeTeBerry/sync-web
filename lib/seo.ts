@@ -13,6 +13,10 @@ import {
   eventPath,
 } from './event-slug';
 import { getSiteUrl } from './site';
+import {
+  getActivityDateRange,
+  ymdToSchemaIsoDate,
+} from './activity-date';
 import type { Activity } from './types';
 
 const siteUrl = getSiteUrl();
@@ -126,6 +130,43 @@ function absoluteAssetUrl(value?: string): string | undefined {
   }
 }
 
+function resolveEventSchemaDates(activity: Activity, title: string) {
+  const range = getActivityDateRange(activity);
+  if (range) {
+    return {
+      startDate: ymdToSchemaIsoDate(range.start),
+      endDate: ymdToSchemaIsoDate(range.end),
+    };
+  }
+
+  const startDate = toIsoDate(activity.date, title);
+  return {
+    startDate,
+    endDate: startDate,
+  };
+}
+
+function resolveEventPerformers(
+  activity: Activity,
+  djs: ScheduleDj[],
+): Array<{ '@type': 'MusicGroup'; name: string }> {
+  const fromSchedule = djs.slice(0, 24).map((dj) => ({
+    '@type': 'MusicGroup' as const,
+    name: dj.name,
+  }));
+  if (fromSchedule.length) return fromSchedule;
+
+  const fallbackNames = (activity.artists ?? activity.lineup ?? [])
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .slice(0, 24);
+
+  return fallbackNames.map((name) => ({
+    '@type': 'MusicGroup' as const,
+    name,
+  }));
+}
+
 function toIsoDate(value?: string, title?: string): string | undefined {
   if (!value) return undefined;
   const explicitDate = value.match(/\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/);
@@ -188,10 +229,8 @@ export function buildEventJsonLd(
   const title = getActivityTitle(localizedActivity);
   const eventUrl = `${siteUrl}${eventPath(locale, activity)}`;
   const image = absoluteAssetUrl(getActivityImage(localizedActivity));
-  const performers = djs.slice(0, 24).map((dj) => ({
-    '@type': 'MusicGroup' as const,
-    name: dj.name,
-  }));
+  const performers = resolveEventPerformers(localizedActivity, djs);
+  const { startDate, endDate } = resolveEventSchemaDates(localizedActivity, title);
 
   const locationName = localizedActivity.location || localizedActivity.city;
   const eventSchema = {
@@ -202,7 +241,8 @@ export function buildEventJsonLd(
     url: eventUrl,
     inLanguage: locale === 'zh' ? 'zh-CN' : 'en',
     image: image ? [image] : undefined,
-    startDate: toIsoDate(localizedActivity.date, title),
+    startDate,
+    endDate,
     eventStatus: 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     organizer: {
@@ -223,13 +263,11 @@ export function buildEventJsonLd(
         }
       : undefined,
     performer: performers.length ? performers : undefined,
-    offers: localizedActivity.externalUrl
-      ? {
-          '@type': 'Offer',
-          url: localizedActivity.externalUrl,
-          availability: 'https://schema.org/InStock',
-        }
-      : undefined,
+    offers: {
+      '@type': 'Offer',
+      url: localizedActivity.externalUrl ?? eventUrl,
+      availability: 'https://schema.org/InStock',
+    },
   };
 
   return {
