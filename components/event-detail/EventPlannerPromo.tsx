@@ -1,4 +1,4 @@
-import { ArrowRight, Calendar, CircleDollarSign, Hotel, Sparkles, Train } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { TrackedLink } from '../TrackedLink';
 
 type EventPlannerPromoLabels = {
@@ -18,41 +18,20 @@ type EventPlannerPromoProps = {
   subscribeEventProperties: Record<string, string>;
 };
 
-const FEATURES = [
-  { key: 'hotels', icon: Hotel },
-  { key: 'transport', icon: Train },
-  { key: 'budget', icon: CircleDollarSign },
-  { key: 'schedule', icon: Calendar },
-] as const;
-
 export function EventPlannerPromo({
   planHref,
   labels,
   subscribeEventProperties,
 }: EventPlannerPromoProps) {
   return (
-    <section className="planner-promo" aria-labelledby="planner-promo-title">
+    <section className="planner-promo planner-promo--immersive" aria-labelledby="planner-promo-title">
       <div className="planner-promo__glow" aria-hidden />
       <div className="planner-promo__content">
-        <span className="planner-promo__badge">
-          <Sparkles size={14} strokeWidth={2.25} aria-hidden />
-          {labels.badge}
-        </span>
+        <p className="planner-promo__badge">{labels.badge}</p>
         <h2 id="planner-promo-title" className="planner-promo__title">
           {labels.title}
         </h2>
         <p className="planner-promo__lead">{labels.lead}</p>
-
-        <ul className="planner-promo__features">
-          {FEATURES.map(({ key, icon: Icon }) => (
-            <li className="planner-promo__feature" key={key}>
-              <span className="planner-promo__feature-icon" aria-hidden>
-                <Icon size={16} strokeWidth={2} />
-              </span>
-              <span>{labels[key]}</span>
-            </li>
-          ))}
-        </ul>
 
         <TrackedLink
           className="button button--glow planner-promo__cta"

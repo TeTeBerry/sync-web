@@ -11,17 +11,15 @@ export function EventDetailLoading({ locale }: EventDetailLoadingProps) {
   const t = getMessages(locale);
 
   return (
-    <main className="detail-page detail-page--journey" aria-busy="true" aria-label={t.states.loadingEvent}>
-      <section className="detail-hero page-loading__section">
-        <div className="container">
-          <div className="detail-hero__media detail-hero-skeleton">
-            <div className="detail-hero-skeleton__shimmer" aria-hidden="true" />
+    <main className="detail-page detail-page--experience" aria-busy="true" aria-label={t.states.loadingEvent}>
+      <section className="detail-hero detail-hero--scene page-loading__section">
+        <div className="detail-hero__stage detail-hero-skeleton">
+          <div className="detail-hero-skeleton__shimmer" aria-hidden="true" />
+          <div className="container detail-hero__frame">
             <div className="detail-hero__body">
-              <div className="detail-hero-skeleton__tags">
-                <Skeleton style={{ width: 88, height: 26 }} rounded="full" />
-                <Skeleton style={{ width: 64, height: 26 }} delay={1} rounded="full" />
-              </div>
-              <Skeleton style={{ width: 'min(100%, 520px)', height: 48 }} delay={1} rounded="md" />
+              <Skeleton style={{ width: 140, height: 14 }} rounded="full" />
+              <Skeleton style={{ width: 'min(100%, 420px)', height: 56 }} delay={1} rounded="md" />
+              <Skeleton style={{ width: 'min(100%, 320px)', height: 20 }} delay={1} />
               <div className="detail-hero-skeleton__meta">
                 <Skeleton style={{ width: 120, height: 16 }} delay={2} />
                 <Skeleton style={{ width: 180, height: 16 }} delay={2} />
@@ -35,42 +33,32 @@ export function EventDetailLoading({ locale }: EventDetailLoadingProps) {
         </div>
       </section>
 
-      <section className="section section--detail-countdown page-loading__section" style={{ animationDelay: '0.05s' }}>
+      <section className="detail-story page-loading__section" style={{ animationDelay: '0.05s' }}>
         <div className="container">
-          <Skeleton className="event-countdown-skeleton" delay={1} rounded="lg" />
+          <Skeleton style={{ width: 120, height: 14, marginBottom: 16 }} />
+          <Skeleton style={{ width: 'min(100%, 360px)', height: 36, marginBottom: 16 }} delay={1} />
+          <Skeleton style={{ width: 'min(100%, 480px)', height: 22 }} delay={1} />
         </div>
       </section>
 
-      <div className="detail-journey">
-        <section className="section section--detail-tight page-loading__section" style={{ animationDelay: '0.08s' }}>
-          <div className="container">
-            <Skeleton style={{ width: 200, height: 28, marginBottom: 20 }} />
-            <div className="festival-snapshot-skeleton">
-              {[0, 1, 2, 3].map((index) => (
-                <Skeleton key={index} className="festival-snapshot-skeleton__card" delay={index as 0 | 1 | 2 | 3} rounded="lg" />
-              ))}
-            </div>
+      <section className="detail-lineup page-loading__section" style={{ animationDelay: '0.1s' }}>
+        <div className="container">
+          <Skeleton style={{ width: 160, height: 14, marginBottom: 14 }} />
+          <Skeleton style={{ width: 'min(100%, 420px)', height: 40, marginBottom: 28 }} delay={1} />
+          <Skeleton style={{ width: 'min(100%, 280px)', height: 56, marginBottom: 24 }} delay={2} rounded="md" />
+          <div className="lineup-preview-skeleton">
+            {[0, 1, 2, 3].map((index) => (
+              <Skeleton key={index} className="lineup-preview-skeleton__card" delay={index as 0 | 1 | 2 | 3} rounded="lg" />
+            ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="section section--detail-block page-loading__section" style={{ animationDelay: '0.12s' }}>
-          <div className="container">
-            <Skeleton style={{ width: 120, height: 28, marginBottom: 12 }} />
-            <Skeleton style={{ width: 'min(100%, 420px)', height: 16, marginBottom: 20 }} delay={1} />
-            <div className="lineup-preview-skeleton">
-              {[0, 1, 2, 3, 4, 5].map((index) => (
-                <Skeleton key={index} className="lineup-preview-skeleton__card" delay={index as 0 | 1 | 2 | 3 | 4 | 5} rounded="lg" />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="section section--detail-block page-loading__section" style={{ animationDelay: '0.16s' }}>
-          <div className="container">
-            <Skeleton className="planner-promo-skeleton" delay={2} rounded="lg" />
-          </div>
-        </section>
-      </div>
+      <section className="detail-plan-cta page-loading__section" style={{ animationDelay: '0.16s' }}>
+        <div className="container">
+          <Skeleton className="planner-promo-skeleton" delay={2} rounded="lg" />
+        </div>
+      </section>
 
       <section className="section section--detail-related page-loading__section" style={{ animationDelay: '0.2s' }}>
         <div className="container">

@@ -1,7 +1,7 @@
 import { permanentRedirect } from 'next/navigation';
 import { getActivity } from '../../../lib/api';
 import { eventPath } from '../../../lib/event-slug';
-import { DEFAULT_LOCALE, isLocale, localizeActivity, localizedPath } from '../../../lib/i18n';
+import { DEFAULT_LOCALE, localizeActivity, localizedPath } from '../../../lib/i18n';
 
 type LegacyEventDetailProps = {
   params: Promise<{ id: string }>;

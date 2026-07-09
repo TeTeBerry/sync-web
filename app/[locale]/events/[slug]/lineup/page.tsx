@@ -1,15 +1,17 @@
-import type { CSSProperties } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { Breadcrumbs } from '../../../../../components/Breadcrumbs';
-import { DetailLineupContent } from '../../../../../components/lineup/DetailLineupContent';
+import { LineupExperience } from '../../../../../components/lineup/LineupExperience';
+import { LineupHeroScene } from '../../../../../components/lineup/LineupHeroScene';
 import { EventLoadError } from '../../../../../components/states/EventLoadError';
 import { EventUnavailableState } from '../../../../../components/states/EventUnavailableState';
 import { LineupEmptyState } from '../../../../../components/states/LineupEmptyState';
 import { LineupErrorState } from '../../../../../components/states/LineupErrorState';
-import { TrackedLink } from '../../../../../components/TrackedLink';
-import { getActivity, getActivityTitle } from '../../../../../lib/api';
+import { getActivity, getActivityImage, getActivityTitle } from '../../../../../lib/api';
 import { loadEventPageData } from '../../../../../lib/event-page';
+import { getFestivalAtmosphere } from '../../../../../lib/festival-atmosphere';
+import { buildFestivalFlow } from '../../../../../lib/lineup-flow';
+import { buildFeaturedArtists } from '../../../../../lib/lineup-preview';
+import { buildLineupChapterVoice } from '../../../../../lib/lineup-voice';
 import {
   eventLineupPath,
   eventPath,
@@ -46,7 +48,7 @@ export async function generateMetadata({ params }: LineupPageProps): Promise<Met
 
   return {
     title: `${title} — ${t.eventDetail.lineupPage.title} | Raven`,
-    description: t.eventDetail.lineupLead,
+    description: t.eventDetail.lineupPage.metaDescription.replace('{festival}', title),
   };
 }
 
@@ -71,122 +73,130 @@ export default async function EventLineupPage({ params }: LineupPageProps) {
     timetableStats,
     genreGroupData,
     aiSummary,
+    stageLabels,
     schedulePublished,
   } = pageData;
 
-  const planHref = eventPlanPath(locale, activity);
+  const planHref = eventPlanPath(locale, activity, { from: 'lineup' });
   const eventHref = eventPath(locale, activity);
+  const image = getActivityImage(activity);
+  const atmosphere = getFestivalAtmosphere(activity, aiSummary.genres[0]);
+  const voice = buildLineupChapterVoice(activity, locale, atmosphere, aiSummary.genres);
   const subscribeEventProperties = {
     event: String(activity.legacyId),
     sourcePath: eventLineupPath(locale, activity),
     locale,
   };
 
-  const lineupContent = lineupFetchFailed ? (
-    <LineupErrorState
-      locale={locale}
-      labels={{
-        title: t.eventDetail.lineupErrorTitle,
-        lead: t.eventDetail.lineupErrorLead,
-        retry: t.eventDetail.lineupErrorRetry,
-        browse: t.eventDetail.lineupEmptyBrowse,
-      }}
-    />
-  ) : (showTimetable && timetableDays.length > 0) || djs.length > 0 ? (
-    <DetailLineupContent
+  const stageCount =
+    timetableStats?.stageCount ?? (stageLabels.length > 0 ? stageLabels.length : 0);
+  const soundLine = aiSummary.genres.slice(0, 3).join(' · ');
+  const reasonByName = new Map(
+    aiSummary.mustSee.map((artist) => [artist.name.toLowerCase(), artist.reason]),
+  );
+  const spotlightArtists = buildFeaturedArtists(djs, locale, {
+    stagesPublished: schedulePublished,
+    limit: 5,
+  }).map((artist) => ({
+    ...artist,
+    reason: reasonByName.get(artist.name.toLowerCase()) ?? artist.reason,
+  }));
+  const flowDays =
+    showTimetable && timetableDays.length > 0
+      ? buildFestivalFlow(timetableDays, locale)
+      : [];
+  const hasLineupContent =
+    (showTimetable && timetableDays.length > 0) || djs.length > 0;
+
+  const lineupBody = lineupFetchFailed ? (
+    <section className="lineup-scene" data-reveal>
+      <div className="container">
+        <LineupErrorState
+          locale={locale}
+          labels={{
+            title: t.eventDetail.lineupErrorTitle,
+            lead: t.eventDetail.lineupErrorLead,
+            retry: t.eventDetail.lineupErrorRetry,
+            browse: t.eventDetail.lineupEmptyBrowse,
+          }}
+        />
+      </div>
+    </section>
+  ) : hasLineupContent ? (
+    <LineupExperience
       locale={locale}
       activityLegacyId={activity.legacyId}
-      showTimetable={showTimetable && timetableDays.length > 0}
-      timetableDays={timetableDays}
+      showTimetable={showTimetable && flowDays.length > 0}
+      flowDays={flowDays}
       genreGroups={genreGroupData}
-      timetableLabels={{
-        time: t.eventDetail.lineupTimetableTime,
-        artist: t.eventDetail.lineupTimetableArtist,
-        genre: t.eventDetail.lineupTimetableGenre,
-      }}
-      selectionLabels={{
-        hint: t.eventDetail.lineupPickHint,
-        count: t.eventDetail.lineupPickCount,
-        clear: t.eventDetail.lineupPickClear,
-      }}
+      featuredArtists={spotlightArtists}
+      genres={aiSummary.genres}
+      stageLabels={stageLabels}
       stagesPublished={schedulePublished}
-    />
-  ) : (
-    <LineupEmptyState
-      locale={locale}
-      eventTitle={eventTitle}
+      soundLine={soundLine}
+      voice={voice}
+      planHref={planHref}
       subscribeEventProperties={subscribeEventProperties}
       labels={{
-        title: t.eventDetail.lineupEmptyTitle,
-        lead: t.eventDetail.lineupEmptyLead,
-        action: t.eventDetail.lineupEmptyAction,
-        browseAction: t.eventDetail.lineupEmptyBrowse,
+        spotlight: t.eventDetail.lineupPage.spotlight,
+        genres: t.eventDetail.lineupPage.genres,
+        map: t.eventDetail.lineupPage.map,
+        planner: t.eventDetail.lineupPage.planner,
+        selection: {
+          hint: t.eventDetail.lineupPickHint,
+          count: t.eventDetail.lineupPickCount,
+          clear: t.eventDetail.lineupPickClear,
+        },
       }}
     />
+  ) : (
+    <section className="lineup-scene" data-reveal>
+      <div className="container">
+        <LineupEmptyState
+          locale={locale}
+          eventTitle={eventTitle}
+          subscribeEventProperties={subscribeEventProperties}
+          labels={{
+            title: t.eventDetail.lineupEmptyTitle,
+            lead: t.eventDetail.lineupEmptyLead,
+            action: t.eventDetail.lineupEmptyAction,
+            browseAction: t.eventDetail.lineupEmptyBrowse,
+          }}
+        />
+      </div>
+    </section>
   );
 
   return (
-    <main className="detail-page detail-page--sub">
-      <section className="detail-sub-hero" data-reveal>
-        <div className="container">
-          <Breadcrumbs
-            ariaLabel={t.breadcrumbs.ariaLabel}
-            items={[
-              { label: t.breadcrumbs.home, href: localizedPath(locale) },
-              { label: t.breadcrumbs.events, href: localizedPath(locale, '/events') },
-              { label: eventTitle, href: eventHref },
-              { label: t.eventDetail.lineupPage.title },
-            ]}
-          />
-          <header className="detail-sub-hero__header">
-            <div>
-              <h1 className="detail-sub-hero__title">{t.eventDetail.lineupPage.title}</h1>
-              <p className="detail-sub-hero__lead">
-                {showTimetable ? t.eventDetail.lineupTimetableLead : t.eventDetail.lineupLead}
-              </p>
-            </div>
-            <TrackedLink
-              className="button button--compact"
-              href={planHref}
-              eventName="event_plan_click"
-              eventProperties={{ ...subscribeEventProperties, source: 'lineup-page' }}
-            >
-              {t.eventDetail.planCta}
-            </TrackedLink>
-          </header>
-        </div>
-      </section>
+    <main
+      className="detail-page detail-page--experience detail-page--lineup"
+      data-atmosphere={atmosphere}
+    >
+      <LineupHeroScene
+        eventTitle={eventTitle}
+        invite={aiSummary.vibe}
+        image={image}
+        artistCount={aiSummary.artistCount}
+        stageCount={stageCount}
+        genreCount={aiSummary.genreCount}
+        breadcrumbsAriaLabel={t.breadcrumbs.ariaLabel}
+        breadcrumbs={[
+          { label: t.breadcrumbs.home, href: localizedPath(locale) },
+          { label: t.breadcrumbs.events, href: localizedPath(locale, '/events') },
+          { label: eventTitle, href: eventHref },
+          { label: t.eventDetail.lineupPage.title },
+        ]}
+        labels={{
+          eyebrow: t.eventDetail.lineupPage.eyebrow,
+          headlineFallback: t.eventDetail.lineupPage.headlineFallback,
+          lead: t.eventDetail.lineupPage.lead,
+          artistsUnit: t.eventDetail.lineupStatsArtists,
+          stagesUnit: t.eventDetail.lineupTimetableStages,
+          genresUnit: t.eventDetail.lineupStatsGenres,
+        }}
+      />
 
-      <section className="section section--detail-body" data-reveal style={{ '--reveal-delay': '0.08s' } as CSSProperties}>
-        <div className="container">
-          <article className="detail-lineup detail-lineup--full">
-            <header className="detail-lineup__header">
-              {showTimetable && timetableStats ? (
-                <div className="detail-lineup__stats" aria-label={t.ui.lineupStats}>
-                  <span>
-                    <strong>{timetableStats.setCount}</strong> {t.eventDetail.lineupTimetableSets}
-                  </span>
-                  <span className="detail-lineup__stats-divider" aria-hidden="true" />
-                  <span>
-                    <strong>{timetableStats.stageCount}</strong> {t.eventDetail.lineupTimetableStages}
-                  </span>
-                </div>
-              ) : djs.length > 0 ? (
-                <div className="detail-lineup__stats" aria-label={t.ui.lineupStats}>
-                  <span>
-                    <strong>{aiSummary.artistCount}</strong> {t.eventDetail.lineupStatsArtists}
-                  </span>
-                  <span className="detail-lineup__stats-divider" aria-hidden="true" />
-                  <span>
-                    <strong>{aiSummary.genreCount}</strong> {t.eventDetail.lineupStatsGenres}
-                  </span>
-                </div>
-              ) : null}
-            </header>
-            {lineupContent}
-          </article>
-        </div>
-      </section>
+      {lineupBody}
     </main>
   );
 }

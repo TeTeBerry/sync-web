@@ -61,7 +61,7 @@ export default async function EventTravelPage({ params }: TravelPageProps) {
   if (pageData === 'not_found') return <EventUnavailableState locale={locale} />;
 
   const { activity, eventTitle, travelData } = pageData;
-  const planHref = eventPlanPath(locale, activity);
+  const planHref = eventPlanPath(locale, activity, { from: 'event' });
   const eventHref = eventPath(locale, activity);
   const subscribeEventProperties = {
     event: String(activity.legacyId),

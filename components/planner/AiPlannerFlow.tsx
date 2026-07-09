@@ -75,6 +75,7 @@ type AiPlannerFlowProps = {
   performances: SchedulePerformance[];
   eventPath: string;
   waitlistHref: string;
+  hideHeader?: boolean;
 };
 
 export function AiPlannerFlow({
@@ -87,6 +88,7 @@ export function AiPlannerFlow({
   performances,
   eventPath,
   waitlistHref,
+  hideHeader = false,
 }: AiPlannerFlowProps) {
   const t = getMessages(locale);
   const copy = t.aiPlanner;
@@ -141,6 +143,7 @@ export function AiPlannerFlow({
       const nextPlan = buildPlannerPlan(
         activity,
         djs,
+        performances,
         favoriteArtists,
         preferences,
         locale,
@@ -154,7 +157,7 @@ export function AiPlannerFlow({
       timers.forEach((timer) => window.clearTimeout(timer));
       window.clearTimeout(finishTimer);
     };
-  }, [activity, copy.generation.steps, copy.planLabels, djs, favoriteArtists, locale, phase, preferences]);
+  }, [activity, copy.generation.steps, copy.planLabels, djs, favoriteArtists, locale, performances, phase, preferences]);
 
   const goNext = () => {
     if (stepIndex < SETUP_STEPS.length - 1) {
@@ -191,44 +194,68 @@ export function AiPlannerFlow({
 
   return (
     <div className="plan-flow">
-      <header className="plan-context" data-reveal>
-        <div className="plan-context__copy">
-          <span className="plan-context__badge">
-            <Sparkles size={12} strokeWidth={2.25} aria-hidden />
-            {copy.badge}
-          </span>
-          <h1 className="plan-context__title">{eventTitle}</h1>
-          <div className="plan-context__meta">
-            {metaLocation ? <span>{metaLocation}</span> : null}
-            {metaDate ? <span>{metaDate}</span> : null}
-          </div>
-        </div>
-
-        <div className="plan-context__artists">
-          <div className="plan-context__artists-head">
-            <span className="plan-context__artists-label">{copy.contextArtists}</span>
-            <TrackedLink
-              className="plan-context__artists-edit"
-              href={eventPath}
-              eventName="planner_edit_artists_click"
-              eventProperties={{ event: String(activity.legacyId), locale }}
-            >
-              {copy.contextArtistsEdit}
-            </TrackedLink>
-          </div>
+      {hideHeader ? (
+        <header className="plan-flow__intro plan-flow__intro--quiet">
+          <h2 className="plan-flow__intro-title">{t.aiPlanner.landing.plannerCustomize}</h2>
+          <p className="plan-flow__intro-lead">{t.aiPlanner.landing.plannerLead}</p>
           {favoriteArtists.length ? (
-            <ul className="plan-context__artist-list">
-              {favoriteArtists.map((artist) => (
-                <li className="plan-context__artist-chip" key={artist}>
-                  {artist}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="plan-context__artists-empty">{copy.contextArtistsEmpty}</p>
-          )}
-        </div>
-      </header>
+            <div className="plan-flow__intro-artists">
+              <ul className="plan-flow__intro-chips">
+                {favoriteArtists.map((artist) => (
+                  <li key={artist}>{artist}</li>
+                ))}
+              </ul>
+              <TrackedLink
+                className="plan-flow__intro-edit"
+                href={eventPath}
+                eventName="planner_edit_artists_click"
+                eventProperties={{ event: String(activity.legacyId), locale }}
+              >
+                {copy.contextArtistsEdit}
+              </TrackedLink>
+            </div>
+          ) : null}
+        </header>
+      ) : (
+        <header className="plan-context" data-reveal>
+          <div className="plan-context__copy">
+            <span className="plan-context__badge">
+              <Sparkles size={12} strokeWidth={2.25} aria-hidden />
+              {copy.badge}
+            </span>
+            <h2 className="plan-context__title">{eventTitle}</h2>
+            <div className="plan-context__meta">
+              {metaLocation ? <span>{metaLocation}</span> : null}
+              {metaDate ? <span>{metaDate}</span> : null}
+            </div>
+          </div>
+
+          <div className="plan-context__artists">
+            <div className="plan-context__artists-head">
+              <span className="plan-context__artists-label">{copy.contextArtists}</span>
+              <TrackedLink
+                className="plan-context__artists-edit"
+                href={eventPath}
+                eventName="planner_edit_artists_click"
+                eventProperties={{ event: String(activity.legacyId), locale }}
+              >
+                {copy.contextArtistsEdit}
+              </TrackedLink>
+            </div>
+            {favoriteArtists.length ? (
+              <ul className="plan-context__artist-list">
+                {favoriteArtists.map((artist) => (
+                  <li className="plan-context__artist-chip" key={artist}>
+                    {artist}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="plan-context__artists-empty">{copy.contextArtistsEmpty}</p>
+            )}
+          </div>
+        </header>
+      )}
 
       {phase === 'setup' ? (
         <section className="plan-setup" aria-live="polite">
@@ -491,7 +518,9 @@ export function AiPlannerFlow({
         <section className="plan-result">
           <header className="plan-result__header">
             <span className="plan-result__badge">{copy.result.badge}</span>
-            <h2 className="plan-result__title">{copy.result.title}</h2>
+            <h2 className="plan-result__title">
+              {hideHeader ? copy.result.personalTitle : copy.result.title}
+            </h2>
             <p className="plan-result__lead">{copy.result.lead}</p>
           </header>
 
@@ -512,38 +541,34 @@ export function AiPlannerFlow({
               </div>
             </article>
 
-            <article className="plan-result__card">
+            <article className="plan-result__card plan-result__card--timeline">
               <h3 className="plan-result__card-title">{copy.result.artistTitle}</h3>
-              <div className="plan-result__detail-group">
-                <span className="plan-result__label">{copy.result.artistFavorites}</span>
-                <ul className="plan-result__chip-list">
-                  {plan.artistRoute.artists.map((artist) => (
-                    <li className="plan-result__chip" key={artist}>
-                      {artist}
-                    </li>
+              {plan.artistTimeline.days.length ? (
+                <div className="ai-planner__timeline">
+                  {plan.artistTimeline.days.map((day) => (
+                    <section className="ai-planner__timeline-day" key={day.label}>
+                      <h4 className="ai-planner__timeline-day-label">{day.label}</h4>
+                      <ol className="ai-planner__timeline-sets">
+                        {day.sets.map((set) => (
+                          <li
+                            className={`ai-planner__timeline-set${set.highlight ? ' is-highlight' : ''}`}
+                            key={`${day.label}-${set.time}-${set.artist}`}
+                          >
+                            <span className="ai-planner__timeline-time">{set.time}</span>
+                            <div className="ai-planner__timeline-set-copy">
+                              <p className="ai-planner__timeline-artist">{set.artist}</p>
+                              <p className="ai-planner__timeline-stage">{set.stage}</p>
+                            </div>
+                            <Music2 size={13} strokeWidth={2} aria-hidden />
+                          </li>
+                        ))}
+                      </ol>
+                    </section>
                   ))}
-                </ul>
-              </div>
-              <div className="plan-result__detail-group">
-                <span className="plan-result__label">{copy.result.artistStages}</span>
-                <ul className="plan-result__bullet-list">
-                  {plan.artistRoute.stages.map((stage) => (
-                    <li key={stage}>{stage}</li>
-                  ))}
-                </ul>
-              </div>
-              <div className="plan-result__detail-group">
-                <span className="plan-result__label">{copy.result.artistConflicts}</span>
-                <p className="plan-result__value">
-                  {plan.artistRoute.conflicts.length
-                    ? plan.artistRoute.conflicts.join(' · ')
-                    : copy.result.noConflicts}
-                </p>
-              </div>
-              <div className="plan-result__detail-group">
-                <span className="plan-result__label">{copy.result.artistStrategy}</span>
-                <p className="plan-result__value">{plan.artistRoute.strategy}</p>
-              </div>
+                </div>
+              ) : (
+                <p className="plan-result__value plan-result__value--muted">{copy.result.artistTimelineEmpty}</p>
+              )}
             </article>
 
             <article className="plan-result__card">
@@ -614,14 +639,6 @@ export function AiPlannerFlow({
             <button type="button" className="button secondary" onClick={goBack}>
               {copy.result.secondaryCta}
             </button>
-            <TrackedLink
-              className="plan-result__waitlist-link"
-              href={waitlistHref}
-              eventName="planner_waitlist_click"
-              eventProperties={{ event: String(activity.legacyId), locale, source: 'planner-result-link' }}
-            >
-              {copy.result.waitlistCta}
-            </TrackedLink>
           </footer>
         </section>
       ) : null}

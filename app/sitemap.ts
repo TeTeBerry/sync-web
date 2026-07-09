@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { listActivities } from '../lib/api';
 import { LOCALES, DEFAULT_LOCALE, alternateLanguages, localizedPath } from '../lib/i18n';
-import { eventAlternateLanguages, eventPath } from '../lib/event-slug';
+import { eventAlternateLanguages, eventPath, eventPlanAlternateLanguages, eventPlanPath } from '../lib/event-slug';
 import { cityAlternateLanguages, cityPath, listCityGroups } from '../lib/seo-cities';
 import { getSiteUrl } from '../lib/site';
 import type { Activity } from '../lib/types';
@@ -120,15 +120,26 @@ function buildSitemapEntries(siteUrl: string, activities: Activity[]): MetadataR
         },
       };
     }),
-    ...activities.map((activity) => ({
-      url: `${siteUrl}${eventPath(locale, activity)}`,
-      lastModified: getActivityLastModified(activity) ?? lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-      alternates: {
-        languages: absoluteLanguages(siteUrl, eventAlternateLanguages(activity)),
+    ...activities.flatMap((activity) => [
+      {
+        url: `${siteUrl}${eventPath(locale, activity)}`,
+        lastModified: getActivityLastModified(activity) ?? lastModified,
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+        alternates: {
+          languages: absoluteLanguages(siteUrl, eventAlternateLanguages(activity)),
+        },
       },
-    })),
+      {
+        url: `${siteUrl}${eventPlanPath(locale, activity)}`,
+        lastModified: getActivityLastModified(activity) ?? lastModified,
+        changeFrequency: 'weekly' as const,
+        priority: 0.75,
+        alternates: {
+          languages: absoluteLanguages(siteUrl, eventPlanAlternateLanguages(activity)),
+        },
+      },
+    ]),
   ]);
 }
 

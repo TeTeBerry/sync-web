@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 function revealElement(el: Element) {
   el.setAttribute('data-revealed', '');
@@ -17,12 +17,23 @@ function shouldSkipReveal(el: Element): boolean {
 
   if (el.classList.contains('detail-hero')) return true;
   if (el.classList.contains('detail-sub-hero')) return true;
+  if (el.classList.contains('lineup-hero')) return true;
+  if (el.classList.contains('lineup-scene')) return true;
+  if (el.classList.contains('detail-story')) return true;
+  if (el.classList.contains('detail-world')) return true;
+  if (el.classList.contains('detail-lineup')) return true;
+  if (el.classList.contains('detail-insights')) return true;
+  if (el.classList.contains('detail-travel')) return true;
+  if (el.classList.contains('detail-plan-cta')) return true;
+  if (el.classList.contains('detail-related')) return true;
   if (el.classList.contains('section--detail-body')) return true;
   if (el.classList.contains('section--detail-tight')) return true;
   if (el.classList.contains('section--detail-countdown')) return true;
   if (el.classList.contains('section--detail-block')) return true;
   if (el.classList.contains('events-hero')) return true;
   if (el.classList.contains('plan-context')) return true;
+  if (el.classList.contains('plan-journey__hero')) return true;
+  if (el.classList.contains('plan-journey__footer')) return true;
   if (el.closest('.home')?.classList.contains('home') && el.classList.contains('section')) {
     return true;
   }
@@ -39,16 +50,18 @@ function initScrollReveal() {
   if (!targets.length) return () => undefined;
 
   if (prefersReduced) {
-    targets.forEach(revealElement);
-    return () => undefined;
+    const cancel = afterHydration(() => targets.forEach(revealElement));
+    return cancel;
   }
 
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
-        revealElement(entry.target);
-        observer.unobserve(entry.target);
+        const target = entry.target;
+        observer.unobserve(target);
+        // Defer DOM mutation — IntersectionObserver can fire synchronously on observe().
+        afterHydration(() => revealElement(target));
       });
     },
     // threshold 0: tall sections (e.g. event lineup) can exceed the viewport height,
@@ -86,6 +99,8 @@ function afterHydration(task: () => void): () => void {
 
 export function ScrollRevealInit() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchKey = searchParams.toString();
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -119,7 +134,8 @@ export function ScrollRevealInit() {
       cancelAfterHydration?.();
       cleanup?.();
     };
-  }, [pathname, hydrated]);
+    // searchKey: same pathname with new query (e.g. ?mood=ready) remounts reveal targets.
+  }, [pathname, searchKey, hydrated]);
 
   return null;
 }

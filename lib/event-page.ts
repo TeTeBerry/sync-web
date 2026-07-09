@@ -25,7 +25,6 @@ import type { Activity } from './types';
 
 export type EventPageData = {
   activity: Activity;
-  rawActivity: Activity;
   eventTitle: string;
   continentLabel: string | undefined;
   djs: ScheduleDj[];
@@ -79,9 +78,21 @@ export async function loadEventPageData(
     return (genreGroups.get(b)?.djs.length ?? 0) - (genreGroups.get(a)?.djs.length ?? 0);
   });
 
+  const travelData = buildEventTravelData(activity, locale);
+  const aiSummary = buildEventAiSummary(activity, djs, locale, {
+    nearestAirport: travelData.flights.items.nearestAirport,
+    arrivalWindow: travelData.flights.items.arrivalWindow,
+    bestArea: travelData.stay.items.bestAreas[0],
+    stayInsight: travelData.stay.insight,
+    shuttle: travelData.transport.items.shuttle,
+    stagesPublished: schedulePublished,
+  });
+  const reasonByName = new Map(
+    aiSummary.mustSee.map((artist) => [artist.name.toLowerCase(), artist.reason]),
+  );
+
   return {
     activity,
-    rawActivity,
     eventTitle: getActivityTitle(activity),
     continentLabel: getContinentLabel(locale, getActivityContinent(activity)),
     djs,
@@ -93,9 +104,12 @@ export async function loadEventPageData(
       const group = genreGroups.get(genreLabel)!;
       return { genreLabel, color: group.color, djs: group.djs };
     }),
-    aiSummary: buildEventAiSummary(activity, djs, locale),
-    travelData: buildEventTravelData(activity, locale),
-    featuredArtists: buildFeaturedArtists(djs, locale, stageOptions),
+    aiSummary,
+    travelData,
+    featuredArtists: buildFeaturedArtists(djs, locale, { ...stageOptions, limit: 4 }).map((artist) => ({
+      ...artist,
+      reason: reasonByName.get(artist.name.toLowerCase()),
+    })),
     stageLabels: buildStageLabels(djs, locale, stageOptions),
     schedulePublished,
   };

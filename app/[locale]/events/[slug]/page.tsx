@@ -1,33 +1,28 @@
-import type { CSSProperties } from 'react';
+import { type CSSProperties } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '../../../../components/Breadcrumbs';
-import { EventCard } from '../../../../components/EventCard';
 import { EventPlannerPromo } from '../../../../components/event-detail/EventPlannerPromo';
-import { EventCountdown } from '../../../../components/event-detail/EventCountdown';
-import { FestivalSnapshot } from '../../../../components/event-detail/FestivalSnapshot';
-import { LineupPreview } from '../../../../components/event-detail/LineupPreview';
-import { TravelPreview } from '../../../../components/event-detail/TravelPreview';
 import { EventLoadError } from '../../../../components/states/EventLoadError';
 import { EventUnavailableState } from '../../../../components/states/EventUnavailableState';
 import { EmptyState } from '../../../../components/states/EmptyState';
 import { RelatedEventsError } from '../../../../components/states/RelatedEventsError';
 import { EventDetailActions } from '../../../../components/EventDetailActions';
-import { TravelFAQ } from '../../../../components/travel/TravelFAQ';
+import { TasteAwareLineup } from '../../../../components/TasteAwareLineup';
 import { TrackedLink } from '../../../../components/TrackedLink';
 import { EventImage } from '../../../../components/EventImage';
 import {
   fetchActivities,
   getActivity,
   getActivityImage,
+  getActivityTitle,
 } from '../../../../lib/api';
-import { getActivityEndYmd, getActivityStartYmd } from '../../../../lib/activity-date';
-import { computeEventCountdown } from '../../../../lib/event-countdown';
-import { resolveActivityTimezone } from '../../../../lib/activity-timezone';
 import { loadEventPageData } from '../../../../lib/event-page';
-import { buildEventJsonLd, buildEventMetadata, buildFaqJsonLd } from '../../../../lib/seo';
+import { getFestivalAtmosphere } from '../../../../lib/festival-atmosphere';
+import { curateRelatedFestivals } from '../../../../lib/related-festivals';
+import { buildEventJsonLd, buildEventMetadata } from '../../../../lib/seo';
 import { cityPath } from '../../../../lib/seo-cities';
 import {
   eventLineupPath,
@@ -40,7 +35,6 @@ import { getSiteUrl } from '../../../../lib/site';
 import {
   activityMetaForLocale,
   DEFAULT_LOCALE,
-  getActivityTypeLabel,
   getMessages,
   isLocale,
   localizeActivities,
@@ -91,8 +85,10 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
   const activitiesResult = await fetchActivities();
   const allActivities = localizeActivities(activitiesResult.activities, locale);
   const image = getActivityImage(activity);
-  const related = allActivities.filter((item) => item.legacyId !== activity.legacyId).slice(0, 3);
+  const related = curateRelatedFestivals(activity, allActivities, 2);
   const relatedFetchFailed = activitiesResult.status === 'error';
+  const atmosphere = getFestivalAtmosphere(activity, aiSummary.genres[0]);
+  const worldImage = image ? ({ src: image, kind: 'festival' as const }) : null;
 
   const metaLine = activityMetaForLocale(activity, locale);
   const [metaDate, ...metaLocationParts] = metaLine.split(' · ');
@@ -102,36 +98,25 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
     sourcePath: eventPath(locale, activity),
     locale,
   };
-  const planHref = eventPlanPath(locale, activity);
+  const planHref = eventPlanPath(locale, activity, { from: 'event' });
   const lineupHref = eventLineupPath(locale, activity);
   const travelHref = eventTravelPath(locale, activity);
-  const eventTimezone = resolveActivityTimezone(activity);
-  const eventStartDate = getActivityStartYmd(activity);
-  const eventEndDate = getActivityEndYmd(activity);
-  const countdownSnapshot = computeEventCountdown(
-    eventStartDate,
-    eventEndDate,
-    Date.now(),
-    eventTimezone,
-  );
   const breadcrumbItems = [
     { name: t.breadcrumbs.home, url: `${siteUrl}${localizedPath(locale)}` },
     { name: t.breadcrumbs.events, url: `${siteUrl}${localizedPath(locale, '/events')}` },
     { name: eventTitle },
   ];
-  const faqJsonLd = buildFaqJsonLd(travelData.faq);
-  const jsonLd = faqJsonLd
-    ? {
-        '@context': 'https://schema.org',
-        '@graph': [
-          ...buildEventJsonLd(activity, pageData.djs, locale, breadcrumbItems)['@graph'],
-          faqJsonLd,
-        ],
-      }
-    : buildEventJsonLd(activity, pageData.djs, locale, breadcrumbItems);
+  const jsonLd = buildEventJsonLd(activity, pageData.djs, locale, breadcrumbItems);
+
+  const budgetGuide = travelData.budget.items.tiers[1]?.estimate;
+  const quietMeta = [metaDate, metaLocation].filter(Boolean).join(' · ');
+  const placeSignal = activity.city ?? activity.area ?? metaLocation;
+  const worldCaption = placeSignal
+    ? placeSignal
+    : t.eventDetail.experience.worldFestival;
 
   return (
-    <main className="detail-page detail-page--journey">
+    <main className="detail-page detail-page--experience" data-atmosphere={atmosphere}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -139,49 +124,43 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
         }}
       />
 
-      <section className="detail-hero" data-reveal>
-        <div className="container">
-          <Breadcrumbs
-            ariaLabel={t.breadcrumbs.ariaLabel}
-            items={[
-              { label: t.breadcrumbs.home, href: localizedPath(locale) },
-              { label: t.breadcrumbs.events, href: localizedPath(locale, '/events') },
-              { label: eventTitle },
-            ]}
-          />
-          <div className="detail-hero__media">
-            {image ? (
-              <EventImage
-                src={image}
-                alt={eventTitle}
-                className="detail-hero__photo"
-                priority
-                sizes="(max-width: 1200px) 100vw, 1100px"
-              />
-            ) : null}
-            <div className="detail-hero__scrim" aria-hidden="true" />
+      {/* ── Festival Hero Scene ─────────────────────────────────────────────── */}
+      <section className="detail-hero detail-hero--scene" aria-labelledby="event-heading" data-reveal>
+        <div className="detail-hero__stage">
+          {image ? (
+            <EventImage
+              src={image}
+              alt={eventTitle}
+              className="detail-hero__photo"
+              priority
+              sizes="100vw"
+            />
+          ) : null}
+          <div className="detail-hero__atmosphere" aria-hidden="true">
+            <div className="detail-hero__glow" />
+            <div className="detail-hero__scrim" />
+          </div>
+
+          <div className="container detail-hero__frame">
+            <Breadcrumbs
+              ariaLabel={t.breadcrumbs.ariaLabel}
+              items={[
+                { label: t.breadcrumbs.home, href: localizedPath(locale) },
+                { label: t.breadcrumbs.events, href: localizedPath(locale, '/events') },
+                { label: eventTitle },
+              ]}
+            />
+
             <div className="detail-hero__body">
-              <div className="detail-hero__tags">
-                {activity.activityType && (
-                  <span className="pill pill--secondary">
-                    {getActivityTypeLabel(locale, activity.activityType)}
-                  </span>
-                )}
-                {continentLabel ? (
-                  <span className="pill pill--accent">{continentLabel}</span>
-                ) : null}
-                {activity.hot && <span className="pill pill--primary">{t.eventCard.hot}</span>}
-              </div>
-              <h1 className="detail-hero__title">{eventTitle}</h1>
-              <div className="detail-hero__meta">
-                {metaDate ? <span>{metaDate}</span> : null}
-                {metaLocation ? <span>{metaLocation}</span> : null}
-                {activity.city ? (
-                  <Link className="detail-hero__city-link" href={cityPath(locale, activity.city)}>
-                    {t.eventDetail.cityEventsLink.replace('{city}', activity.city)}
-                  </Link>
-                ) : null}
-              </div>
+              {(continentLabel || quietMeta) && (
+                <p className="detail-hero__eyebrow">
+                  {[continentLabel, quietMeta].filter(Boolean).join(' · ')}
+                </p>
+              )}
+              <h1 id="event-heading" className="detail-hero__title">
+                {eventTitle}
+              </h1>
+              <p className="detail-hero__invite">{aiSummary.vibe}</p>
               <EventDetailActions
                 legacyId={activity.legacyId}
                 eventTitle={eventTitle}
@@ -195,101 +174,143 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
         </div>
       </section>
 
+      {/* ── Festival Story — progresses beyond the hero hook ────────────────── */}
       <section
-        className="section section--detail-countdown"
+        className="detail-story"
+        aria-labelledby="festival-story-heading"
         data-reveal
         style={{ '--reveal-delay': '0.04s' } as CSSProperties}
       >
         <div className="container">
-          <EventCountdown
-            eventStartDate={eventStartDate}
-            eventEndDate={eventEndDate}
-            timezone={eventTimezone}
-            location={metaLocation || activity.location || activity.city}
-            displayDate={metaDate}
-            labels={t.eventDetail.countdown}
-            initialSnapshot={countdownSnapshot}
+          <div className="detail-story__inner">
+            <h2 id="festival-story-heading" className="detail-story__headline">
+              {t.eventDetail.experience.storyTitle}
+            </h2>
+            <p className="detail-story__narrative">{aiSummary.story}</p>
+            {quietMeta ? <p className="detail-story__whisper">{quietMeta}</p> : null}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Mid-page world — prefer a different visual than the hero ────────── */}
+      {worldImage ? (
+        <section
+          className="detail-world detail-world--festival"
+          aria-label={worldCaption}
+          data-reveal
+        >
+          <div className="detail-world__frame">
+            <EventImage
+              src={worldImage.src}
+              alt={eventTitle}
+              className="detail-world__photo"
+              sizes="100vw"
+            />
+            <div className="detail-world__veil" />
+            <div className="detail-world__caption">
+              {placeSignal ? <p className="detail-world__place">{placeSignal}</p> : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* ── Lineup + taste (client signals when available) ──────────────────── */}
+      <section
+        className="detail-lineup"
+        data-reveal
+        style={{ '--reveal-delay': '0.08s' } as CSSProperties}
+      >
+        <div className="container">
+          <TasteAwareLineup
+            activityLegacyId={activity.legacyId}
+            artists={featuredArtists}
+            genres={aiSummary.genres}
+            stageLabels={stageLabels}
+            artistCount={aiSummary.artistCount}
+            lineupHref={lineupHref}
+            labels={{
+              ...t.eventDetail.lineupPreview,
+              awaitingTitle: t.eventDetail.experience.awaitingTitle,
+              awaitingLead: t.eventDetail.experience.awaitingLead,
+            }}
+            awaitingCopy={aiSummary.awaiting}
+            subscribeEventProperties={subscribeEventProperties}
+            locale={locale}
           />
         </div>
       </section>
 
-      <div className="detail-journey">
-        <section
-          className="section section--detail-tight"
-          data-reveal
-          style={{ '--reveal-delay': '0.06s' } as CSSProperties}
-        >
-          <div className="container">
-            <FestivalSnapshot
-              activity={activity}
-              summary={aiSummary}
-              metaDate={metaDate}
-              metaLocation={metaLocation}
-              labels={t.eventDetail.snapshot}
-            />
-          </div>
-        </section>
+      {/* ── Travel arrival — land → settle → gate ───────────────────────────── */}
+      <section
+        className="detail-travel"
+        aria-labelledby="travel-confidence-heading"
+        data-reveal
+        style={{ '--reveal-delay': '0.12s' } as CSSProperties}
+      >
+        <div className="container">
+          <div className="detail-travel__inner">
+            <h2 id="travel-confidence-heading" className="detail-travel__title">
+              {t.eventDetail.experience.travelTitle}
+            </h2>
 
-        <section
-          className="section section--detail-block"
-          data-reveal
-          style={{ '--reveal-delay': '0.1s' } as CSSProperties}
-        >
-          <div className="container">
-            <LineupPreview
-              artists={featuredArtists}
-              genres={aiSummary.genres}
-              stageLabels={stageLabels}
-              artistCount={aiSummary.artistCount}
-              lineupHref={lineupHref}
-              labels={t.eventDetail.lineupPreview}
-              subscribeEventProperties={subscribeEventProperties}
-            />
-          </div>
-        </section>
+            <p className="detail-travel__story">{aiSummary.travel}</p>
 
-        <section
-          className="section section--detail-block"
-          data-reveal
-          style={{ '--reveal-delay': '0.14s' } as CSSProperties}
-        >
-          <div className="container">
-            <TravelPreview
-              data={travelData}
-              travelHref={travelHref}
-              labels={t.eventDetail.travelPreview}
-              subscribeEventProperties={subscribeEventProperties}
-            />
-          </div>
-        </section>
+            <ol className="detail-travel__arrival">
+              <li>
+                <span>{t.eventDetail.experience.arrivalLand}</span>
+                <strong>{aiSummary.arrival.land}</strong>
+              </li>
+              <li>
+                <span>{t.eventDetail.experience.arrivalSettle}</span>
+                <strong>{aiSummary.arrival.settle}</strong>
+              </li>
+              <li>
+                <span>{t.eventDetail.experience.arrivalGate}</span>
+                <strong>{aiSummary.arrival.gate}</strong>
+              </li>
+            </ol>
 
-        <section
-          className="section section--detail-block"
-          data-reveal
-          style={{ '--reveal-delay': '0.18s' } as CSSProperties}
-        >
-          <div className="container">
-            <EventPlannerPromo
-              planHref={planHref}
-              labels={t.eventDetail.plannerPromo}
-              subscribeEventProperties={subscribeEventProperties}
-            />
-          </div>
-        </section>
+            {budgetGuide ? (
+              <p className="detail-travel__point detail-travel__point--budget">
+                <span>{t.eventDetail.experience.budgetLabel}</span>
+                <strong className="detail-travel__budget">{budgetGuide}</strong>
+                {travelData.budget.insight ? <em>{travelData.budget.insight}</em> : null}
+              </p>
+            ) : null}
 
-        <section
-          className="section section--detail-block"
-          data-reveal
-          style={{ '--reveal-delay': '0.22s' } as CSSProperties}
-        >
-          <div className="container">
-            <TravelFAQ items={travelData.faq} title={t.eventDetail.faqTitle} />
+            <div className="detail-travel__actions">
+              <TrackedLink
+                className="detail-section__cta"
+                href={travelHref}
+                eventName="event_travel_explore_click"
+                eventProperties={subscribeEventProperties}
+              >
+                <span>{t.eventDetail.travelPreview.exploreCta}</span>
+                <ArrowRight size={16} strokeWidth={2.25} aria-hidden />
+              </TrackedLink>
+            </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
+      {/* ── Generate Plan ───────────────────────────────────────────────────── */}
+      <section
+        className="detail-plan-cta"
+        data-reveal
+        style={{ '--reveal-delay': '0.16s' } as CSSProperties}
+      >
+        <div className="container">
+          <EventPlannerPromo
+            planHref={planHref}
+            labels={t.eventDetail.plannerPromo}
+            subscribeEventProperties={subscribeEventProperties}
+          />
+        </div>
+      </section>
+
+      {/* ── Curated coda ────────────────────────────────────────────────────── */}
       {relatedFetchFailed ? (
-        <section className="section section--detail-related" data-reveal>
+        <section className="detail-related detail-related--quiet" data-reveal>
           <div className="container">
             <RelatedEventsError
               locale={locale}
@@ -303,27 +324,28 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
           </div>
         </section>
       ) : related.length ? (
-        <section className="section section--detail-related" data-reveal>
+        <section className="detail-related detail-related--quiet" data-reveal>
           <div className="container">
-            <div className="section__header">
-              <div>
-                <h2 className="section__title">{t.eventDetail.moreTitle}</h2>
-              </div>
-            </div>
-            <div className="event-grid" data-reveal-stagger>
-              {related.map((item, index) => (
-                <EventCard
-                  activity={item}
-                  locale={locale}
-                  key={item.legacyId}
-                  style={{ '--card-index': index } as CSSProperties}
-                />
+            <p className="detail-related__kicker">{t.eventDetail.experience.relatedTitle}</p>
+            <ul className="detail-related__links">
+              {related.map((item) => (
+                <li key={item.legacyId}>
+                  <Link href={eventPath(locale, item)} className="detail-related__link">
+                    <span>{getActivityTitle(item)}</span>
+                    <ArrowRight size={14} strokeWidth={2} aria-hidden />
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
+            {activity.city ? (
+              <Link className="detail-related__more" href={cityPath(locale, activity.city)}>
+                {t.eventDetail.cityEventsLink.replace('{city}', activity.city)}
+              </Link>
+            ) : null}
           </div>
         </section>
       ) : (
-        <section className="section section--detail-related" data-reveal>
+        <section className="detail-related detail-related--quiet" data-reveal>
           <div className="container">
             <EmptyState
               className="related-events-empty"

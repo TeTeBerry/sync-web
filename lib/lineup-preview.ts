@@ -8,6 +8,7 @@ export type FeaturedArtist = {
   name: string;
   genre?: string;
   stage?: string;
+  reason?: string;
   accent: string;
 };
 

@@ -72,12 +72,20 @@ export async function findWaitlistContact(contact: string): Promise<boolean> {
 }
 
 const DEFAULT_WAITLIST_SOCIAL_PROOF_MIN = 10;
+const DEFAULT_WAITLIST_HERO_PROOF_MIN = 50;
 
 export function getWaitlistSocialProofMin(): number {
   const raw = process.env.WAITLIST_SOCIAL_PROOF_MIN?.trim();
   if (!raw) return DEFAULT_WAITLIST_SOCIAL_PROOF_MIN;
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_WAITLIST_SOCIAL_PROOF_MIN;
+}
+
+export function getWaitlistHeroProofMin(): number {
+  const raw = process.env.WAITLIST_HERO_PROOF_MIN?.trim();
+  if (!raw) return DEFAULT_WAITLIST_HERO_PROOF_MIN;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_WAITLIST_HERO_PROOF_MIN;
 }
 
 async function fetchWaitlistCount(): Promise<number | null> {

@@ -1,20 +1,27 @@
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
-import { Breadcrumbs } from '../../../../../components/Breadcrumbs';
+import { PlannerLandingContent } from '../../../../../components/planner/PlannerLandingContent';
 import { AiPlannerFlow } from '../../../../../components/planner/AiPlannerFlow';
 import { EventLoadError } from '../../../../../components/states/EventLoadError';
 import { EventUnavailableState } from '../../../../../components/states/EventUnavailableState';
 import {
   fetchActivitySchedule,
   getActivity,
+  getActivityImage,
   getActivityTitle,
 } from '../../../../../lib/api';
 import {
+  eventLineupPath,
   eventPath,
   eventPlanPath,
   eventSlugMatches,
+  eventTravelPath,
   parseEventLegacyId,
 } from '../../../../../lib/event-slug';
+import { getFestivalAtmosphere } from '../../../../../lib/festival-atmosphere';
+import { buildPlannerLandingData } from '../../../../../lib/planner-landing';
+import { resolveJourneyEntryFrom } from '../../../../../lib/planner-journey';
+import { buildPlannerJsonLd, buildPlannerMetadata } from '../../../../../lib/seo';
 import { getSiteUrl } from '../../../../../lib/site';
 import {
   activityMetaForLocale,
@@ -28,6 +35,7 @@ import {
 
 type PlannerPageProps = {
   params: Promise<{ locale: string; slug: string }>;
+  searchParams: Promise<{ tab?: string; from?: string }>;
 };
 
 export const dynamic = 'force-dynamic';
@@ -42,17 +50,12 @@ export async function generateMetadata({ params }: PlannerPageProps): Promise<Me
   if (!activityResult.activity) return {};
 
   const activity = localizeActivity(activityResult.activity, locale);
-  const t = getMessages(locale);
-  const title = getActivityTitle(activity);
-
-  return {
-    title: `${title} — ${t.aiPlanner.pageTitleSuffix}`,
-    description: t.eventDetail.fallbackDescription,
-  };
+  return buildPlannerMetadata(activity, locale);
 }
 
-export default async function AiPlannerPage({ params }: PlannerPageProps) {
+export default async function AiPlannerPage({ params, searchParams }: PlannerPageProps) {
   const { locale: rawLocale, slug } = await params;
+  const resolvedSearch = await searchParams;
   if (!isLocale(rawLocale)) notFound();
 
   const locale = rawLocale as Locale;
@@ -87,55 +90,69 @@ export default async function AiPlannerPage({ params }: PlannerPageProps) {
   const [metaDate, ...metaLocationParts] = metaLine.split(' · ');
   const metaLocation = metaLocationParts.join(' · ');
   const detailPath = eventPath(locale, activity);
+  const lineupHref = eventLineupPath(locale, activity);
+  const travelHref = eventTravelPath(locale, activity);
   const waitlistHref = `${localizedPath(locale, '/waitlist')}?event=${encodeURIComponent(eventTitle)}`;
+  const landing = buildPlannerLandingData(activity, djs, performances, locale);
+  const atmosphere = getFestivalAtmosphere(activity, landing.lineupIntel.genres[0]);
   const siteUrl = getSiteUrl();
+  const entryFrom = resolveJourneyEntryFrom(resolvedSearch);
+
+  const breadcrumbItems = [
+    { name: t.breadcrumbs.home, url: `${siteUrl}${localizedPath(locale)}` },
+    { name: t.breadcrumbs.events, url: `${siteUrl}${localizedPath(locale, '/events')}` },
+    { name: eventTitle, url: `${siteUrl}${detailPath}` },
+    { name: t.aiPlanner.breadcrumb, url: `${siteUrl}${eventPlanPath(locale, activity)}` },
+  ];
+
+  const jsonLd = buildPlannerJsonLd(activity, djs, locale, breadcrumbItems, landing.faq);
 
   return (
-    <main className="plan-page">
-      <section className="plan-page__intro">
-        <div className="container container--plan">
-          <Breadcrumbs
-            ariaLabel={t.breadcrumbs.ariaLabel}
-            items={[
-              { label: t.breadcrumbs.home, href: localizedPath(locale) },
-              { label: t.breadcrumbs.events, href: localizedPath(locale, '/events') },
-              { label: eventTitle, href: detailPath },
-              { label: t.aiPlanner.breadcrumb },
-            ]}
-          />
-        </div>
-      </section>
+    <main className="plan-page plan-page--journey" data-atmosphere={atmosphere}>
+      <PlannerLandingContent
+        locale={locale}
+        eventTitle={eventTitle}
+        metaDate={metaDate ?? ''}
+        metaLocation={metaLocation}
+        image={getActivityImage(activity)}
+        landing={landing}
+        detailHref={detailPath}
+        lineupHref={lineupHref}
+        travelHref={travelHref}
+        legacyId={activity.legacyId}
+        entryFrom={entryFrom}
+        djs={djs}
+        performances={performances}
+      />
 
-      <section className="section section--plan">
+      <section
+        id="planner-form"
+        className="section section--plan"
+        tabIndex={-1}
+        aria-label={t.aiPlanner.landing.plannerSection}
+      >
         <div className="container container--plan">
-          <AiPlannerFlow
-            locale={locale}
-            activity={activity}
-            eventTitle={eventTitle}
-            metaDate={metaDate ?? ''}
-            metaLocation={metaLocation}
-            djs={djs}
-            performances={performances}
-            eventPath={detailPath}
-            waitlistHref={waitlistHref}
-          />
+          <div className="plan-page__composer">
+            <AiPlannerFlow
+              locale={locale}
+              activity={activity}
+              eventTitle={eventTitle}
+              metaDate={metaDate ?? ''}
+              metaLocation={metaLocation}
+              djs={djs}
+              performances={performances}
+              eventPath={detailPath}
+              waitlistHref={waitlistHref}
+              hideHeader
+            />
+          </div>
         </div>
       </section>
 
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'WebPage',
-            name: `${eventTitle} — ${t.aiPlanner.pageTitleSuffix}`,
-            url: `${siteUrl}${eventPlanPath(locale, activity)}`,
-            isPartOf: {
-              '@type': 'WebSite',
-              name: 'Raven',
-              url: siteUrl,
-            },
-          }).replace(/</g, '\\u003c'),
+          __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
         }}
       />
     </main>

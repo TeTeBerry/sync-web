@@ -1,5 +1,5 @@
 import type { Activity } from './types';
-import type { ScheduleDj } from './api';
+import type { ScheduleDj, SchedulePerformance } from './api';
 import { buildEventAiSummary } from './event-ai-summary';
 import type { Locale } from './i18n';
 
@@ -16,14 +16,23 @@ export type PlannerPreferences = {
   priorities: PersonalPriority[];
 };
 
+export type PlannerTimelineSet = {
+  time: string;
+  artist: string;
+  stage: string;
+  highlight?: boolean;
+};
+
+export type PlannerTimelineDay = {
+  label: string;
+  sets: PlannerTimelineSet[];
+};
+
 export type PlannerPlan = {
   vibe: string;
   experiences: string[];
-  artistRoute: {
-    artists: string[];
-    stages: string[];
-    conflicts: string[];
-    strategy: string;
+  artistTimeline: {
+    days: PlannerTimelineDay[];
   };
   travel: {
     stay: string;
@@ -47,15 +56,10 @@ type PlannerPlanLabels = {
     festival: string;
     extras: string;
   };
-  strategy: {
-    artists: string;
-    discover: string;
-    party: string;
-    default: string;
-  };
-  conflict: string;
   stageMain: string;
   stageLate: string;
+  timelineDay: string;
+  timelineTimes: readonly string[];
 };
 
 function formatCurrency(value: number, locale: Locale): string {
@@ -77,16 +81,108 @@ function budgetBase(travelStyle: TravelStyle): number {
   return 3200;
 }
 
+function normalizeArtistName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+function hasTimedPerformance(performance: SchedulePerformance): boolean {
+  const stage = performance.stageLabel?.trim() || performance.stage?.trim();
+  const startTime = performance.startTime?.trim();
+  return Boolean(stage && startTime);
+}
+
+function buildSyntheticTimeline(
+  artists: string[],
+  labels: PlannerPlanLabels,
+): PlannerTimelineDay[] {
+  if (!artists.length) return [];
+
+  const stages = [labels.stageMain, labels.stageLate, labels.stageLate];
+  const sets = artists.slice(0, 3).map((artist, index) => ({
+    time: labels.timelineTimes[index] ?? labels.timelineTimes[labels.timelineTimes.length - 1] ?? '',
+    artist,
+    stage: stages[index] ?? labels.stageMain,
+    highlight: true,
+  }));
+
+  return [
+    {
+      label: labels.timelineDay.replace('{day}', '1'),
+      sets,
+    },
+  ];
+}
+
+function buildArtistTimeline(
+  performances: SchedulePerformance[],
+  favoriteArtists: string[],
+  fallbackArtists: string[],
+  labels: PlannerPlanLabels,
+): PlannerTimelineDay[] {
+  const priorityArtists = favoriteArtists.length ? favoriteArtists : fallbackArtists;
+  const prioritySet = new Set(priorityArtists.map(normalizeArtistName));
+  const timedPerformances = performances.filter(hasTimedPerformance);
+
+  let selected = timedPerformances.filter((performance) =>
+    prioritySet.has(normalizeArtistName(performance.artistName)),
+  );
+
+  if (!selected.length && timedPerformances.length) {
+    selected = [...timedPerformances]
+      .sort((left, right) => (right.popularity ?? 0) - (left.popularity ?? 0))
+      .slice(0, Math.max(6, priorityArtists.length * 2));
+  }
+
+  if (!selected.length) {
+    return buildSyntheticTimeline(priorityArtists, labels);
+  }
+
+  const byDay = new Map<string, SchedulePerformance[]>();
+  for (const performance of selected) {
+    const key = performance.dateKey || performance.dateLabel || 'day-1';
+    const dayPerformances = byDay.get(key) ?? [];
+    dayPerformances.push(performance);
+    byDay.set(key, dayPerformances);
+  }
+
+  return [...byDay.entries()]
+    .map(([dateKey, dayPerformances]) => {
+      const sorted = [...dayPerformances].sort((left, right) => left.startMinutes - right.startMinutes);
+      return {
+        dateKey,
+        minStart: sorted[0]?.startMinutes ?? 0,
+        day: {
+          label: sorted[0]?.dateLabel || dateKey,
+          sets: sorted.map((performance) => ({
+            time: performance.startTime.trim(),
+            artist: performance.artistName,
+            stage: performance.stageLabel?.trim() || performance.stage?.trim() || labels.stageMain,
+            highlight:
+              favoriteArtists.length > 0 &&
+              favoriteArtists.some(
+                (artist) => normalizeArtistName(artist) === normalizeArtistName(performance.artistName),
+              ),
+          })),
+        } satisfies PlannerTimelineDay,
+      };
+    })
+    .sort((left, right) => left.minStart - right.minStart)
+    .map((entry) => entry.day);
+}
+
 export function buildPlannerPlan(
   activity: Activity,
   djs: ScheduleDj[],
+  performances: SchedulePerformance[],
   favoriteArtists: string[],
   preferences: PlannerPreferences,
   locale: Locale,
   labels: PlannerPlanLabels,
 ): PlannerPlan {
   const summary = buildEventAiSummary(activity, djs, locale);
-  const artists = favoriteArtists.length ? favoriteArtists : summary.mustSee.slice(0, 3);
+  const artists = favoriteArtists.length
+    ? favoriteArtists
+    : summary.mustSee.slice(0, 3).map((artist) => artist.name);
   const city = activity.city ?? activity.area ?? activity.location ?? '';
   const priorities = preferences.priorities.length
     ? preferences.priorities
@@ -97,20 +193,6 @@ export function buildPlannerPlan(
     .map((priority) => labels.experiences[priority])
     .filter(Boolean);
 
-  const stages = [
-    labels.stageMain,
-    artists.length > 1 ? labels.stageLate : summary.genres[0] ?? labels.stageLate,
-  ];
-
-  const conflicts =
-    artists.length > 1
-      ? [labels.conflict.replace('{artist1}', artists[0]).replace('{artist2}', artists[1])]
-      : [];
-
-  const primaryPriority = priorities[0] ?? 'artists';
-  const strategy =
-    labels.strategy[primaryPriority as keyof typeof labels.strategy] ?? labels.strategy.default;
-
   const base = budgetBase(preferences.travelStyle);
   const accommodation = Math.round(base * 0.42);
   const transport = Math.round(base * 0.28);
@@ -120,11 +202,8 @@ export function buildPlannerPlan(
   return {
     vibe: summary.vibe,
     experiences: experiences.length ? experiences : [labels.experiences.artists],
-    artistRoute: {
-      artists,
-      stages,
-      conflicts,
-      strategy,
+    artistTimeline: {
+      days: buildArtistTimeline(performances, favoriteArtists, artists, labels),
     },
     travel: {
       stay: labels.stay[preferences.stayPreference].replace('{city}', city),

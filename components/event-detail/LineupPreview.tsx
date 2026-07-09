@@ -11,6 +11,8 @@ type LineupPreviewLabels = {
   artistCount: string;
   emptyTitle: string;
   emptyLead: string;
+  awaitingTitle?: string;
+  awaitingLead?: string;
 };
 
 type LineupPreviewProps = {
@@ -21,6 +23,7 @@ type LineupPreviewProps = {
   lineupHref: string;
   labels: LineupPreviewLabels;
   subscribeEventProperties: Record<string, string>;
+  awaitingCopy?: string;
 };
 
 export function LineupPreview({
@@ -31,77 +34,86 @@ export function LineupPreview({
   lineupHref,
   labels,
   subscribeEventProperties,
+  awaitingCopy,
 }: LineupPreviewProps) {
+  const [headliner, ...supporting] = artists;
+  const cast = supporting.slice(0, 3);
+
   return (
-    <section className="detail-section lineup-preview" aria-labelledby="lineup-preview-title">
-      <header className="detail-section__header">
+    <section className="lineup-experience" aria-labelledby="lineup-preview-title">
+      <header className="lineup-experience__header">
         <div>
-          <h2 id="lineup-preview-title" className="detail-section__title">
-            {labels.title}
+          <h2 id="lineup-preview-title" className="lineup-experience__title">
+            {artistCount > 0 ? labels.lead : labels.awaitingTitle ?? labels.emptyTitle}
           </h2>
-          <p className="detail-section__lead">{labels.lead}</p>
+          {artistCount > 0 && genres.length ? (
+            <p className="lineup-experience__sound">{genres.slice(0, 3).join(' · ')}</p>
+          ) : null}
         </div>
         {artistCount > 0 ? (
-          <span className="detail-section__meta">{labels.artistCount.replace('{count}', String(artistCount))}</span>
+          <p className="lineup-experience__count">
+            {labels.artistCount.replace('{count}', String(artistCount))}
+          </p>
         ) : null}
       </header>
 
       {artistCount > 0 ? (
-        <>
-          {genres.length ? (
-            <div className="lineup-preview__genres" aria-label={labels.title}>
-              {genres.map((genre) => (
-                <span className="lineup-preview__genre" key={genre}>
-                  {genre}
-                </span>
-              ))}
-            </div>
+        <div className="lineup-experience__spotlight">
+          {headliner ? (
+            <article
+              className="lineup-experience__headliner"
+              style={{ '--artist-accent': headliner.accent } as CSSProperties}
+            >
+              <h3 className="lineup-experience__name lineup-experience__name--lead">
+                {headliner.name}
+              </h3>
+              {headliner.reason ? (
+                <p className="lineup-experience__reason">{headliner.reason}</p>
+              ) : (
+                <p className="lineup-experience__meta">
+                  {[headliner.genre, headliner.stage].filter(Boolean).join(' · ')}
+                </p>
+              )}
+            </article>
           ) : null}
 
-          {stageLabels.length ? (
-            <div className="lineup-preview__stages">
-              <span className="lineup-preview__stages-label">{labels.stages}</span>
-              <div className="lineup-preview__stage-list">
-                {stageLabels.map((stage) => (
-                  <span className="lineup-preview__stage" key={stage}>
-                    {stage}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {artists.length ? (
-            <div className="lineup-preview__artists">
-              {artists.map((artist) => (
-                <article
-                  className="lineup-preview__artist"
+          {cast.length ? (
+            <ul className="lineup-experience__cast">
+              {cast.map((artist) => (
+                <li
+                  className="lineup-experience__artist"
                   key={artist.id}
                   style={{ '--artist-accent': artist.accent } as CSSProperties}
                 >
-                  <span className="lineup-preview__artist-bar" aria-hidden />
-                  <div className="lineup-preview__artist-copy">
-                    <h3 className="lineup-preview__artist-name">{artist.name}</h3>
-                    {artist.genre ? (
-                      <span className="lineup-preview__artist-genre">{artist.genre}</span>
-                    ) : null}
-                    {artist.stage ? (
-                      <span className="lineup-preview__artist-stage">{artist.stage}</span>
-                    ) : null}
-                  </div>
-                </article>
+                  <h3 className="lineup-experience__name">{artist.name}</h3>
+                  {artist.reason ? (
+                    <p className="lineup-experience__reason">{artist.reason}</p>
+                  ) : (
+                    <p className="lineup-experience__meta">
+                      {[artist.genre, artist.stage].filter(Boolean).join(' · ')}
+                    </p>
+                  )}
+                </li>
               ))}
-            </div>
+            </ul>
           ) : null}
-        </>
+
+          {stageLabels.length ? (
+            <p className="lineup-experience__stages">
+              <span>{labels.stages}</span>
+              {stageLabels.join(' · ')}
+            </p>
+          ) : null}
+        </div>
       ) : (
-        <div className="detail-section__empty">
-          <p className="detail-section__empty-title">{labels.emptyTitle}</p>
-          <p className="detail-section__empty-lead">{labels.emptyLead}</p>
+        <div className="lineup-experience__awaiting">
+          <p className="lineup-experience__awaiting-copy">
+            {awaitingCopy ?? labels.awaitingLead ?? labels.emptyLead}
+          </p>
         </div>
       )}
 
-      <footer className="detail-section__footer">
+      <footer className="lineup-experience__footer">
         <TrackedLink
           className="detail-section__cta"
           href={lineupHref}

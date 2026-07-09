@@ -26,27 +26,35 @@ export function EventDetailActions({
   return (
     <div className="detail-hero__actions">
       <TrackedLink
-        className="button"
+        className="button button--glow detail-hero__primary"
         href={planHref}
         eventName="event_plan_click"
         eventProperties={subscribeEventProperties}
       >
         {t.eventDetail.planCta}
       </TrackedLink>
-      <BookmarkButton
-        legacyId={legacyId}
-        eventTitle={eventTitle}
-        locale={locale}
-        variant="hero"
-        labels={t.states.bookmark}
-        eventsPath={localizedPath(locale, '/events')}
-        waitlistPath={`${localizedPath(locale, '/waitlist')}?event=${encodeURIComponent(eventTitle)}`}
-      />
-      {externalUrl ? (
-        <a className="button secondary" href={externalUrl} target="_blank" rel="noopener noreferrer">
-          {t.eventDetail.externalUrl}
-        </a>
-      ) : null}
+
+      <div className="detail-hero__secondary">
+        <BookmarkButton
+          legacyId={legacyId}
+          eventTitle={eventTitle}
+          locale={locale}
+          variant="hero"
+          labels={t.states.bookmark}
+          eventsPath={localizedPath(locale, '/events')}
+          waitlistPath={`${localizedPath(locale, '/waitlist')}?event=${encodeURIComponent(eventTitle)}`}
+        />
+        {externalUrl ? (
+          <a
+            className="detail-hero__quiet-link"
+            href={externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t.eventDetail.externalUrl}
+          </a>
+        ) : null}
+      </div>
     </div>
   );
 }

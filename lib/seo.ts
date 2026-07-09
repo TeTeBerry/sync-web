@@ -11,7 +11,10 @@ import {
 import {
   eventAlternateLanguages,
   eventPath,
+  eventPlanAlternateLanguages,
+  eventPlanPath,
 } from './event-slug';
+import type { TravelFaqItem } from './event-travel';
 import { getSiteUrl } from './site';
 import {
   getActivityDateRange,
@@ -273,6 +276,144 @@ export function buildEventJsonLd(
   return {
     '@context': 'https://schema.org',
     '@graph': [eventSchema, buildBreadcrumbJsonLd(breadcrumbItems)],
+  };
+}
+
+export function plannerPageTitle(activity: Activity, locale: Locale): string {
+  const name = getActivityTitle(localizeActivity(activity, locale));
+  if (locale === 'zh') {
+    return `${name} 行程规划`;
+  }
+  return `${name} Trip Planner`;
+}
+
+export function plannerMetaDescription(activity: Activity, locale: Locale): string {
+  const name = getActivityTitle(localizeActivity(activity, locale));
+  if (locale === 'zh') {
+    return `用 Raven AI 规划你的 ${name} 之旅。对比出行方案、发现住宿、估算预算，生成专属电音节行程。`;
+  }
+  return `Plan your ${name} trip with Raven AI. Compare travel options, discover accommodation, estimate budgets and build your personalized festival itinerary.`;
+}
+
+export function buildPlannerJsonLd(
+  activity: Activity,
+  djs: ScheduleDj[],
+  locale: Locale,
+  breadcrumbItems: BreadcrumbItem[],
+  faq: TravelFaqItem[],
+) {
+  const localizedActivity = localizeActivity(activity, locale);
+  const title = getActivityTitle(localizedActivity);
+  const planUrl = `${siteUrl}${eventPlanPath(locale, activity)}`;
+  const eventUrl = `${siteUrl}${eventPath(locale, activity)}`;
+  const image = absoluteAssetUrl(getActivityImage(localizedActivity));
+  const performers = resolveEventPerformers(localizedActivity, djs);
+  const { startDate, endDate } = resolveEventSchemaDates(localizedActivity, title);
+  const locationName = localizedActivity.location || localizedActivity.city;
+
+  const eventSchema = {
+    '@type': 'Event',
+    '@id': eventUrl,
+    name: title,
+    description: eventMetaDescription(localizedActivity, locale),
+    url: eventUrl,
+    inLanguage: locale === 'zh' ? 'zh-CN' : 'en',
+    image: image ? [image] : undefined,
+    startDate,
+    endDate,
+    eventStatus: 'https://schema.org/EventScheduled',
+    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+    organizer: {
+      '@type': 'Organization',
+      name: 'Raven',
+      url: siteUrl,
+    },
+    location: locationName
+      ? {
+          '@type': 'Place',
+          name: locationName,
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: localizedActivity.city,
+            addressCountry: localizedActivity.area,
+            streetAddress: localizedActivity.location,
+          },
+        }
+      : undefined,
+    performer: performers.length ? performers : undefined,
+    offers: {
+      '@type': 'Offer',
+      url: localizedActivity.externalUrl ?? eventUrl,
+      availability: 'https://schema.org/InStock',
+    },
+  };
+
+  const webPageSchema = {
+    '@type': 'WebPage',
+    '@id': planUrl,
+    name: plannerPageTitle(localizedActivity, locale),
+    description: plannerMetaDescription(localizedActivity, locale),
+    url: planUrl,
+    inLanguage: locale === 'zh' ? 'zh-CN' : 'en',
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'Raven',
+      url: siteUrl,
+    },
+    about: { '@id': eventUrl },
+  };
+
+  const graph: Record<string, unknown>[] = [
+    webPageSchema,
+    eventSchema,
+    buildBreadcrumbJsonLd(breadcrumbItems),
+  ];
+
+  const faqSchema = buildFaqJsonLd(faq);
+  if (faqSchema) graph.push(faqSchema);
+
+  return {
+    '@context': 'https://schema.org',
+    '@graph': graph,
+  };
+}
+
+export function buildPlannerMetadata(
+  activity: Activity,
+  locale: Locale,
+  options?: {
+    zhActivity?: Activity;
+    enActivity?: Activity;
+  },
+): Metadata {
+  const localized = localizeActivity(activity, locale);
+  const title = plannerPageTitle(localized, locale);
+  const description = plannerMetaDescription(localized, locale);
+  const path = eventPlanPath(locale, activity);
+  const url = `${siteUrl}${path}`;
+  const image = absoluteAssetUrl(getActivityImage(localized));
+  const languages = Object.fromEntries(
+    Object.entries(
+      eventPlanAlternateLanguages(activity, options?.zhActivity, options?.enActivity),
+    ).map(([language, href]) => [language, `${siteUrl}${href}`]),
+  );
+
+  return {
+    title: {
+      absolute: `${title} | Raven AI`,
+    },
+    description,
+    alternates: {
+      canonical: url,
+      languages,
+    },
+    ...buildSocialMetadata({
+      title,
+      description,
+      url,
+      locale,
+      image: image ? { url: image, alt: getActivityTitle(localized) } : undefined,
+    }),
   };
 }
 

@@ -77,9 +77,10 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
             </p>
           ) : null}
           <nav className="footer__links" aria-label={t.nav.footerNav}>
-            <Link href={`${localizedPath(locale)}#how-it-works`}>{t.nav.howItWorks}</Link>
+            <Link href={`${localizedPath(locale)}#discovery-promise`}>{t.nav.howItWorks}</Link>
             <Link href={localizedPath(locale, '/events')}>{t.nav.festivals}</Link>
             <Link href={localizedPath(locale, '/waitlist')}>{t.nav.waitlist}</Link>
+            <Link href={localizedPath(locale, '/privacy')}>{t.waitlist.privacyPolicy}</Link>
           </nav>
         </div>
       </footer>

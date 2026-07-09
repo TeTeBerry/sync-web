@@ -13,12 +13,14 @@ import {
   type Locale,
 } from '../lib/i18n';
 import { getActivityContinent } from '../lib/activity-continent';
+import { getFestivalAtmosphere } from '../lib/festival-atmosphere';
 import { EventImage } from './EventImage';
 
 type EventCardProps = {
   activity: Activity;
   locale: Locale;
   featured?: boolean;
+  variant?: 'standard' | 'poster' | 'list';
   priorityImage?: boolean;
   style?: CSSProperties;
 };
@@ -31,6 +33,7 @@ export function EventCard({
   activity,
   locale,
   featured = false,
+  variant = 'standard',
   priorityImage = false,
   style,
 }: EventCardProps) {
@@ -43,12 +46,14 @@ export function EventCard({
   const artists = lineupCount(activity);
   const continent = getActivityContinent(localizedActivity);
   const continentLabel = getContinentLabel(locale, continent);
+  const isComparison = variant === 'list';
 
   return (
     <Link
-      className={`event-card${featured ? ' event-card--featured' : ''}`}
+      className={`event-card event-card--${variant}${featured ? ' event-card--featured' : ''}`}
       href={eventPath(locale, localizedActivity)}
       style={style}
+      data-atmosphere={getFestivalAtmosphere(localizedActivity)}
     >
       <div className="event-card__spotlight" aria-hidden />
       <div className="event-card__image">
@@ -68,17 +73,19 @@ export function EventCard({
         ) : null}
       </div>
       <div className="event-card__body">
-        <div className="event-card__tags">
-          {activity.hot ? <span className="pill pill--primary">{t.eventCard.hot}</span> : null}
-          {activity.activityType ? (
-            <span className="pill pill--secondary">
-              {getActivityTypeLabel(locale, activity.activityType)}
-            </span>
-          ) : null}
-          {continentLabel ? (
-            <span className="pill pill--accent">{continentLabel}</span>
-          ) : null}
-        </div>
+        {!isComparison ? (
+          <div className="event-card__tags">
+            {activity.hot ? <span className="pill pill--primary">{t.eventCard.hot}</span> : null}
+            {activity.activityType ? (
+              <span className="pill pill--secondary">
+                {getActivityTypeLabel(locale, activity.activityType)}
+              </span>
+            ) : null}
+            {continentLabel ? (
+              <span className="pill pill--accent">{continentLabel}</span>
+            ) : null}
+          </div>
+        ) : null}
         <h3>{title}</h3>
         <p className="event-card__location">
           {localizedActivity.location ?? localizedActivity.area ?? t.eventCard.locationFallback}
@@ -88,8 +95,8 @@ export function EventCard({
             {localizedActivity.city ?? localizedActivity.area ?? t.eventCard.cityFallback}
           </span>
           <span className="event-card__action">
-            <Sparkles size={13} strokeWidth={1.75} aria-hidden />
-            {t.eventCard.explore}
+            {!isComparison ? <Sparkles size={13} strokeWidth={1.75} aria-hidden /> : null}
+            {!isComparison ? t.eventCard.explore : null}
             <ArrowUpRight size={14} strokeWidth={2} aria-hidden />
           </span>
         </div>

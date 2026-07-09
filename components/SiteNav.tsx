@@ -33,7 +33,7 @@ export function SiteNav({ locale, nextLocale, labels }: SiteNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const homePath = localizedPath(locale);
-  const howItWorksHref = `${homePath}#how-it-works`;
+  const howItWorksHref = `${homePath}#discovery-promise`;
 
   const links = [
     { href: howItWorksHref, label: labels.howItWorks, secondary: false },

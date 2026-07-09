@@ -2,20 +2,25 @@ import type { Metadata } from 'next';
 import nextDynamic from 'next/dynamic';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import { HomeFeatureGrid } from '../../components/HomeFeatureGrid';
-import { HomeProductFlow } from '../../components/HomeProductFlow';
-import { FestivalTimeline } from '../../components/FestivalTimeline';
-import { HeroPhonePreview } from '../../components/HeroPhonePreview';
-import { HomePopularEvents } from '../../components/HomePopularEvents';
-import { SquadPlannerTeaser } from '../../components/SquadPlannerTeaser';
+import { HomeDiscoveryPromise } from '../../components/HomeDiscoveryPromise';
+import { HomeHeroScene } from '../../components/HomeHeroScene';
+import { HomeWorldCue } from '../../components/HomeWorldCue';
 import { AiPlannerSkeleton } from '../../components/states/AiPlannerSkeleton';
-import { PopularEventsSkeleton } from '../../components/states/PopularEventsSkeleton';
 import { TrackedLink } from '../../components/TrackedLink';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import {
+  fetchActivities,
+  getActivityImage,
+  getActivityTitle,
+} from '../../lib/api';
+import { eventPath } from '../../lib/event-slug';
+import { getFestivalAtmosphere } from '../../lib/festival-atmosphere';
+import { activityMeta } from '../../lib/format';
 import {
   getMessages,
   DEFAULT_LOCALE,
   isLocale,
+  localizeActivities,
   localizedPath,
   type Locale,
 } from '../../lib/i18n';
@@ -24,13 +29,13 @@ import {
   absoluteLocalizedUrl,
   buildSocialMetadata,
 } from '../../lib/seo';
+import type { Activity } from '../../lib/types';
 
 export const dynamic = 'force-dynamic';
 
 type HomePageProps = {
   params: Promise<{ locale: string }>;
 };
-
 
 const AiPlannerExperience = nextDynamic(
   () =>
@@ -41,6 +46,28 @@ const AiPlannerExperience = nextDynamic(
     loading: () => <AiPlannerSkeleton />,
   },
 );
+
+function pickHeroActivity(activities: Activity[]): Activity | undefined {
+  const tomorrowland = activities.find((activity) =>
+    `${activity.name} ${activity.title ?? ''}`.toLowerCase().includes('tomorrowland'),
+  );
+  if (tomorrowland) return tomorrowland;
+
+  return [...activities].sort((left, right) => {
+    const hotDelta = Number(Boolean(right.hot)) - Number(Boolean(left.hot));
+    if (hotDelta !== 0) return hotDelta;
+    return (right.attendees ?? 0) - (left.attendees ?? 0);
+  })[0];
+}
+
+function pickWorldCue(activities: Activity[], hero?: Activity): Activity | undefined {
+  const others = activities.filter((activity) => activity.legacyId !== hero?.legacyId);
+  return [...others].sort((left, right) => {
+    const hotDelta = Number(Boolean(right.hot)) - Number(Boolean(left.hot));
+    if (hotDelta !== 0) return hotDelta;
+    return (right.attendees ?? 0) - (left.attendees ?? 0);
+  })[0];
+}
 
 export async function generateMetadata({ params }: HomePageProps): Promise<Metadata> {
   const { locale: rawLocale } = await params;
@@ -72,187 +99,111 @@ export default async function HomePage({ params }: HomePageProps) {
 
   const locale = rawLocale as Locale;
   const t = getMessages(locale);
+  const { activities: rawActivities } = await fetchActivities();
+  const activities = localizeActivities(rawActivities, locale);
+  const heroActivity = pickHeroActivity(activities);
+  const worldCueActivity = pickWorldCue(activities, heroActivity);
+
+  const fallbackFestival =
+    t.home.heroFlow.discovery.festivals.find(
+      (festival) => 'featured' in festival && festival.featured,
+    ) ?? t.home.heroFlow.discovery.festivals[0];
+
+  const festivalName = heroActivity ? getActivityTitle(heroActivity) : fallbackFestival.name;
+  const festivalMeta = heroActivity ? activityMeta(heroActivity) : `${fallbackFestival.date} · ${fallbackFestival.location}`;
+  const [festivalDate, festivalLocation] = heroActivity
+    ? festivalMeta.split(' · ')
+    : [fallbackFestival.date, fallbackFestival.location];
+  const atmosphere = heroActivity ? getFestivalAtmosphere(heroActivity) : 'amber';
+  const heroImage = heroActivity ? getActivityImage(heroActivity) : undefined;
+
+  const timelineMoments = t.home.timeline.days.flatMap((day) =>
+    day.items.map((item, index) => ({
+      time: index === 0 ? `${day.label} · ${item.time}` : item.time,
+      label: item.label,
+      kind: item.kind,
+    })),
+  );
+
+  const journey = {
+    festival: heroActivity ? festivalName : t.home.dashboard.festival,
+    meta: heroActivity ? festivalMeta : t.home.dashboard.meta,
+    story: t.home.plannerLead,
+    cta: t.home.dashboard.cta,
+    arrival: `${t.home.dashboard.trip.flight.label} ${t.home.dashboard.trip.flight.route}`,
+    stay: `${t.home.dashboard.trip.hotel.label} · ${t.home.dashboard.trip.hotel.name}`,
+    budgetLabel: t.home.dashboard.budget.perPerson,
+    budgetValue: t.home.dashboard.budget.total,
+    moments: timelineMoments.slice(0, 10),
+  };
 
   return (
     <main className="home">
-      <section className="ai-hero ai-hero--split" aria-labelledby="home-hero-title">
-        <div className="ai-hero__atmosphere" aria-hidden="true">
-          <div className="ai-hero__mesh" />
-          <div className="ai-hero__glow ai-hero__glow--warm" />
-          <div className="ai-hero__glow ai-hero__glow--cool" />
-          <div className="ai-hero__spotlight" />
-          <div className="ai-hero__grain" />
-        </div>
-
-        <div className="container ai-hero__grid">
-          <div className="ai-hero__copy">
-            <div className="ai-hero__head">
-              <div className="ai-badge">
-                <Sparkles size={13} strokeWidth={2.25} aria-hidden />
-                <span>{t.home.badge}</span>
-              </div>
-
-              <h1 className="ai-hero__title" id="home-hero-title">
-                <span className="visually-hidden">{t.home.seoHeading}</span>
-                <span className="ai-hero__headline" aria-hidden="true">
-                  {t.home.titleLine1}
-                </span>
-                <span className="ai-hero__headline ai-hero__headline--accent" aria-hidden="true">
-                  {t.home.titleLine2}
-                </span>
-              </h1>
-
-              <p className="lead ai-hero__lead">{t.home.lead}</p>
-            </div>
-
-            <div className="ai-hero__ctas">
-              <TrackedLink
-                className="button button--glow ai-hero__cta-primary"
-                href={localizedPath(locale, '/waitlist')}
-                eventName="home_plan_click"
-                eventProperties={{ locale, source: 'hero-primary' }}
-              >
-                {t.home.primaryCta}
-              </TrackedLink>
-              <TrackedLink
-                className="button secondary ai-hero__cta-secondary"
-                href={localizedPath(locale, '/events')}
-                eventName="home_events_click"
-                eventProperties={{ locale, source: 'hero-secondary' }}
-              >
-                {t.home.exploreCta}
-                <ArrowRight size={15} strokeWidth={2.25} aria-hidden />
-              </TrackedLink>
-            </div>
-          </div>
-
-          <HeroPhonePreview locale={locale} flow={t.home.heroFlow} />
-        </div>
-      </section>
-
-      <section className="section how-section" id="how-it-works" aria-labelledby="how-it-works-title" data-reveal>
-        <div className="container">
-          <div className="section__header section__header--center">
-            <div>
-              <p className="eyebrow">{t.home.howEyebrow}</p>
-              <h2 id="how-it-works-title">{t.home.howTitle}</h2>
-            </div>
-          </div>
-
-          <HomeProductFlow steps={t.home.steps} planReport={t.home.planReport} />
-        </div>
-      </section>
-
-      <section className="section ai-planner-section" id="ai-planner" aria-labelledby="ai-planner-title" data-reveal>
-        <div className="container">
-          <div className="section__header section__header--center">
-            <div>
-              <h2 id="ai-planner-title">{t.home.plannerTitle}</h2>
-              <p className="section__note">{t.home.plannerLead}</p>
-            </div>
-          </div>
-
-          <AiPlannerExperience locale={locale} dashboard={t.home.dashboard} />
-        </div>
-      </section>
+      <HomeHeroScene
+        locale={locale}
+        seoHeading={t.home.seoHeading}
+        titleLine1={t.home.titleLine1}
+        titleLine2={t.home.titleLine2}
+        lead={t.home.lead}
+        primaryCta={t.home.primaryCta}
+        exploreCta={t.home.exploreCta}
+        festivalName={festivalName}
+        festivalDate={festivalDate ?? fallbackFestival.date}
+        festivalLocation={festivalLocation ?? fallbackFestival.location}
+        imageSrc={heroImage}
+        imageAlt={festivalName}
+        atmosphere={atmosphere}
+      />
 
       <section
-        className="section festival-timeline-section"
-        id="festival-timeline"
-        aria-labelledby="festival-timeline-title"
+        className="section home-scene home-scene--promise"
+        id="discovery-promise"
+        aria-labelledby="discovery-promise-title"
         data-reveal
       >
-        <div className="container festival-timeline-layout">
-          <div className="festival-timeline-layout__intro">
-            <p className="eyebrow">{t.home.timelineEyebrow}</p>
-            <h2 id="festival-timeline-title">{t.home.timelineTitle}</h2>
-            <p className="section__note">{t.home.timelineLead}</p>
-          </div>
-
-          <FestivalTimeline days={t.home.timeline.days} ariaLabel={t.home.timeline.ariaLabel} />
-        </div>
-      </section>
-
-      <section className="section features-section" aria-labelledby="capabilities-title" data-reveal>
         <div className="container">
-          <div className="section__header section__header--center">
-            <div>
-              <p className="eyebrow">{t.home.featuresEyebrow}</p>
-              <h2 id="capabilities-title">{t.home.featuresTitle}</h2>
-              <p className="section__note">{t.home.featuresLead}</p>
-            </div>
-          </div>
-
-          <HomeFeatureGrid features={t.home.features} />
-
-          <div className="features-section__footer">
-            <TrackedLink
-              className="features-section__nudge"
-              href={localizedPath(locale, '/waitlist')}
-              eventName="home_plan_click"
-              eventProperties={{ locale, source: 'capabilities-nudge' }}
-            >
-              <span>{t.home.featuresWaitlistNudge}</span>
-              <ArrowRight size={14} strokeWidth={2.25} aria-hidden />
-            </TrackedLink>
-          </div>
-        </div>
-      </section>
-
-      <section className="section popular-events" aria-labelledby="popular-events-title" data-reveal>
-        <div className="container">
-          <div className="section__header section__header--split">
-            <div>
-              <h2 id="popular-events-title">{t.home.popularTitle}</h2>
-              <p className="section__note">{t.home.popularLead}</p>
-            </div>
-            <TrackedLink
-              className="section__header-action"
-              href={localizedPath(locale, '/events')}
-              eventName="home_events_click"
-              eventProperties={{ locale, source: 'popular-events-header' }}
-            >
-              <span>{t.home.popularLink}</span>
-              <ArrowRight size={15} strokeWidth={2.25} aria-hidden />
-            </TrackedLink>
-          </div>
-
-          <Suspense fallback={<PopularEventsSkeleton />}>
-            <HomePopularEvents locale={locale} />
-          </Suspense>
-
-          <div className="popular-events__bridge">
-            <p>{t.home.popularBridge}</p>
-            <TrackedLink
-              className="popular-events__bridge-link"
-              href={localizedPath(locale, '/waitlist')}
-              eventName="home_plan_click"
-              eventProperties={{ locale, source: 'popular-events-bridge' }}
-            >
-              <span>{t.home.popularBridgeLink}</span>
-              <ArrowRight size={14} strokeWidth={2.25} aria-hidden />
-            </TrackedLink>
-          </div>
-        </div>
-      </section>
-
-      <section className="section future-section" aria-labelledby="future-title" data-reveal>
-        <div className="container">
-          <div className="section__header section__header--center">
-            <div>
-              <p className="eyebrow">{t.home.futureEyebrow}</p>
-              <h2 id="future-title">{t.home.futureTitle}</h2>
-            </div>
-          </div>
-
-          <SquadPlannerTeaser
-            comingSoon={t.home.futureComingSoon}
-            imageAlt={t.home.futureImageAlt}
+          <HomeDiscoveryPromise
+            title={t.home.howTitle}
+            lead={t.home.promiseLead}
+            beats={t.home.steps.map((step) => ({ title: step.title }))}
           />
         </div>
       </section>
 
-      <section className="section cta-band" aria-labelledby="cta-title" data-reveal>
+      <section
+        className="section home-scene home-scene--journey"
+        id="journey-preview"
+        aria-labelledby="journey-preview-title"
+        data-reveal
+      >
+        <div className="container">
+          <div className="section__header section__header--editorial">
+            <div>
+              <h2 id="journey-preview-title">{t.home.plannerTitle}</h2>
+              <p className="section__note">{t.home.timelineLead}</p>
+            </div>
+          </div>
+
+          <Suspense fallback={<AiPlannerSkeleton />}>
+            <AiPlannerExperience locale={locale} journey={journey} />
+          </Suspense>
+        </div>
+      </section>
+
+      {worldCueActivity ? (
+        <section className="section home-scene home-scene--worlds" aria-label={t.home.worldsEyebrow}>
+          <div className="container">
+            <HomeWorldCue
+              locale={locale}
+              activity={worldCueActivity}
+              eyebrow={t.home.worldsEyebrow}
+              exploreLabel={t.home.worldsExplore}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      <section className="section cta-band home-scene home-scene--cta" aria-labelledby="cta-title" data-reveal>
         <div className="container">
           <div className="cta-band__panel">
             <div className="cta-band__atmosphere" aria-hidden>
@@ -262,6 +213,7 @@ export default async function HomePage({ params }: HomePageProps) {
             </div>
 
             <div className="cta-band__content">
+              <p className="cta-band__crew">{t.home.futureLead}</p>
               <h2 id="cta-title">{t.home.ctaTitle}</h2>
             </div>
 
@@ -275,6 +227,17 @@ export default async function HomePage({ params }: HomePageProps) {
                 {t.home.ctaButton}
                 <ArrowRight size={16} strokeWidth={2.25} aria-hidden />
               </TrackedLink>
+              {heroActivity ? (
+                <TrackedLink
+                  className="cta-band__secondary-link"
+                  href={eventPath(locale, heroActivity)}
+                  eventName="home_events_click"
+                  eventProperties={{ locale, source: 'footer-festival' }}
+                >
+                  {festivalName}
+                  <ArrowRight size={14} strokeWidth={2.25} aria-hidden />
+                </TrackedLink>
+              ) : null}
             </div>
           </div>
         </div>
