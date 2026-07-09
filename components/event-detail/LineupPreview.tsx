@@ -46,7 +46,7 @@ export function LineupPreview({
         ) : null}
       </header>
 
-      {artists.length ? (
+      {artistCount > 0 ? (
         <>
           {genres.length ? (
             <div className="lineup-preview__genres" aria-label={labels.title}>
@@ -71,26 +71,28 @@ export function LineupPreview({
             </div>
           ) : null}
 
-          <div className="lineup-preview__artists">
-            {artists.map((artist) => (
-              <article
-                className="lineup-preview__artist"
-                key={artist.id}
-                style={{ '--artist-accent': artist.accent } as CSSProperties}
-              >
-                <span className="lineup-preview__artist-bar" aria-hidden />
-                <div className="lineup-preview__artist-copy">
-                  <h3 className="lineup-preview__artist-name">{artist.name}</h3>
-                  {artist.genre ? (
-                    <span className="lineup-preview__artist-genre">{artist.genre}</span>
-                  ) : null}
-                  {artist.stage ? (
-                    <span className="lineup-preview__artist-stage">{artist.stage}</span>
-                  ) : null}
-                </div>
-              </article>
-            ))}
-          </div>
+          {artists.length ? (
+            <div className="lineup-preview__artists">
+              {artists.map((artist) => (
+                <article
+                  className="lineup-preview__artist"
+                  key={artist.id}
+                  style={{ '--artist-accent': artist.accent } as CSSProperties}
+                >
+                  <span className="lineup-preview__artist-bar" aria-hidden />
+                  <div className="lineup-preview__artist-copy">
+                    <h3 className="lineup-preview__artist-name">{artist.name}</h3>
+                    {artist.genre ? (
+                      <span className="lineup-preview__artist-genre">{artist.genre}</span>
+                    ) : null}
+                    {artist.stage ? (
+                      <span className="lineup-preview__artist-stage">{artist.stage}</span>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
         </>
       ) : (
         <div className="detail-section__empty">

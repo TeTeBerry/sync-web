@@ -11,6 +11,11 @@ export type FeaturedArtist = {
   accent: string;
 };
 
+export type LineupPreviewBuildOptions = {
+  stagesPublished?: boolean;
+  limit?: number;
+};
+
 function uniqueArtists(djs: ScheduleDj[]): ScheduleDj[] {
   const byName = new Map<string, ScheduleDj>();
   for (const dj of djs) {
@@ -30,9 +35,9 @@ function uniqueArtists(djs: ScheduleDj[]): ScheduleDj[] {
 export function buildFeaturedArtists(
   djs: ScheduleDj[],
   locale: Locale,
-  options?: { stagesPublished?: boolean },
-  limit = 6,
+  options: LineupPreviewBuildOptions = {},
 ): FeaturedArtist[] {
+  const limit = options.limit ?? 6;
   return uniqueArtists(djs)
     .sort((a, b) => {
       const byPopularity = (b.popularity ?? 0) - (a.popularity ?? 0);
@@ -59,9 +64,9 @@ export function buildFeaturedArtists(
 export function buildStageLabels(
   djs: ScheduleDj[],
   locale: Locale,
-  options?: { stagesPublished?: boolean },
-  limit = 5,
+  options: LineupPreviewBuildOptions = {},
 ): string[] {
+  const limit = options.limit ?? 5;
   if (options?.stagesPublished === false) {
     return [];
   }
