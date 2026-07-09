@@ -6,20 +6,20 @@ import { EventLoadError } from '../../../../../components/states/EventLoadError'
 import { EventUnavailableState } from '../../../../../components/states/EventUnavailableState';
 import { TravelTab } from '../../../../../components/travel/TravelTab';
 import { TrackedLink } from '../../../../../components/TrackedLink';
-import { getActivity, getActivityTitle } from '../../../../../lib/api';
+import { getActivity } from '../../../../../lib/api';
 import { loadEventPageData } from '../../../../../lib/event-page';
-import { buildFaqJsonLd } from '../../../../../lib/seo';
+import { buildTravelJsonLd, buildTravelMetadata, travelPageTitle } from '../../../../../lib/seo';
 import {
   eventPath,
   eventPlanPath,
   eventTravelPath,
   parseEventLegacyId,
 } from '../../../../../lib/event-slug';
+import { getSiteUrl } from '../../../../../lib/site';
 import {
   DEFAULT_LOCALE,
   getMessages,
   isLocale,
-  localizeActivity,
   localizedPath,
   type Locale,
 } from '../../../../../lib/i18n';
@@ -39,14 +39,7 @@ export async function generateMetadata({ params }: TravelPageProps): Promise<Met
   const activityResult = await getActivity(legacyId);
   if (!activityResult.activity) return {};
 
-  const activity = localizeActivity(activityResult.activity, locale);
-  const t = getMessages(locale);
-  const title = getActivityTitle(activity);
-
-  return {
-    title: `${title} — ${t.eventDetail.travel.pageTitle} | Raven`,
-    description: t.eventDetail.travel.pageLead,
-  };
+  return buildTravelMetadata(activityResult.activity, locale);
 }
 
 export default async function EventTravelPage({ params }: TravelPageProps) {
@@ -60,29 +53,33 @@ export default async function EventTravelPage({ params }: TravelPageProps) {
   if (pageData === 'error') return <EventLoadError locale={locale} />;
   if (pageData === 'not_found') return <EventUnavailableState locale={locale} />;
 
-  const { activity, eventTitle, travelData } = pageData;
+  const { activity, eventTitle, djs, travelData } = pageData;
+  const siteUrl = getSiteUrl();
   const planHref = eventPlanPath(locale, activity, { from: 'event' });
   const eventHref = eventPath(locale, activity);
+  const travelHref = eventTravelPath(locale, activity);
   const subscribeEventProperties = {
     event: String(activity.legacyId),
-    sourcePath: eventTravelPath(locale, activity),
+    sourcePath: travelHref,
     locale,
   };
-  const faqJsonLd = buildFaqJsonLd(travelData.faq);
+  const breadcrumbItems = [
+    { name: t.breadcrumbs.home, url: `${siteUrl}${localizedPath(locale)}` },
+    { name: t.breadcrumbs.events, url: `${siteUrl}${localizedPath(locale, '/events')}` },
+    { name: eventTitle, url: `${siteUrl}${eventHref}` },
+    { name: t.eventDetail.travel.pageTitle, url: `${siteUrl}${travelHref}` },
+  ];
+  const jsonLd = buildTravelJsonLd(activity, djs, locale, breadcrumbItems, travelData.faq);
+  const pageHeading = travelPageTitle(activity, locale);
 
   return (
     <main className="detail-page detail-page--sub">
-      {faqJsonLd ? (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@graph': [faqJsonLd],
-            }).replace(/</g, '\\u003c'),
-          }}
-        />
-      ) : null}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+        }}
+      />
 
       <section className="detail-sub-hero" data-reveal>
         <div className="container">
@@ -97,7 +94,7 @@ export default async function EventTravelPage({ params }: TravelPageProps) {
           />
           <header className="detail-sub-hero__header">
             <div>
-              <h1 className="detail-sub-hero__title">{t.eventDetail.travel.pageTitle}</h1>
+              <h1 className="detail-sub-hero__title">{pageHeading}</h1>
               <p className="detail-sub-hero__lead">{t.eventDetail.travel.pageLead}</p>
             </div>
             <TrackedLink

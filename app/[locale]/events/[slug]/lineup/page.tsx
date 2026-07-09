@@ -6,7 +6,7 @@ import { EventLoadError } from '../../../../../components/states/EventLoadError'
 import { EventUnavailableState } from '../../../../../components/states/EventUnavailableState';
 import { LineupEmptyState } from '../../../../../components/states/LineupEmptyState';
 import { LineupErrorState } from '../../../../../components/states/LineupErrorState';
-import { getActivity, getActivityImage, getActivityTitle } from '../../../../../lib/api';
+import { getActivity, getActivityImage } from '../../../../../lib/api';
 import { loadEventPageData } from '../../../../../lib/event-page';
 import { getFestivalAtmosphere } from '../../../../../lib/festival-atmosphere';
 import { buildFestivalFlow } from '../../../../../lib/lineup-flow';
@@ -18,11 +18,12 @@ import {
   eventPlanPath,
   parseEventLegacyId,
 } from '../../../../../lib/event-slug';
+import { buildLineupJsonLd, buildLineupMetadata } from '../../../../../lib/seo';
+import { getSiteUrl } from '../../../../../lib/site';
 import {
   DEFAULT_LOCALE,
   getMessages,
   isLocale,
-  localizeActivity,
   localizedPath,
   type Locale,
 } from '../../../../../lib/i18n';
@@ -42,14 +43,7 @@ export async function generateMetadata({ params }: LineupPageProps): Promise<Met
   const activityResult = await getActivity(legacyId);
   if (!activityResult.activity) return {};
 
-  const activity = localizeActivity(activityResult.activity, locale);
-  const t = getMessages(locale);
-  const title = getActivityTitle(activity);
-
-  return {
-    title: `${title} — ${t.eventDetail.lineupPage.title} | Raven`,
-    description: t.eventDetail.lineupPage.metaDescription.replace('{festival}', title),
-  };
+  return buildLineupMetadata(activityResult.activity, locale);
 }
 
 export default async function EventLineupPage({ params }: LineupPageProps) {
@@ -77,16 +71,25 @@ export default async function EventLineupPage({ params }: LineupPageProps) {
     schedulePublished,
   } = pageData;
 
+  const siteUrl = getSiteUrl();
   const planHref = eventPlanPath(locale, activity, { from: 'lineup' });
   const eventHref = eventPath(locale, activity);
+  const lineupHref = eventLineupPath(locale, activity);
   const image = getActivityImage(activity);
   const atmosphere = getFestivalAtmosphere(activity, aiSummary.genres[0]);
   const voice = buildLineupChapterVoice(activity, locale, atmosphere, aiSummary.genres);
   const subscribeEventProperties = {
     event: String(activity.legacyId),
-    sourcePath: eventLineupPath(locale, activity),
+    sourcePath: lineupHref,
     locale,
   };
+  const breadcrumbItems = [
+    { name: t.breadcrumbs.home, url: `${siteUrl}${localizedPath(locale)}` },
+    { name: t.breadcrumbs.events, url: `${siteUrl}${localizedPath(locale, '/events')}` },
+    { name: eventTitle, url: `${siteUrl}${eventHref}` },
+    { name: t.eventDetail.lineupPage.title, url: `${siteUrl}${lineupHref}` },
+  ];
+  const jsonLd = buildLineupJsonLd(activity, djs, locale, breadcrumbItems);
 
   const stageCount =
     timetableStats?.stageCount ?? (stageLabels.length > 0 ? stageLabels.length : 0);
@@ -172,6 +175,13 @@ export default async function EventLineupPage({ params }: LineupPageProps) {
       className="detail-page detail-page--experience detail-page--lineup"
       data-atmosphere={atmosphere}
     >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+        }}
+      />
+
       <LineupHeroScene
         eventTitle={eventTitle}
         invite={aiSummary.vibe}

@@ -10,9 +10,13 @@ import {
 } from './i18n';
 import {
   eventAlternateLanguages,
+  eventLineupAlternateLanguages,
+  eventLineupPath,
   eventPath,
   eventPlanAlternateLanguages,
   eventPlanPath,
+  eventTravelAlternateLanguages,
+  eventTravelPath,
 } from './event-slug';
 import type { TravelFaqItem } from './event-travel';
 import { getSiteUrl } from './site';
@@ -451,6 +455,240 @@ export function buildEventMetadata(
       url,
       locale,
       image: image ? { url: image, alt: getActivityTitle(localizeActivity(activity, locale)) } : undefined,
+    }),
+  };
+}
+
+export function lineupPageTitle(activity: Activity, locale: Locale): string {
+  const name = getActivityTitle(localizeActivity(activity, locale));
+  const t = getMessages(locale);
+  return `${name} — ${t.eventDetail.lineupPage.title}`;
+}
+
+export function lineupMetaDescription(activity: Activity, locale: Locale): string {
+  const name = getActivityTitle(localizeActivity(activity, locale));
+  return getMessages(locale).eventDetail.lineupPage.metaDescription.replace('{festival}', name);
+}
+
+export function travelPageTitle(activity: Activity, locale: Locale): string {
+  const name = getActivityTitle(localizeActivity(activity, locale));
+  const t = getMessages(locale);
+  return `${name} — ${t.eventDetail.travel.pageTitle}`;
+}
+
+export function travelMetaDescription(activity: Activity, locale: Locale): string {
+  const name = getActivityTitle(localizeActivity(activity, locale));
+  if (locale === 'zh') {
+    return `${name} 出行指南：住宿、交通、预算与必备清单。官方信息告诉你有什么，Raven 告诉你怎么选。`;
+  }
+  return `${name} travel guide: stay, flights, transit, budget, and essentials. Official info tells you what exists; Raven tells you what to choose.`;
+}
+
+function buildEventSubpageJsonLd(input: {
+  activity: Activity;
+  djs: ScheduleDj[];
+  locale: Locale;
+  pageUrl: string;
+  pageTitle: string;
+  pageDescription: string;
+  breadcrumbItems: BreadcrumbItem[];
+  faq?: TravelFaqItem[];
+}) {
+  const {
+    activity,
+    djs,
+    locale,
+    pageUrl,
+    pageTitle,
+    pageDescription,
+    breadcrumbItems,
+    faq = [],
+  } = input;
+  const localizedActivity = localizeActivity(activity, locale);
+  const title = getActivityTitle(localizedActivity);
+  const eventUrl = `${siteUrl}${eventPath(locale, activity)}`;
+  const image = absoluteAssetUrl(getActivityImage(localizedActivity));
+  const performers = resolveEventPerformers(localizedActivity, djs);
+  const { startDate, endDate } = resolveEventSchemaDates(localizedActivity, title);
+  const locationName = localizedActivity.location || localizedActivity.city;
+
+  const eventSchema = {
+    '@type': 'Event',
+    '@id': eventUrl,
+    name: title,
+    description: eventMetaDescription(localizedActivity, locale),
+    url: eventUrl,
+    inLanguage: locale === 'zh' ? 'zh-CN' : 'en',
+    image: image ? [image] : undefined,
+    startDate,
+    endDate,
+    eventStatus: 'https://schema.org/EventScheduled',
+    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+    organizer: {
+      '@type': 'Organization',
+      name: 'Raven',
+      url: siteUrl,
+    },
+    location: locationName
+      ? {
+          '@type': 'Place',
+          name: locationName,
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: localizedActivity.city,
+            addressCountry: localizedActivity.area,
+            streetAddress: localizedActivity.location,
+          },
+        }
+      : undefined,
+    performer: performers.length ? performers : undefined,
+    offers: {
+      '@type': 'Offer',
+      url: localizedActivity.externalUrl ?? eventUrl,
+      availability: 'https://schema.org/InStock',
+    },
+  };
+
+  const webPageSchema = {
+    '@type': 'WebPage',
+    '@id': pageUrl,
+    name: pageTitle,
+    description: pageDescription,
+    url: pageUrl,
+    inLanguage: locale === 'zh' ? 'zh-CN' : 'en',
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'Raven',
+      url: siteUrl,
+    },
+    about: { '@id': eventUrl },
+  };
+
+  const graph: Record<string, unknown>[] = [
+    webPageSchema,
+    eventSchema,
+    buildBreadcrumbJsonLd(breadcrumbItems),
+  ];
+
+  const faqSchema = buildFaqJsonLd(faq);
+  if (faqSchema) graph.push(faqSchema);
+
+  return {
+    '@context': 'https://schema.org',
+    '@graph': graph,
+  };
+}
+
+export function buildLineupJsonLd(
+  activity: Activity,
+  djs: ScheduleDj[],
+  locale: Locale,
+  breadcrumbItems: BreadcrumbItem[],
+) {
+  return buildEventSubpageJsonLd({
+    activity,
+    djs,
+    locale,
+    pageUrl: `${siteUrl}${eventLineupPath(locale, activity)}`,
+    pageTitle: lineupPageTitle(activity, locale),
+    pageDescription: lineupMetaDescription(activity, locale),
+    breadcrumbItems,
+  });
+}
+
+export function buildTravelJsonLd(
+  activity: Activity,
+  djs: ScheduleDj[],
+  locale: Locale,
+  breadcrumbItems: BreadcrumbItem[],
+  faq: TravelFaqItem[],
+) {
+  return buildEventSubpageJsonLd({
+    activity,
+    djs,
+    locale,
+    pageUrl: `${siteUrl}${eventTravelPath(locale, activity)}`,
+    pageTitle: travelPageTitle(activity, locale),
+    pageDescription: travelMetaDescription(activity, locale),
+    breadcrumbItems,
+    faq,
+  });
+}
+
+export function buildLineupMetadata(
+  activity: Activity,
+  locale: Locale,
+  options?: {
+    zhActivity?: Activity;
+    enActivity?: Activity;
+  },
+): Metadata {
+  const localized = localizeActivity(activity, locale);
+  const title = lineupPageTitle(localized, locale);
+  const description = lineupMetaDescription(localized, locale);
+  const path = eventLineupPath(locale, activity);
+  const url = `${siteUrl}${path}`;
+  const image = absoluteAssetUrl(getActivityImage(localized));
+  const languages = Object.fromEntries(
+    Object.entries(
+      eventLineupAlternateLanguages(activity, options?.zhActivity, options?.enActivity),
+    ).map(([language, href]) => [language, `${siteUrl}${href}`]),
+  );
+
+  return {
+    title: {
+      absolute: `${title} | Raven`,
+    },
+    description,
+    alternates: {
+      canonical: url,
+      languages,
+    },
+    ...buildSocialMetadata({
+      title,
+      description,
+      url,
+      locale,
+      image: image ? { url: image, alt: getActivityTitle(localized) } : undefined,
+    }),
+  };
+}
+
+export function buildTravelMetadata(
+  activity: Activity,
+  locale: Locale,
+  options?: {
+    zhActivity?: Activity;
+    enActivity?: Activity;
+  },
+): Metadata {
+  const localized = localizeActivity(activity, locale);
+  const title = travelPageTitle(localized, locale);
+  const description = travelMetaDescription(localized, locale);
+  const path = eventTravelPath(locale, activity);
+  const url = `${siteUrl}${path}`;
+  const image = absoluteAssetUrl(getActivityImage(localized));
+  const languages = Object.fromEntries(
+    Object.entries(
+      eventTravelAlternateLanguages(activity, options?.zhActivity, options?.enActivity),
+    ).map(([language, href]) => [language, `${siteUrl}${href}`]),
+  );
+
+  return {
+    title: {
+      absolute: `${title} | Raven`,
+    },
+    description,
+    alternates: {
+      canonical: url,
+      languages,
+    },
+    ...buildSocialMetadata({
+      title,
+      description,
+      url,
+      locale,
+      image: image ? { url: image, alt: getActivityTitle(localized) } : undefined,
     }),
   };
 }

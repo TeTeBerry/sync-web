@@ -66,6 +66,41 @@ export function eventTravelPath(locale: Locale, activity: Activity): string {
   return `${eventPath(locale, activity)}/travel`;
 }
 
+function eventSubpageAlternateLanguages(
+  activity: Activity,
+  suffix: '/lineup' | '/travel',
+  zhActivity?: Activity,
+  enActivity?: Activity,
+): Record<string, string> {
+  const zh = zhActivity ?? activity;
+  const en = enActivity ?? activity;
+  const defaultActivity = DEFAULT_LOCALE === 'zh' ? zh : en;
+  return {
+    'x-default': localizedPath(
+      DEFAULT_LOCALE,
+      `/events/${eventSlug(defaultActivity, DEFAULT_LOCALE)}${suffix}`,
+    ),
+    'zh-CN': localizedPath('zh', `/events/${eventSlug(zh, 'zh')}${suffix}`),
+    en: localizedPath('en', `/events/${eventSlug(en, 'en')}${suffix}`),
+  };
+}
+
+export function eventLineupAlternateLanguages(
+  activity: Activity,
+  zhActivity?: Activity,
+  enActivity?: Activity,
+): Record<string, string> {
+  return eventSubpageAlternateLanguages(activity, '/lineup', zhActivity, enActivity);
+}
+
+export function eventTravelAlternateLanguages(
+  activity: Activity,
+  zhActivity?: Activity,
+  enActivity?: Activity,
+): Record<string, string> {
+  return eventSubpageAlternateLanguages(activity, '/travel', zhActivity, enActivity);
+}
+
 export function parseEventLegacyId(slugParam: string): number | null {
   const decoded = decodeURIComponent(slugParam).trim();
   if (/^\d+$/.test(decoded)) return Number(decoded);
