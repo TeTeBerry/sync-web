@@ -65,8 +65,7 @@ export const messages = {
       footerNav: '页脚导航',
     },
     footer: {
-      tagline: 'Raven 是你的 AI 电音节同行伙伴。不售票，不收取任何服务费。',
-      wechat: '微信小程序即将上线',
+      tagline: 'Raven 是你的 AI 电音节同行伙伴。',
       waitlistStat: '{count} 人已加入等候名单',
     },
     ui: {
@@ -901,8 +900,7 @@ export const messages = {
       footerNav: 'Footer navigation',
     },
     footer: {
-      tagline: 'Raven is your AI festival companion. We do not sell tickets or charge fees.',
-      wechat: 'WeChat mini program coming soon',
+      tagline: 'Raven is your AI festival companion.',
       waitlistStat: '{count} on the waitlist',
     },
     ui: {

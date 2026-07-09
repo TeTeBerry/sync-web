@@ -71,7 +71,6 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
             <BrandLogo className="brand__logo brand__logo--footer" height={22} />
           </div>
           <p>{t.footer.tagline}</p>
-          <p className="footer__note">{t.footer.wechat}</p>
           {showWaitlistStat ? (
             <p className="footer__stat">
               {t.footer.waitlistStat.replace('{count}', formattedWaitlistCount)}
