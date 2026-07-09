@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CATALOG_TIMEZONE } from '../../lib/activity-date';
 import {
   computeEventCountdown,
@@ -27,6 +27,8 @@ type EventCountdownProps = {
   location?: string;
   displayDate?: string;
   labels: EventCountdownLabels;
+  /** SSR snapshot — keeps the first client render aligned with server HTML. */
+  initialSnapshot: EventCountdownSnapshot | null;
 };
 
 type CountdownUnitProps = {
@@ -93,14 +95,14 @@ export function EventCountdown({
   location,
   displayDate,
   labels,
+  initialSnapshot,
 }: EventCountdownProps) {
-  const staticSnapshot = useMemo(
-    () => computeEventCountdown(eventStartDate, eventEndDate, Date.now(), timezone),
-    [eventStartDate, eventEndDate, timezone],
-  );
-
-  const [snapshot, setSnapshot] = useState<EventCountdownSnapshot | null>(staticSnapshot);
+  const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [animate, setAnimate] = useState(false);
+
+  useEffect(() => {
+    setSnapshot(initialSnapshot);
+  }, [initialSnapshot]);
 
   useEffect(() => {
     if (!eventStartDate) return;
@@ -123,7 +125,7 @@ export function EventCountdown({
     };
   }, [eventEndDate, eventStartDate, timezone]);
 
-  if (!staticSnapshot || !snapshot) return null;
+  if (!snapshot) return null;
 
   const showPlanHint = snapshot.phase === 'upcoming';
 

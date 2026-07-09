@@ -24,6 +24,7 @@ import {
   getActivityImage,
 } from '../../../../lib/api';
 import { getActivityEndYmd, getActivityStartYmd } from '../../../../lib/activity-date';
+import { computeEventCountdown } from '../../../../lib/event-countdown';
 import { resolveActivityTimezone } from '../../../../lib/activity-timezone';
 import { loadEventPageData } from '../../../../lib/event-page';
 import { buildEventJsonLd, buildEventMetadata, buildFaqJsonLd } from '../../../../lib/seo';
@@ -104,6 +105,15 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
   const planHref = eventPlanPath(locale, activity);
   const lineupHref = eventLineupPath(locale, activity);
   const travelHref = eventTravelPath(locale, activity);
+  const eventTimezone = resolveActivityTimezone(activity);
+  const eventStartDate = getActivityStartYmd(activity);
+  const eventEndDate = getActivityEndYmd(activity);
+  const countdownSnapshot = computeEventCountdown(
+    eventStartDate,
+    eventEndDate,
+    Date.now(),
+    eventTimezone,
+  );
   const breadcrumbItems = [
     { name: t.breadcrumbs.home, url: `${siteUrl}${localizedPath(locale)}` },
     { name: t.breadcrumbs.events, url: `${siteUrl}${localizedPath(locale, '/events')}` },
@@ -192,12 +202,13 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
       >
         <div className="container">
           <EventCountdown
-            eventStartDate={getActivityStartYmd(activity)}
-            eventEndDate={getActivityEndYmd(activity)}
-            timezone={resolveActivityTimezone(activity)}
+            eventStartDate={eventStartDate}
+            eventEndDate={eventEndDate}
+            timezone={eventTimezone}
             location={metaLocation || activity.location || activity.city}
             displayDate={metaDate}
             labels={t.eventDetail.countdown}
+            initialSnapshot={countdownSnapshot}
           />
         </div>
       </section>
