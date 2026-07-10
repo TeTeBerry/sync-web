@@ -792,9 +792,11 @@ textarea.field-input {
   transform: none;
 }
 
-/* Plan journey hero + dashboard — primary above-fold content */
+/* Plan journey hero + scenes + footer — primary content; keep visible
+   before reveal JS runs (SPA nav from lineup / event detail). */
 .plan-journey__hero[data-reveal],
 .plan-journey__shell[data-reveal],
+.plan-journey__scene[data-reveal],
 .plan-journey__footer[data-reveal] {
   opacity: 1;
   transform: none;

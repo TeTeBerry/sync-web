@@ -33,6 +33,7 @@ function shouldSkipReveal(el: Element): boolean {
   if (el.classList.contains('events-hero')) return true;
   if (el.classList.contains('plan-context')) return true;
   if (el.classList.contains('plan-journey__hero')) return true;
+  if (el.classList.contains('plan-journey__scene')) return true;
   if (el.classList.contains('plan-journey__footer')) return true;
   if (el.closest('.home')?.classList.contains('home') && el.classList.contains('section')) {
     return true;
