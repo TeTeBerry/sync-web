@@ -2363,6 +2363,16 @@ const EN_ACTIVITY_CONTENT: Record<number, ActivityLocaleContent> = {
     description: 'India\'s biggest electronic music festival returns to Mumbai.',
     infoSource: 'Sunburn Festival official website',
   },
+  21: {
+    name: 'Ultra Taiwan 2026',
+    title: 'Ultra Taiwan 2026',
+    location: 'Dajia Riverside Park, Taipei',
+    city: 'Taipei',
+    area: 'Taiwan',
+    description:
+      'Ultra Taiwan returns for its sixth edition at Dajia Riverside Park in Taipei.',
+    infoSource: 'Ultra Taiwan official website',
+  },
 };
 
 export function localizeActivity(activity: Activity, locale: Locale): Activity {
