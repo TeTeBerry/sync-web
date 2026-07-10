@@ -3,6 +3,7 @@ import { isActivityExpired } from './activity-date';
 
 const PRODUCTION_API_BASE =
   'https://sync-backend-prd-269371-9-1442514260.sh.run.tcloudbase.com/api';
+const DEVELOPMENT_API_BASE = 'http://127.0.0.1:3000/api';
 
 function isLoopbackApiUrl(value: string): boolean {
   try {
@@ -22,6 +23,10 @@ function resolveApiBase(): string {
   const publicConfigured = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
   if (publicConfigured && !isLoopbackApiUrl(publicConfigured)) {
     return publicConfigured.replace(/\/$/, '');
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    return DEVELOPMENT_API_BASE;
   }
 
   return PRODUCTION_API_BASE;
