@@ -35,6 +35,14 @@ function shouldSkipReveal(el: Element): boolean {
   if (el.classList.contains('plan-journey__hero')) return true;
   if (el.classList.contains('plan-journey__scene')) return true;
   if (el.classList.contains('plan-journey__footer')) return true;
+  if (el.classList.contains('waitlist-scene')) return true;
+  if (el.classList.contains('events-season')) return true;
+  if (el.closest('.plan-journey')) return true;
+  if (el.closest('.events-discovery')) {
+    if (el.hasAttribute('data-reveal-stagger') || el.hasAttribute('data-reveal')) {
+      return true;
+    }
+  }
   if (el.closest('.home')?.classList.contains('home') && el.classList.contains('section')) {
     return true;
   }

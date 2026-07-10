@@ -63,7 +63,6 @@ export function PlannerLandingContent({
       <section
         className="plan-journey__hero"
         aria-labelledby="plan-journey-heading"
-        data-reveal
       >
         <div
           className={`plan-journey__hero-stage${image ? '' : ' plan-journey__hero-stage--signal'}`}
@@ -122,7 +121,7 @@ export function PlannerLandingContent({
           performances={performances}
         />
 
-        <footer className="plan-journey__footer" data-reveal>
+        <footer className="plan-journey__footer">
           <PlannerSeoContent locale={locale} eventTitle={eventTitle} landing={landing} />
           <nav className="plan-journey__links" aria-label={copy.linksAria}>
             <TrackedLink

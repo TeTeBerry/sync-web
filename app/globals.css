@@ -792,8 +792,10 @@ textarea.field-input {
   transform: none;
 }
 
-/* Plan journey hero + scenes + footer — primary content; keep visible
-   before reveal JS runs (SPA nav from lineup / event detail). */
+/* Plan journey — primary content; keep visible before reveal JS runs
+   (SPA nav from lineup / event detail). Broader than class+attr so a
+   remounted scene cannot stick at opacity:0. */
+.plan-journey [data-reveal],
 .plan-journey__hero[data-reveal],
 .plan-journey__shell[data-reveal],
 .plan-journey__scene[data-reveal],
@@ -813,6 +815,13 @@ textarea.field-input {
   transform: none;
 }
 
+/* Waitlist moments + join form — primary content below the hero.
+   Without this, the hero stays visible while sections remain opacity:0. */
+.waitlist-scene[data-reveal] {
+  opacity: 1;
+  transform: none;
+}
+
 [data-reveal-stagger]>* {
   opacity: 0;
   transform: translateY(calc(var(--reveal-distance) - 2px));
@@ -823,10 +832,12 @@ textarea.field-input {
 }
 
 /* Event catalog is primary content — keep cards visible before reveal JS runs.
-   Poster rails (mood results / collection) share the same rule: query-only
-   navigations (e.g. ?mood=ready) remount cards without re-running reveal JS. */
-.events-grid[data-reveal-stagger]>*,
-.events-poster-rail[data-reveal-stagger]>* {
+   Poster rails / mood paths / season / list results share the same rule: query-only
+   navigations (e.g. ?mood=ready) remount cards without re-running reveal JS.
+   Without this, headings stay visible (.events-discovery [data-reveal]) while
+   stagger children remain opacity:0 — empty shelves under mood / season chapters. */
+.events-discovery [data-reveal-stagger]>*,
+.events-grid[data-reveal-stagger]>* {
   opacity: 1;
   transform: none;
 }

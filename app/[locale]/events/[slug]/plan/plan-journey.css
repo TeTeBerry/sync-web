@@ -94,6 +94,15 @@
   gap: 0;
 }
 
+/* Primary journey content must never start invisible (SPA entry from event/lineup). */
+.plan-journey__hero,
+.plan-journey__scene,
+.plan-journey__footer,
+.plan-journey [data-reveal] {
+  opacity: 1;
+  transform: none;
+}
+
 /* Hero Scene */
 
 .plan-journey__hero {

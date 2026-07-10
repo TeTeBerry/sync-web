@@ -58,7 +58,6 @@ export function PlannerJourneyScenes({
         id="journey-timeline"
         className="plan-journey__scene plan-journey__scene--timeline"
         aria-labelledby="journey-timeline-heading"
-        data-reveal
       >
         <div className="plan-journey__scene-glow" aria-hidden />
         <header className="plan-journey__scene-head">
@@ -90,7 +89,6 @@ export function PlannerJourneyScenes({
         id="journey-stay"
         className="plan-journey__scene plan-journey__scene--stay"
         aria-labelledby="journey-stay-heading"
-        data-reveal
       >
         <div className="plan-journey__scene-glow" aria-hidden />
         <header className="plan-journey__scene-head">
@@ -134,7 +132,6 @@ export function PlannerJourneyScenes({
         id="journey-music"
         className="plan-journey__scene plan-journey__scene--music"
         aria-labelledby="journey-music-heading"
-        data-reveal
       >
         <div className="plan-journey__scene-glow plan-journey__scene-glow--music" aria-hidden />
         <header className="plan-journey__scene-head">
@@ -241,7 +238,6 @@ export function PlannerJourneyScenes({
         id="journey-budget"
         className="plan-journey__scene plan-journey__scene--budget"
         aria-labelledby="journey-budget-heading"
-        data-reveal
       >
         <div className="plan-journey__scene-glow" aria-hidden />
         <header className="plan-journey__scene-head">
@@ -277,7 +273,6 @@ export function PlannerJourneyScenes({
         id="journey-checklist"
         className="plan-journey__scene plan-journey__scene--checklist"
         aria-labelledby="journey-checklist-heading"
-        data-reveal
       >
         <header className="plan-journey__scene-head">
           <h2 id="journey-checklist-heading" className="plan-journey__scene-title">
@@ -298,7 +293,6 @@ export function PlannerJourneyScenes({
         id="journey-cta"
         className="plan-journey__scene plan-journey__scene--cta"
         aria-labelledby="journey-cta-heading"
-        data-reveal
       >
         <div className="plan-journey__final-cta">
           <p className="plan-journey__ready">{scenes.readyLine}</p>
