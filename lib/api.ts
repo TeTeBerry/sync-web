@@ -29,6 +29,10 @@ function resolveApiBase(): string {
 
 const API_BASE = resolveApiBase();
 
+export function getApiBase(): string {
+  return API_BASE;
+}
+
 type ApiEnvelope<T> = {
   code?: number;
   message?: string;
@@ -62,6 +66,25 @@ async function apiGet<T>(path: string, options?: RequestInit): Promise<T> {
   if (!response.ok) {
     throw new Error(`Raven API ${path} failed: ${response.status}`);
   }
+  return unwrap<T>((await response.json()) as T | ApiEnvelope<T>);
+}
+
+async function ravenApiRequest<T>(path: string, options?: RequestInit): Promise<T> {
+  const timeoutSignal =
+    typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(API_FETCH_TIMEOUT_MS) : undefined;
+  // Browser requests stay same-origin so production CORS policy cannot block plan generation.
+  const url = typeof window === 'undefined' ? `${normalizeBaseUrl(API_BASE)}${path}` : `/api${path}`;
+  const response = await fetch(url, {
+    ...options,
+    cache: 'no-store',
+    signal: options?.signal ?? timeoutSignal,
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as ApiEnvelope<unknown> | null;
+    throw new Error(payload?.message || `Raven API ${path} failed: ${response.status}`);
+  }
+
   return unwrap<T>((await response.json()) as T | ApiEnvelope<T>);
 }
 
@@ -254,6 +277,84 @@ export async function fetchActivitySchedule(legacyId: number): Promise<ScheduleF
   } catch {
     return { schedule: null, status: 'error' };
   }
+}
+
+export type RavenPlanGenerationPayload = {
+  guideId: string;
+  departure: string;
+  headcount: number;
+  budgetTier: 'economy' | 'standard' | 'comfort';
+  selfDrive?: boolean;
+  accommodationNights?: number;
+  note?: string;
+};
+
+export type RavenTravelGuidePlan = {
+  activityName: string;
+  venue: string;
+  eventDates: string;
+  departure: string;
+  headcount: number;
+  budgetLabel: string;
+  accommodationNights: number;
+  selfDrive: boolean;
+  transport: { title: string; lines: string[] };
+  accommodation: {
+    title: string;
+    hotels: Array<{ name: string; note: string; reason?: string }>;
+  };
+  parking?: { title: string; lines: string[] };
+  nightlife: { title: string; spots: Array<{ name: string; note: string; reason?: string }> };
+  tips: { title: string; items: string[] };
+  venueTransport?: { title: string; options: Array<{ label: string; lines: string[] }> };
+  budget?: { title: string; items: Array<{ label: string; range: string; note?: string }> };
+  itinerary?: { title: string; days: Array<{ label: string; lines: string[] }> };
+};
+
+export type RavenPlanGenerationJob = {
+  jobId: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  progress?: { step: string; percent: number };
+  plan?: RavenTravelGuidePlan;
+  errorMessage?: string;
+};
+
+export type RavenSavedPlan = {
+  guideId: string;
+  activityLegacyId: number;
+  plan: RavenTravelGuidePlan;
+  createdAt: string;
+};
+
+export function generateRavenPlan(legacyId: number, payload: RavenPlanGenerationPayload) {
+  return ravenApiRequest<{ plan: RavenTravelGuidePlan; guideId?: string }>(
+    `/raven/activities/${legacyId}/plan/generate`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function generateRavenPlanAsync(legacyId: number, payload: RavenPlanGenerationPayload) {
+  return ravenApiRequest<{ jobId: string }>(`/raven/activities/${legacyId}/plan/generate-async`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getRavenPlanGenerationJob(jobId: string, signal?: AbortSignal) {
+  return ravenApiRequest<RavenPlanGenerationJob>(
+    `/raven/plan/generation-jobs/${encodeURIComponent(jobId)}`,
+    { signal },
+  );
+}
+
+export async function getSavedRavenPlan(guideId: string): Promise<RavenSavedPlan | null> {
+  if (!guideId.trim()) return null;
+  return ravenApiRequest<RavenSavedPlan | null>(`/raven/plans/${encodeURIComponent(guideId)}`);
 }
 
 

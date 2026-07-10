@@ -9,6 +9,7 @@ import {
   getActivity,
   getActivityImage,
   getActivityTitle,
+  getSavedRavenPlan,
 } from '../../../../../lib/api';
 import {
   eventLineupPath,
@@ -35,7 +36,7 @@ import {
 
 type PlannerPageProps = {
   params: Promise<{ locale: string; slug: string }>;
-  searchParams: Promise<{ tab?: string; from?: string }>;
+  searchParams: Promise<{ tab?: string; from?: string; guideId?: string }>;
 };
 
 export const dynamic = 'force-dynamic';
@@ -97,6 +98,8 @@ export default async function AiPlannerPage({ params, searchParams }: PlannerPag
   const atmosphere = getFestivalAtmosphere(activity, landing.lineupIntel.genres[0]);
   const siteUrl = getSiteUrl();
   const entryFrom = resolveJourneyEntryFrom(resolvedSearch);
+  const savedPlan = resolvedSearch.guideId ? await getSavedRavenPlan(resolvedSearch.guideId).catch(() => null) : null;
+  const initialRemotePlan = savedPlan?.activityLegacyId === activity.legacyId ? savedPlan.plan : null;
 
   const breadcrumbItems = [
     { name: t.breadcrumbs.home, url: `${siteUrl}${localizedPath(locale)}` },
@@ -144,6 +147,7 @@ export default async function AiPlannerPage({ params, searchParams }: PlannerPag
               eventPath={detailPath}
               waitlistHref={waitlistHref}
               hideHeader
+              initialRemotePlan={initialRemotePlan}
             />
           </div>
         </div>

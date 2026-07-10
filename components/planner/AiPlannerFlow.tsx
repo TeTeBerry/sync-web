@@ -16,7 +16,14 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { Activity } from '../../lib/types';
-import type { ScheduleDj, SchedulePerformance } from '../../lib/api';
+import {
+  generateRavenPlanAsync,
+  getRavenPlanGenerationJob,
+  type RavenPlanGenerationPayload,
+  type RavenTravelGuidePlan,
+  type ScheduleDj,
+  type SchedulePerformance,
+} from '../../lib/api';
 import { getMessages, type Locale } from '../../lib/i18n';
 import { readLineupSelection } from '../../lib/lineup-selection';
 import { resolveSelectedArtistNames } from '../../lib/planner-selection';
@@ -25,6 +32,7 @@ import {
   type JourneyType,
   type PersonalPriority,
   type PlannerPlan,
+  type PlannerTimelineDay,
   type PlannerPreferences,
   type StayPreference,
   type TravelStyle,
@@ -76,7 +84,88 @@ type AiPlannerFlowProps = {
   eventPath: string;
   waitlistHref: string;
   hideHeader?: boolean;
+  initialRemotePlan?: RavenTravelGuidePlan | null;
 };
+
+function createGuideId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `raven-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function toBudgetTier(style: TravelStyle): RavenPlanGenerationPayload['budgetTier'] {
+  if (style === 'budget') return 'economy';
+  if (style === 'premium') return 'comfort';
+  return 'standard';
+}
+
+function headcountFor(journey: JourneyType): number {
+  if (journey === 'solo') return 1;
+  if (journey === 'couple') return 2;
+  if (journey === 'tribe') return 4;
+  return 3;
+}
+
+function mapRemoteTimeline(plan: RavenTravelGuidePlan): PlannerTimelineDay[] {
+  return (
+    plan.itinerary?.days
+      .map((day) => {
+        const sets = day.lines
+          .map((line, index) => {
+            const text = line.trim();
+            if (!text) return null;
+
+            const matched = text.match(/^(\d{1,2}:\d{2})\s*[-–:：]?\s*(.+)$/);
+            if (matched) {
+              const [, time, detail] = matched;
+              return {
+                time,
+                artist: detail.trim(),
+                stage: plan.itinerary?.title || day.label,
+              };
+            }
+
+            return {
+              time: `${index + 1}`.padStart(2, '0'),
+              artist: text,
+              stage: plan.itinerary?.title || day.label,
+            };
+          })
+          .filter((set): set is PlannerTimelineDay['sets'][number] => Boolean(set));
+
+        if (!sets.length) return null;
+        return {
+          label: day.label,
+          sets,
+        };
+      })
+      .filter((day): day is PlannerTimelineDay => Boolean(day)) ?? []
+  );
+}
+
+function mapRemotePlan(plan: RavenTravelGuidePlan, fallbackTimeline: PlannerPlan['artistTimeline']): PlannerPlan {
+  const hotels = plan.accommodation.hotels.map((hotel) => `${hotel.name}${hotel.note ? ` - ${hotel.note}` : ''}`);
+  const venueTransport = plan.venueTransport?.options.flatMap((option) => option.lines) ?? [];
+  const budgetItems = plan.budget?.items ?? [];
+  const share = budgetItems.length ? Math.round(100 / budgetItems.length) : 0;
+  const remoteTimeline = mapRemoteTimeline(plan);
+
+  return {
+    vibe: [plan.activityName, plan.eventDates, plan.venue].filter(Boolean).join(' · '),
+    experiences: plan.tips.items.length ? plan.tips.items : plan.nightlife.spots.map((spot) => spot.name),
+    artistTimeline: remoteTimeline.length ? { days: remoteTimeline } : fallbackTimeline,
+    travel: {
+      stay: hotels.join('；') || plan.accommodation.title,
+      flight: plan.transport.lines.join('；') || plan.transport.title,
+      transport: venueTransport.join('；') || plan.parking?.lines.join('；') || plan.venueTransport?.title || '',
+    },
+    budget: {
+      total: plan.budget?.title || plan.budgetLabel,
+      items: budgetItems.map((item) => ({ label: item.label, amount: item.range, share })),
+    },
+  };
+}
 
 export function AiPlannerFlow({
   locale,
@@ -89,16 +178,20 @@ export function AiPlannerFlow({
   eventPath,
   waitlistHref,
   hideHeader = false,
+  initialRemotePlan = null,
 }: AiPlannerFlowProps) {
   const t = getMessages(locale);
   const copy = t.aiPlanner;
 
-  const [phase, setPhase] = useState<FlowPhase>('setup');
+  const [phase, setPhase] = useState<FlowPhase>(() => (initialRemotePlan ? 'result' : 'setup'));
   const [stepIndex, setStepIndex] = useState(0);
   const [originQuery, setOriginQuery] = useState('');
   const [favoriteArtists, setFavoriteArtists] = useState<string[]>([]);
   const [generationStep, setGenerationStep] = useState(0);
-  const [plan, setPlan] = useState<PlannerPlan | null>(null);
+  const [plan, setPlan] = useState<PlannerPlan | null>(() =>
+    initialRemotePlan ? mapRemotePlan(initialRemotePlan, { days: [] }) : null,
+  );
+  const [generationRequest, setGenerationRequest] = useState<RavenPlanGenerationPayload | null>(null);
 
   const [preferences, setPreferences] = useState<PlannerPreferences>({
     origin: '',
@@ -107,6 +200,20 @@ export function AiPlannerFlow({
     journeyType: 'friends',
     priorities: [],
   });
+
+  const fallbackPlan = useCallback(
+    () =>
+      buildPlannerPlan(
+        activity,
+        djs,
+        performances,
+        favoriteArtists,
+        preferences,
+        locale,
+        copy.planLabels,
+      ),
+    [activity, copy.planLabels, djs, favoriteArtists, locale, performances, preferences],
+  );
 
   const currentStep = SETUP_STEPS[stepIndex];
 
@@ -130,34 +237,50 @@ export function AiPlannerFlow({
   const startGeneration = useCallback(() => {
     setPhase('generating');
     setGenerationStep(0);
-  }, []);
+    setGenerationRequest({
+      guideId: createGuideId(),
+      departure: preferences.origin,
+      headcount: headcountFor(preferences.journeyType),
+      budgetTier: toBudgetTier(preferences.travelStyle),
+      note: preferences.priorities.map((priority) => copy.steps.priority.options[priority].title).join('；'),
+    });
+  }, [copy.steps.priority.options, preferences]);
 
   useEffect(() => {
-    if (phase !== 'generating') return;
+    if (phase !== 'generating' || !generationRequest) return;
 
-    const timers = copy.generation.steps.map((_, index) =>
-      window.setTimeout(() => setGenerationStep(index + 1), (index + 1) * 900),
-    );
-
-    const finishTimer = window.setTimeout(() => {
-      const nextPlan = buildPlannerPlan(
-        activity,
-        djs,
-        performances,
-        favoriteArtists,
-        preferences,
-        locale,
-        copy.planLabels,
-      );
-      setPlan(nextPlan);
-      setPhase('result');
-    }, copy.generation.steps.length * 900 + 600);
-
-    return () => {
-      timers.forEach((timer) => window.clearTimeout(timer));
-      window.clearTimeout(finishTimer);
+    const controller = new AbortController();
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const { jobId } = await generateRavenPlanAsync(activity.legacyId, generationRequest);
+        while (!cancelled) {
+          const job = await getRavenPlanGenerationJob(jobId, controller.signal);
+          if (job.progress) {
+            setGenerationStep(Math.min(copy.generation.steps.length, Math.ceil((job.progress.percent / 100) * copy.generation.steps.length)));
+          }
+          if (job.status === 'completed' && job.plan) {
+            setPlan(mapRemotePlan(job.plan, fallbackPlan().artistTimeline));
+            setPhase('result');
+            return;
+          }
+          if (job.status === 'failed') throw new Error(job.errorMessage || '攻略生成失败，请稍后重试');
+          await new Promise((resolve) => window.setTimeout(resolve, 1500));
+        }
+      } catch (error) {
+        if (!cancelled && !(error instanceof DOMException && error.name === 'AbortError')) {
+          window.alert(error instanceof Error ? error.message : '攻略生成失败，请稍后重试');
+          setPhase('setup');
+        }
+      }
     };
-  }, [activity, copy.generation.steps, copy.planLabels, djs, favoriteArtists, locale, performances, phase, preferences]);
+
+    void poll();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [activity.legacyId, copy.generation.steps.length, fallbackPlan, generationRequest, phase]);
 
   const goNext = () => {
     if (stepIndex < SETUP_STEPS.length - 1) {
@@ -516,17 +639,23 @@ export function AiPlannerFlow({
 
       {phase === 'result' && plan ? (
         <section className="plan-result">
-          <header className="plan-result__header">
-            <span className="plan-result__badge">{copy.result.badge}</span>
-            <h2 className="plan-result__title">
-              {hideHeader ? copy.result.personalTitle : copy.result.title}
-            </h2>
-            <p className="plan-result__lead">{copy.result.lead}</p>
+          <header className="plan-result__hero">
+            <div className="plan-result__hero-glow" aria-hidden />
+            <div className="plan-result__header">
+              <span className="plan-result__badge">{copy.result.badge}</span>
+              <h2 className="plan-result__title">
+                {hideHeader ? copy.result.personalTitle : copy.result.title}
+              </h2>
+              <p className="plan-result__lead">{copy.result.lead}</p>
+            </div>
           </header>
 
-          <div className="plan-result__grid">
-            <article className="plan-result__card plan-result__card--summary">
-              <h3 className="plan-result__card-title">{copy.result.summaryTitle}</h3>
+          <div className="plan-result__scenes">
+            <article className="plan-result__scene plan-result__scene--summary">
+              <header className="plan-result__scene-head">
+                <span className="plan-result__scene-index" aria-hidden>01</span>
+                <h3 className="plan-result__scene-title">{copy.result.summaryTitle}</h3>
+              </header>
               <div className="plan-result__summary-block">
                 <span className="plan-result__label">{copy.result.vibeLabel}</span>
                 <p className="plan-result__value plan-result__value--vibe">{plan.vibe}</p>
@@ -541,8 +670,11 @@ export function AiPlannerFlow({
               </div>
             </article>
 
-            <article className="plan-result__card plan-result__card--timeline">
-              <h3 className="plan-result__card-title">{copy.result.artistTitle}</h3>
+            <article className="plan-result__scene plan-result__scene--timeline">
+              <header className="plan-result__scene-head">
+                <span className="plan-result__scene-index" aria-hidden>02</span>
+                <h3 className="plan-result__scene-title">{copy.result.artistTitle}</h3>
+              </header>
               {plan.artistTimeline.days.length ? (
                 <div className="ai-planner__timeline">
                   {plan.artistTimeline.days.map((day) => (
@@ -571,8 +703,11 @@ export function AiPlannerFlow({
               )}
             </article>
 
-            <article className="plan-result__card">
-              <h3 className="plan-result__card-title">{copy.result.travelTitle}</h3>
+            <article className="plan-result__scene plan-result__scene--travel">
+              <header className="plan-result__scene-head">
+                <span className="plan-result__scene-index" aria-hidden>03</span>
+                <h3 className="plan-result__scene-title">{copy.result.travelTitle}</h3>
+              </header>
               <div className="plan-result__travel-rows">
                 <div className="plan-result__travel-row">
                   <span className="plan-result__travel-icon" aria-hidden>
@@ -604,8 +739,11 @@ export function AiPlannerFlow({
               </div>
             </article>
 
-            <article className="plan-result__card plan-result__card--budget">
-              <h3 className="plan-result__card-title">{copy.result.budgetTitle}</h3>
+            <article className="plan-result__scene plan-result__scene--budget">
+              <header className="plan-result__scene-head">
+                <span className="plan-result__scene-index" aria-hidden>04</span>
+                <h3 className="plan-result__scene-title">{copy.result.budgetTitle}</h3>
+              </header>
               <div className="plan-result__budget-hero">
                 <span className="plan-result__label">{copy.result.budgetTotal}</span>
                 <p className="plan-result__budget-total">{plan.budget.total}</p>
