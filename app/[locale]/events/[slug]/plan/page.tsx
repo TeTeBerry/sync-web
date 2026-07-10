@@ -87,6 +87,7 @@ export default async function AiPlannerPage({ params, searchParams }: PlannerPag
   const performances = schedule?.performances ?? [];
 
   const eventTitle = getActivityTitle(activity);
+  const activityImage = getActivityImage(activity);
   const metaLine = activityMetaForLocale(activity, locale);
   const [metaDate, ...metaLocationParts] = metaLine.split(' · ');
   const metaLocation = metaLocationParts.join(' · ');
@@ -117,7 +118,7 @@ export default async function AiPlannerPage({ params, searchParams }: PlannerPag
         eventTitle={eventTitle}
         metaDate={metaDate ?? ''}
         metaLocation={metaLocation}
-        image={getActivityImage(activity)}
+        image={activityImage}
         landing={landing}
         detailHref={detailPath}
         lineupHref={lineupHref}
@@ -145,6 +146,7 @@ export default async function AiPlannerPage({ params, searchParams }: PlannerPag
               djs={djs}
               performances={performances}
               eventPath={detailPath}
+              image={activityImage}
               waitlistHref={waitlistHref}
               hideHeader
               initialRemotePlan={initialRemotePlan}

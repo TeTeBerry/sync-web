@@ -41,7 +41,7 @@ export type PlannerPlan = {
   };
   budget: {
     total: string;
-    items: { label: string; amount: string; share: number }[];
+    items: { label: string; amount: string; share?: number }[];
   };
 };
 

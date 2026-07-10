@@ -38,6 +38,7 @@ import {
   type TravelStyle,
 } from '../../lib/planner-plan';
 import { TrackedLink } from '../TrackedLink';
+import { EventImage } from '../EventImage';
 
 type FlowPhase = 'setup' | 'generating' | 'result';
 
@@ -82,6 +83,7 @@ type AiPlannerFlowProps = {
   djs: ScheduleDj[];
   performances: SchedulePerformance[];
   eventPath: string;
+  image?: string;
   waitlistHref: string;
   hideHeader?: boolean;
   initialRemotePlan?: RavenTravelGuidePlan | null;
@@ -144,11 +146,18 @@ function mapRemoteTimeline(plan: RavenTravelGuidePlan): PlannerTimelineDay[] {
   );
 }
 
+function estimateBudgetAmount(value: string): number | null {
+  const amounts = value.replace(/,/g, '').match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+  if (!amounts.length) return null;
+  return amounts.reduce((sum, amount) => sum + amount, 0) / amounts.length;
+}
+
 function mapRemotePlan(plan: RavenTravelGuidePlan, fallbackTimeline: PlannerPlan['artistTimeline']): PlannerPlan {
   const hotels = plan.accommodation.hotels.map((hotel) => `${hotel.name}${hotel.note ? ` - ${hotel.note}` : ''}`);
   const venueTransport = plan.venueTransport?.options.flatMap((option) => option.lines) ?? [];
   const budgetItems = plan.budget?.items ?? [];
-  const share = budgetItems.length ? Math.round(100 / budgetItems.length) : 0;
+  const budgetAmounts = budgetItems.map((item) => estimateBudgetAmount(item.range));
+  const budgetTotal = budgetAmounts.reduce<number>((sum, amount) => sum + (amount ?? 0), 0);
   const remoteTimeline = mapRemoteTimeline(plan);
 
   return {
@@ -162,7 +171,14 @@ function mapRemotePlan(plan: RavenTravelGuidePlan, fallbackTimeline: PlannerPlan
     },
     budget: {
       total: plan.budget?.title || plan.budgetLabel,
-      items: budgetItems.map((item) => ({ label: item.label, amount: item.range, share })),
+      items: budgetItems.map((item, index) => ({
+        label: item.label,
+        amount: item.range,
+        share:
+          budgetTotal > 0 && budgetAmounts[index] != null
+            ? Math.round(((budgetAmounts[index] ?? 0) / budgetTotal) * 100)
+            : undefined,
+      })),
     },
   };
 }
@@ -176,6 +192,7 @@ export function AiPlannerFlow({
   djs,
   performances,
   eventPath,
+  image,
   waitlistHref,
   hideHeader = false,
   initialRemotePlan = null,
@@ -314,6 +331,7 @@ export function AiPlannerFlow({
   const progressLabel = copy.progress
     .replace('{current}', String(stepIndex + 1))
     .replace('{total}', String(SETUP_STEPS.length));
+  const resultMeta = [metaLocation, metaDate].filter(Boolean).join(' · ');
 
   return (
     <div className="plan-flow">
@@ -640,20 +658,34 @@ export function AiPlannerFlow({
       {phase === 'result' && plan ? (
         <section className="plan-result">
           <header className="plan-result__hero">
+            {image ? (
+              <EventImage
+                src={image}
+                alt=""
+                className="plan-result__hero-image"
+                sizes="(max-width: 960px) 100vw, 80vw"
+              />
+            ) : null}
+            <div className="plan-result__hero-scrim" aria-hidden />
             <div className="plan-result__hero-glow" aria-hidden />
             <div className="plan-result__header">
               <span className="plan-result__badge">{copy.result.badge}</span>
-              <h2 className="plan-result__title">
-                {hideHeader ? copy.result.personalTitle : copy.result.title}
-              </h2>
+              <h2 className="plan-result__title">{eventTitle}</h2>
               <p className="plan-result__lead">{copy.result.lead}</p>
+              {resultMeta ? <p className="plan-result__meta">{resultMeta}</p> : null}
+              {favoriteArtists.length ? (
+                <ul className="plan-result__artist-chips" aria-label={copy.contextArtists}>
+                  {favoriteArtists.slice(0, 4).map((artist) => (
+                    <li key={artist}>{artist}</li>
+                  ))}
+                </ul>
+              ) : null}
             </div>
           </header>
 
           <div className="plan-result__scenes">
-            <article className="plan-result__scene plan-result__scene--summary">
+            <article className="plan-result__scene plan-result__scene--opening">
               <header className="plan-result__scene-head">
-                <span className="plan-result__scene-index" aria-hidden>01</span>
                 <h3 className="plan-result__scene-title">{copy.result.summaryTitle}</h3>
               </header>
               <div className="plan-result__summary-block">
@@ -672,7 +704,6 @@ export function AiPlannerFlow({
 
             <article className="plan-result__scene plan-result__scene--timeline">
               <header className="plan-result__scene-head">
-                <span className="plan-result__scene-index" aria-hidden>02</span>
                 <h3 className="plan-result__scene-title">{copy.result.artistTitle}</h3>
               </header>
               {plan.artistTimeline.days.length ? (
@@ -705,11 +736,10 @@ export function AiPlannerFlow({
 
             <article className="plan-result__scene plan-result__scene--travel">
               <header className="plan-result__scene-head">
-                <span className="plan-result__scene-index" aria-hidden>03</span>
                 <h3 className="plan-result__scene-title">{copy.result.travelTitle}</h3>
               </header>
-              <div className="plan-result__travel-rows">
-                <div className="plan-result__travel-row">
+              <ol className="plan-result__travel-rows">
+                <li className="plan-result__travel-row">
                   <span className="plan-result__travel-icon" aria-hidden>
                     <MapPin size={15} strokeWidth={2} />
                   </span>
@@ -717,8 +747,8 @@ export function AiPlannerFlow({
                     <span className="plan-result__label">{copy.result.travelStay}</span>
                     <p className="plan-result__value">{plan.travel.stay}</p>
                   </div>
-                </div>
-                <div className="plan-result__travel-row">
+                </li>
+                <li className="plan-result__travel-row">
                   <span className="plan-result__travel-icon" aria-hidden>
                     <Plane size={15} strokeWidth={2} />
                   </span>
@@ -726,8 +756,8 @@ export function AiPlannerFlow({
                     <span className="plan-result__label">{copy.result.travelFlight}</span>
                     <p className="plan-result__value">{plan.travel.flight}</p>
                   </div>
-                </div>
-                <div className="plan-result__travel-row">
+                </li>
+                <li className="plan-result__travel-row">
                   <span className="plan-result__travel-icon" aria-hidden>
                     <Compass size={15} strokeWidth={2} />
                   </span>
@@ -735,13 +765,12 @@ export function AiPlannerFlow({
                     <span className="plan-result__label">{copy.result.travelTransport}</span>
                     <p className="plan-result__value">{plan.travel.transport}</p>
                   </div>
-                </div>
-              </div>
+                </li>
+              </ol>
             </article>
 
             <article className="plan-result__scene plan-result__scene--budget">
               <header className="plan-result__scene-head">
-                <span className="plan-result__scene-index" aria-hidden>04</span>
                 <h3 className="plan-result__scene-title">{copy.result.budgetTitle}</h3>
               </header>
               <div className="plan-result__budget-hero">
@@ -755,9 +784,11 @@ export function AiPlannerFlow({
                       <span>{item.label}</span>
                       <span>{item.amount}</span>
                     </div>
-                    <span className="ai-planner__budget-track" aria-hidden>
-                      <span className="ai-planner__budget-fill" style={{ width: `${item.share}%` }} />
-                    </span>
+                    {item.share != null ? (
+                      <span className="ai-planner__budget-track" aria-hidden>
+                        <span className="ai-planner__budget-fill" style={{ width: `${item.share}%` }} />
+                      </span>
+                    ) : null}
                   </li>
                 ))}
               </ul>
