@@ -2354,15 +2354,6 @@ const EN_ACTIVITY_CONTENT: Record<number, ActivityLocaleContent> = {
     description: 'Excision\'s bass and dubstep festival — 100+ artists across 5 stages at Legend Valley.',
     infoSource: 'Lost Lands official website',
   },
-  20: {
-    name: 'Sunburn Mumbai 2026',
-    title: 'Sunburn Mumbai 2026',
-    location: 'Mahalaxmi Racecourse, Mumbai, India',
-    city: 'Mumbai',
-    area: 'India',
-    description: 'India\'s biggest electronic music festival returns to Mumbai.',
-    infoSource: 'Sunburn Festival official website',
-  },
   21: {
     name: 'Ultra Taiwan 2026',
     title: 'Ultra Taiwan 2026',
