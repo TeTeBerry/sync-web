@@ -61,6 +61,21 @@ function normalizeBaseUrl(value: string): string {
 }
 
 const API_FETCH_TIMEOUT_MS = 8_000;
+/** Creating an async plan job can wait on Mongo/dedupe; keep this above cold-start latency. */
+const RAVEN_GENERATE_ASYNC_TIMEOUT_MS = 60_000;
+const RAVEN_POLL_TIMEOUT_MS = 20_000;
+
+function mergeAbortSignals(
+  signals: Array<AbortSignal | undefined>,
+): AbortSignal | undefined {
+  const active = signals.filter((signal): signal is AbortSignal => Boolean(signal));
+  if (!active.length) return undefined;
+  if (active.length === 1) return active[0];
+  if (typeof AbortSignal.any === 'function') {
+    return AbortSignal.any(active);
+  }
+  return active[0];
+}
 
 async function apiGet<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${normalizeBaseUrl(API_BASE)}${path}`, {
@@ -74,23 +89,44 @@ async function apiGet<T>(path: string, options?: RequestInit): Promise<T> {
   return unwrap<T>((await response.json()) as T | ApiEnvelope<T>);
 }
 
-async function ravenApiRequest<T>(path: string, options?: RequestInit): Promise<T> {
+async function ravenApiRequest<T>(
+  path: string,
+  options?: RequestInit & { timeoutMs?: number },
+): Promise<T> {
+  const { timeoutMs, signal, ...rest } = options ?? {};
+  // If the caller already provided a signal (possibly with its own timeout),
+  // only add another timeout when timeoutMs is set explicitly.
+  const resolvedTimeoutMs = timeoutMs ?? (signal ? undefined : API_FETCH_TIMEOUT_MS);
   const timeoutSignal =
-    typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(API_FETCH_TIMEOUT_MS) : undefined;
+    resolvedTimeoutMs != null && typeof AbortSignal.timeout === 'function'
+      ? AbortSignal.timeout(resolvedTimeoutMs)
+      : undefined;
   // Browser requests stay same-origin so production CORS policy cannot block plan generation.
   const url = typeof window === 'undefined' ? `${normalizeBaseUrl(API_BASE)}${path}` : `/api${path}`;
   const response = await fetch(url, {
-    ...options,
+    ...rest,
     cache: 'no-store',
-    signal: options?.signal ?? timeoutSignal,
+    signal: mergeAbortSignals([signal ?? undefined, timeoutSignal]),
   });
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as ApiEnvelope<unknown> | null;
-    throw new Error(payload?.message || `Raven API ${path} failed: ${response.status}`);
+    const message = payload?.message || `Raven API ${path} failed: ${response.status}`;
+    const error = new Error(message) as Error & { status?: number };
+    error.status = response.status;
+    throw error;
   }
 
   return unwrap<T>((await response.json()) as T | ApiEnvelope<T>);
+}
+
+export function isRavenApiStatusError(error: unknown, status: number): boolean {
+  return (
+    typeof error === 'object' &&
+    error != null &&
+    'status' in error &&
+    (error as { status?: number }).status === status
+  );
 }
 
 function getString(value: unknown): string | undefined {
@@ -292,6 +328,8 @@ export type RavenPlanGenerationPayload = {
   selfDrive?: boolean;
   accommodationNights?: number;
   note?: string;
+  /** Plan copy language. Defaults to zh on the server when omitted. */
+  locale?: 'zh' | 'en';
 };
 
 export type RavenTravelGuidePlan = {
@@ -303,15 +341,54 @@ export type RavenTravelGuidePlan = {
   budgetLabel: string;
   accommodationNights: number;
   selfDrive: boolean;
-  transport: { title: string; lines: string[] };
+  transport: {
+    title: string;
+    lines: string[];
+    flightOffers?: Array<{
+      pricePerAdult: number;
+      currency: 'CNY' | 'USD';
+      outbound: {
+        route: string;
+        depAirport?: string;
+        arrAirport?: string;
+        depTime?: string;
+        arrTime?: string;
+        stopsLabel: string;
+      };
+      return?: {
+        route: string;
+        depAirport?: string;
+        arrAirport?: string;
+        depTime?: string;
+        arrTime?: string;
+        stopsLabel: string;
+      };
+      cabinLabel?: string;
+    }>;
+  };
   accommodation: {
     title: string;
-    hotels: Array<{ name: string; note: string; reason?: string }>;
+    hotels: Array<{ name: string; note: string; reason?: string; bookingHint?: string }>;
+    schemes?: Array<{
+      label: string;
+      name: string;
+      note: string;
+      reason: string;
+      bookingHint?: string;
+    }>;
   };
   parking?: { title: string; lines: string[] };
   nightlife: { title: string; spots: Array<{ name: string; note: string; reason?: string }> };
   tips: { title: string; items: string[] };
   venueTransport?: { title: string; options: Array<{ label: string; lines: string[] }> };
+  documents?: { title: string; items: string[] };
+  tickets?: { title: string; channels: Array<{ name: string; note: string }> };
+  essentials?: {
+    title: string;
+    network: string[];
+    payment: string[];
+    apps: string[];
+  };
   budget?: { title: string; items: Array<{ label: string; range: string; note?: string }> };
   itinerary?: { title: string; days: Array<{ label: string; lines: string[] }> };
 };
@@ -347,13 +424,14 @@ export function generateRavenPlanAsync(legacyId: number, payload: RavenPlanGener
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    timeoutMs: RAVEN_GENERATE_ASYNC_TIMEOUT_MS,
   });
 }
 
 export function getRavenPlanGenerationJob(jobId: string, signal?: AbortSignal) {
   return ravenApiRequest<RavenPlanGenerationJob>(
     `/raven/plan/generation-jobs/${encodeURIComponent(jobId)}`,
-    { signal },
+    { signal, timeoutMs: RAVEN_POLL_TIMEOUT_MS },
   );
 }
 
@@ -362,7 +440,67 @@ export async function getSavedRavenPlan(guideId: string): Promise<RavenSavedPlan
   return ravenApiRequest<RavenSavedPlan | null>(`/raven/plans/${encodeURIComponent(guideId)}`);
 }
 
+export type RavenPlaceSuggestionKind = 'city' | 'airport';
 
+export type RavenPlaceSuggestion = {
+  kind: RavenPlaceSuggestionKind;
+  title: string;
+  city: string;
+  country: string;
+  iata?: string;
+  icao?: string;
+  airportName?: string;
+  lat?: number;
+  lng?: number;
+};
+
+export type FetchRavenPlaceSuggestionsParams = {
+  keyword?: string;
+  city?: string;
+  country?: string;
+  limit?: number;
+  signal?: AbortSignal;
+};
+
+/**
+ * Raven departure suggestions (OpenFlights).
+ * - keyword → cities (+ direct IATA / airport-name hits)
+ * - city (+ optional country) → all airports for that city
+ */
+export async function fetchRavenPlaceSuggestions(
+  params: FetchRavenPlaceSuggestionsParams,
+): Promise<RavenPlaceSuggestion[]> {
+  const search = new URLSearchParams();
+  const keyword = params.keyword?.trim();
+  const city = params.city?.trim();
+  const country = params.country?.trim();
+  if (city) {
+    search.set('city', city);
+    if (country) search.set('country', country);
+  } else if (keyword) {
+    search.set('keyword', keyword);
+  } else {
+    return [];
+  }
+  if (params.limit != null) search.set('limit', String(params.limit));
+
+  // OpenFlights cold load can exceed the default 8s Raven timeout.
+  const timeoutSignal =
+    typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(25_000) : undefined;
+  const signal =
+    params.signal && timeoutSignal && typeof AbortSignal.any === 'function'
+      ? AbortSignal.any([params.signal, timeoutSignal])
+      : (params.signal ?? timeoutSignal);
+
+  const result = await ravenApiRequest<{ data: RavenPlaceSuggestion[] } | RavenPlaceSuggestion[]>(
+    `/raven/place-suggestions?${search.toString()}`,
+    { signal },
+  );
+
+  if (Array.isArray(result)) return result;
+  if (result && Array.isArray(result.data)) return result.data;
+  return [];
+}
 
 function activityImageVersion(activity?: Activity | null): string | undefined {
   const stamp = activity?.updatedAt?.trim() || activity?.infoUpdatedAt?.trim();

@@ -2,6 +2,8 @@ import type { Activity } from './types';
 import type { ScheduleDj, SchedulePerformance } from './api';
 import { buildEventAiSummary } from './event-ai-summary';
 import type { Locale } from './i18n';
+import { localizeSessionLabel, localizeStageLabel } from './lineup-display';
+import { formatDisplayMoney } from './raven-currency';
 
 export type TravelStyle = 'budget' | 'smart' | 'premium';
 export type StayPreference = 'festival' | 'city' | 'value';
@@ -62,17 +64,9 @@ type PlannerPlanLabels = {
   timelineTimes: readonly string[];
 };
 
+/** Local fallback budget bands are authored in CNY; EN converts to USD. */
 function formatCurrency(value: number, locale: Locale): string {
-  const code = locale === 'zh' ? 'CNY' : 'USD';
-  try {
-    return new Intl.NumberFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
-      style: 'currency',
-      currency: code,
-      maximumFractionDigits: 0,
-    }).format(value);
-  } catch {
-    return locale === 'zh' ? `¥${value.toLocaleString()}` : `$${value.toLocaleString()}`;
-  }
+  return formatDisplayMoney(value, 'CNY', locale, { approx: false });
 }
 
 function budgetBase(travelStyle: TravelStyle): number {
@@ -118,6 +112,7 @@ function buildArtistTimeline(
   favoriteArtists: string[],
   fallbackArtists: string[],
   labels: PlannerPlanLabels,
+  locale: Locale,
 ): PlannerTimelineDay[] {
   const priorityArtists = favoriteArtists.length ? favoriteArtists : fallbackArtists;
   const prioritySet = new Set(priorityArtists.map(normalizeArtistName));
@@ -148,21 +143,26 @@ function buildArtistTimeline(
   return [...byDay.entries()]
     .map(([dateKey, dayPerformances]) => {
       const sorted = [...dayPerformances].sort((left, right) => left.startMinutes - right.startMinutes);
+      const rawLabel = sorted[0]?.dateLabel || dateKey;
       return {
         dateKey,
         minStart: sorted[0]?.startMinutes ?? 0,
         day: {
-          label: sorted[0]?.dateLabel || dateKey,
-          sets: sorted.map((performance) => ({
-            time: performance.startTime.trim(),
-            artist: performance.artistName,
-            stage: performance.stageLabel?.trim() || performance.stage?.trim() || labels.stageMain,
-            highlight:
-              favoriteArtists.length > 0 &&
-              favoriteArtists.some(
-                (artist) => normalizeArtistName(artist) === normalizeArtistName(performance.artistName),
-              ),
-          })),
+          label: localizeSessionLabel(locale, rawLabel) || rawLabel,
+          sets: sorted.map((performance) => {
+            const rawStage =
+              performance.stageLabel?.trim() || performance.stage?.trim() || labels.stageMain;
+            return {
+              time: performance.startTime.trim(),
+              artist: performance.artistName,
+              stage: localizeStageLabel(locale, rawStage) || rawStage,
+              highlight:
+                favoriteArtists.length > 0 &&
+                favoriteArtists.some(
+                  (artist) => normalizeArtistName(artist) === normalizeArtistName(performance.artistName),
+                ),
+            };
+          }),
         } satisfies PlannerTimelineDay,
       };
     })
@@ -203,7 +203,7 @@ export function buildPlannerPlan(
     vibe: summary.vibe,
     experiences: experiences.length ? experiences : [labels.experiences.artists],
     artistTimeline: {
-      days: buildArtistTimeline(performances, favoriteArtists, artists, labels),
+      days: buildArtistTimeline(performances, favoriteArtists, artists, labels, locale),
     },
     travel: {
       stay: labels.stay[preferences.stayPreference].replace('{city}', city),

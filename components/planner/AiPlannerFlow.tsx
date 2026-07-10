@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -10,6 +10,7 @@ import {
   MapPin,
   Music2,
   Plane,
+  RotateCcw,
   Search,
   Sparkles,
   Users,
@@ -17,8 +18,11 @@ import {
 } from 'lucide-react';
 import type { Activity } from '../../lib/types';
 import {
+  fetchRavenPlaceSuggestions,
   generateRavenPlanAsync,
   getRavenPlanGenerationJob,
+  isRavenApiStatusError,
+  type RavenPlaceSuggestion,
   type RavenPlanGenerationPayload,
   type RavenTravelGuidePlan,
   type ScheduleDj,
@@ -32,19 +36,32 @@ import {
   type JourneyType,
   type PersonalPriority,
   type PlannerPlan,
-  type PlannerTimelineDay,
   type PlannerPreferences,
   type StayPreference,
   type TravelStyle,
 } from '../../lib/planner-plan';
+import { resolveResultPlan, shouldSeedSharedPlan } from '../../lib/planner-result';
+import { buildRavenJourneyView } from '../../lib/raven-journey';
 import { TrackedLink } from '../TrackedLink';
 import { EventImage } from '../EventImage';
+import { RavenJourneyResult } from './RavenJourneyResult';
+import { eventPlanPath } from '../../lib/event-slug';
+import { getSiteUrl } from '../../lib/site';
 
-type FlowPhase = 'setup' | 'generating' | 'result';
+type FlowPhase = 'setup' | 'generating' | 'result' | 'error';
 
 type SetupStepId = 'origin' | 'travelStyle' | 'stay' | 'journey' | 'priority';
 
 const SETUP_STEPS: SetupStepId[] = ['origin', 'travelStyle', 'stay', 'journey', 'priority'];
+const PLANNER_PREFERENCES_STORAGE_PREFIX = 'raven-plan-preferences';
+const ORIGIN_SUGGEST_DEBOUNCE_MS = 200;
+const DEFAULT_PREFERENCES: PlannerPreferences = {
+  origin: '',
+  travelStyle: 'smart',
+  stayPreference: 'festival',
+  journeyType: 'friends',
+  priorities: [],
+};
 
 const TRAVEL_STYLE_ICONS = {
   budget: Wallet,
@@ -87,6 +104,8 @@ type AiPlannerFlowProps = {
   waitlistHref: string;
   hideHeader?: boolean;
   initialRemotePlan?: RavenTravelGuidePlan | null;
+  initialGuideId?: string | null;
+  onPhaseChange?: (phase: FlowPhase) => void;
 };
 
 function createGuideId(): string {
@@ -94,6 +113,54 @@ function createGuideId(): string {
     return crypto.randomUUID();
   }
   return `raven-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function plannerPreferencesStorageKey(activityLegacyId: number): string {
+  return `${PLANNER_PREFERENCES_STORAGE_PREFIX}:${activityLegacyId}`;
+}
+
+function readPlannerPreferences(activityLegacyId: number): PlannerPreferences | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = window.localStorage.getItem(plannerPreferencesStorageKey(activityLegacyId));
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Partial<PlannerPreferences>;
+    if (
+      typeof value.origin !== 'string' ||
+      !['budget', 'smart', 'premium'].includes(value.travelStyle ?? '') ||
+      !['festival', 'city', 'value'].includes(value.stayPreference ?? '') ||
+      !['solo', 'friends', 'couple', 'tribe'].includes(value.journeyType ?? '') ||
+      !Array.isArray(value.priorities)
+    ) {
+      return null;
+    }
+
+    return {
+      origin: value.origin,
+      travelStyle: value.travelStyle as TravelStyle,
+      stayPreference: value.stayPreference as StayPreference,
+      journeyType: value.journeyType as JourneyType,
+      priorities: value.priorities.filter((priority): priority is PersonalPriority =>
+        ['artists', 'discover', 'party', 'city', 'people', 'budget'].includes(priority),
+      ),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writePlannerPreferences(activityLegacyId: number, preferences: PlannerPreferences): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(
+      plannerPreferencesStorageKey(activityLegacyId),
+      JSON.stringify(preferences),
+    );
+  } catch {
+    // Local storage is optional; the current session still supports retrying.
+  }
 }
 
 function toBudgetTier(style: TravelStyle): RavenPlanGenerationPayload['budgetTier'] {
@@ -109,77 +176,35 @@ function headcountFor(journey: JourneyType): number {
   return 3;
 }
 
-function mapRemoteTimeline(plan: RavenTravelGuidePlan): PlannerTimelineDay[] {
-  return (
-    plan.itinerary?.days
-      .map((day) => {
-        const sets = day.lines
-          .map((line, index) => {
-            const text = line.trim();
-            if (!text) return null;
-
-            const matched = text.match(/^(\d{1,2}:\d{2})\s*[-–:：]?\s*(.+)$/);
-            if (matched) {
-              const [, time, detail] = matched;
-              return {
-                time,
-                artist: detail.trim(),
-                stage: plan.itinerary?.title || day.label,
-              };
-            }
-
-            return {
-              time: `${index + 1}`.padStart(2, '0'),
-              artist: text,
-              stage: plan.itinerary?.title || day.label,
-            };
-          })
-          .filter((set): set is PlannerTimelineDay['sets'][number] => Boolean(set));
-
-        if (!sets.length) return null;
-        return {
-          label: day.label,
-          sets,
-        };
-      })
-      .filter((day): day is PlannerTimelineDay => Boolean(day)) ?? []
-  );
+function originValueForSuggestion(suggestion: RavenPlaceSuggestion): string {
+  if (suggestion.kind === 'city') return suggestion.city.trim() || suggestion.title.trim();
+  if (suggestion.iata?.trim()) {
+    return `${suggestion.city.trim()} (${suggestion.iata.trim()})`;
+  }
+  return suggestion.title.trim();
 }
 
-function estimateBudgetAmount(value: string): number | null {
-  const amounts = value.replace(/,/g, '').match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-  if (!amounts.length) return null;
-  return amounts.reduce((sum, amount) => sum + amount, 0) / amounts.length;
-}
+type OriginListItem = {
+  key: string;
+  label: string;
+  kind: 'preset' | 'city' | 'airport';
+  originValue: string;
+  subtitle?: string;
+  suggestion?: RavenPlaceSuggestion;
+};
 
-function mapRemotePlan(plan: RavenTravelGuidePlan, fallbackTimeline: PlannerPlan['artistTimeline']): PlannerPlan {
-  const hotels = plan.accommodation.hotels.map((hotel) => `${hotel.name}${hotel.note ? ` - ${hotel.note}` : ''}`);
-  const venueTransport = plan.venueTransport?.options.flatMap((option) => option.lines) ?? [];
-  const budgetItems = plan.budget?.items ?? [];
-  const budgetAmounts = budgetItems.map((item) => estimateBudgetAmount(item.range));
-  const budgetTotal = budgetAmounts.reduce<number>((sum, amount) => sum + (amount ?? 0), 0);
-  const remoteTimeline = mapRemoteTimeline(plan);
-
+function suggestionToOriginItem(suggestion: RavenPlaceSuggestion): OriginListItem {
+  const subtitle =
+    suggestion.kind === 'city'
+      ? suggestion.country
+      : [suggestion.city, suggestion.country, suggestion.iata].filter(Boolean).join(' · ');
   return {
-    vibe: [plan.activityName, plan.eventDates, plan.venue].filter(Boolean).join(' · '),
-    experiences: plan.tips.items.length ? plan.tips.items : plan.nightlife.spots.map((spot) => spot.name),
-    artistTimeline: remoteTimeline.length ? { days: remoteTimeline } : fallbackTimeline,
-    travel: {
-      stay: hotels.join('；') || plan.accommodation.title,
-      flight: plan.transport.lines.join('；') || plan.transport.title,
-      transport: venueTransport.join('；') || plan.parking?.lines.join('；') || plan.venueTransport?.title || '',
-    },
-    budget: {
-      total: plan.budget?.title || plan.budgetLabel,
-      items: budgetItems.map((item, index) => ({
-        label: item.label,
-        amount: item.range,
-        share:
-          budgetTotal > 0 && budgetAmounts[index] != null
-            ? Math.round(((budgetAmounts[index] ?? 0) / budgetTotal) * 100)
-            : undefined,
-      })),
-    },
+    key: `${suggestion.kind}:${suggestion.title}:${suggestion.iata ?? ''}:${suggestion.city}:${suggestion.country}`,
+    label: suggestion.title,
+    kind: suggestion.kind,
+    originValue: originValueForSuggestion(suggestion),
+    subtitle: subtitle || undefined,
+    suggestion,
   };
 }
 
@@ -196,6 +221,8 @@ export function AiPlannerFlow({
   waitlistHref,
   hideHeader = false,
   initialRemotePlan = null,
+  initialGuideId = null,
+  onPhaseChange,
 }: AiPlannerFlowProps) {
   const t = getMessages(locale);
   const copy = t.aiPlanner;
@@ -203,20 +230,40 @@ export function AiPlannerFlow({
   const [phase, setPhase] = useState<FlowPhase>(() => (initialRemotePlan ? 'result' : 'setup'));
   const [stepIndex, setStepIndex] = useState(0);
   const [originQuery, setOriginQuery] = useState('');
+  const [remoteOriginSuggestions, setRemoteOriginSuggestions] = useState<RavenPlaceSuggestion[]>([]);
+  const [originCityContext, setOriginCityContext] = useState<{
+    city: string;
+    country?: string;
+  } | null>(null);
+  const [originSuggestionsLoading, setOriginSuggestionsLoading] = useState(false);
   const [favoriteArtists, setFavoriteArtists] = useState<string[]>([]);
   const [generationStep, setGenerationStep] = useState(0);
-  const [plan, setPlan] = useState<PlannerPlan | null>(() =>
-    initialRemotePlan ? mapRemotePlan(initialRemotePlan, { days: [] }) : null,
-  );
-  const [generationRequest, setGenerationRequest] = useState<RavenPlanGenerationPayload | null>(null);
-
-  const [preferences, setPreferences] = useState<PlannerPreferences>({
-    origin: '',
-    travelStyle: 'smart',
-    stayPreference: 'festival',
-    journeyType: 'friends',
-    priorities: [],
+  const [plan, setPlan] = useState<PlannerPlan | null>(() => {
+    if (!initialRemotePlan) return null;
+    // Sync-seed so ?guideId= does not flash an empty result before effects run.
+    return resolveResultPlan(
+      initialRemotePlan,
+      buildPlannerPlan(
+        activity,
+        djs,
+        performances,
+        [],
+        DEFAULT_PREFERENCES,
+        locale,
+        getMessages(locale).aiPlanner.planLabels,
+      ),
+      locale,
+      { preferRemote: true },
+    ).plan;
   });
+  const [remotePlan, setRemotePlan] = useState<RavenTravelGuidePlan | null>(initialRemotePlan);
+  const [activeGuideId, setActiveGuideId] = useState<string | null>(initialGuideId);
+  const [showLanguageCaveat, setShowLanguageCaveat] = useState(false);
+  const [generationRequest, setGenerationRequest] = useState<RavenPlanGenerationPayload | null>(null);
+  const hasUserGeneratedRef = useRef(false);
+  const sharedPlanSeededRef = useRef(false);
+
+  const [preferences, setPreferences] = useState<PlannerPreferences>(DEFAULT_PREFERENCES);
 
   const fallbackPlan = useCallback(
     () =>
@@ -231,6 +278,24 @@ export function AiPlannerFlow({
       ),
     [activity, copy.planLabels, djs, favoriteArtists, locale, performances, preferences],
   );
+  const fallbackPlanRef = useRef(fallbackPlan);
+  fallbackPlanRef.current = fallbackPlan;
+
+  const hasTimedSchedule = useMemo(
+    () =>
+      performances.some((performance) =>
+        Boolean(
+          (performance.stageLabel?.trim() || performance.stage?.trim()) &&
+            performance.startTime?.trim(),
+        ),
+      ),
+    [performances],
+  );
+
+  const scheduleDays = useMemo(
+    () => (hasTimedSchedule ? fallbackPlan().artistTimeline.days : []),
+    [fallbackPlan, hasTimedSchedule],
+  );
 
   const currentStep = SETUP_STEPS[stepIndex];
 
@@ -239,11 +304,136 @@ export function AiPlannerFlow({
     setFavoriteArtists(resolveSelectedArtistNames(selection, djs, performances));
   }, [activity.legacyId, djs, performances]);
 
-  const filteredOrigins = useMemo(() => {
+  useEffect(() => {
+    const restored = readPlannerPreferences(activity.legacyId);
+    setPreferences(restored ?? DEFAULT_PREFERENCES);
+  }, [activity.legacyId]);
+
+  useEffect(() => {
+    if (
+      !shouldSeedSharedPlan({
+        hasInitialRemote: Boolean(initialRemotePlan),
+        alreadySeeded: sharedPlanSeededRef.current,
+        hasUserGenerated: hasUserGeneratedRef.current,
+      })
+    ) {
+      return;
+    }
+
+    const resolved = resolveResultPlan(initialRemotePlan, fallbackPlan(), locale, {
+      preferRemote: true,
+    });
+    sharedPlanSeededRef.current = true;
+    setRemotePlan(initialRemotePlan);
+    setActiveGuideId(initialGuideId);
+    setPlan(resolved.plan);
+    setShowLanguageCaveat(resolved.showLanguageCaveat);
+    setPhase('result');
+  }, [fallbackPlan, initialGuideId, initialRemotePlan, locale]);
+
+  useEffect(() => {
+    onPhaseChange?.(phase);
+  }, [onPhaseChange, phase]);
+
+  useEffect(() => {
+    if (currentStep !== 'origin') {
+      setRemoteOriginSuggestions([]);
+      setOriginCityContext(null);
+      setOriginSuggestionsLoading(false);
+      return;
+    }
+
+    const query = originQuery.trim();
+
+    if (originCityContext) {
+      const controller = new AbortController();
+      let cancelled = false;
+      setOriginSuggestionsLoading(true);
+      void fetchRavenPlaceSuggestions({
+        city: originCityContext.city,
+        country: originCityContext.country,
+        signal: controller.signal,
+      })
+        .then((rows) => {
+          if (cancelled) return;
+          setRemoteOriginSuggestions(rows);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setRemoteOriginSuggestions([]);
+        })
+        .finally(() => {
+          if (!cancelled) setOriginSuggestionsLoading(false);
+        });
+      return () => {
+        cancelled = true;
+        controller.abort();
+      };
+    }
+
+    if (!query) {
+      setRemoteOriginSuggestions([]);
+      setOriginSuggestionsLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    let cancelled = false;
+    setOriginSuggestionsLoading(true);
+    const timer = window.setTimeout(() => {
+      void fetchRavenPlaceSuggestions({
+        keyword: query,
+        limit: 12,
+        signal: controller.signal,
+      })
+        .then((rows) => {
+          if (cancelled) return;
+          setRemoteOriginSuggestions(rows);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setRemoteOriginSuggestions([]);
+        })
+        .finally(() => {
+          if (!cancelled) setOriginSuggestionsLoading(false);
+        });
+    }, ORIGIN_SUGGEST_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [currentStep, originCityContext, originQuery]);
+
+  const originOptions = useMemo((): OriginListItem[] => {
+    if (originCityContext) {
+      return remoteOriginSuggestions.map(suggestionToOriginItem);
+    }
+
     const query = originQuery.trim().toLowerCase();
-    if (!query) return copy.steps.origin.presets;
-    return copy.steps.origin.presets.filter((city) => city.toLowerCase().includes(query));
-  }, [copy.steps.origin.presets, originQuery]);
+    const presetItems: OriginListItem[] = copy.steps.origin.presets
+      .filter((city) => !query || city.toLowerCase().includes(query))
+      .map((city) => ({
+        key: `preset:${city}`,
+        label: city,
+        kind: 'preset' as const,
+        originValue: city,
+      }));
+
+    if (!query) return presetItems;
+
+    const remoteItems = remoteOriginSuggestions.map(suggestionToOriginItem);
+    if (!remoteItems.length) return presetItems;
+
+    const seen = new Set(remoteItems.map((item) => item.originValue.toLowerCase()));
+    const merged = [...remoteItems];
+    for (const preset of presetItems) {
+      if (seen.has(preset.originValue.toLowerCase())) continue;
+      merged.push(preset);
+    }
+    return merged;
+  }, [copy.steps.origin.presets, originCityContext, originQuery, remoteOriginSuggestions]);
 
   const canContinue = useMemo(() => {
     if (currentStep === 'origin') return preferences.origin.length > 0;
@@ -251,43 +441,151 @@ export function AiPlannerFlow({
     return true;
   }, [currentStep, preferences.origin, preferences.priorities.length]);
 
+  const selectOriginValue = useCallback((origin: string) => {
+    setPreferences((prev) => ({
+      ...prev,
+      origin,
+    }));
+  }, []);
+
+  const handleOriginOptionClick = useCallback(
+    (item: OriginListItem) => {
+      if (item.kind === 'city' && item.suggestion) {
+        const sameCity =
+          originCityContext &&
+          originCityContext.city.toLowerCase() === item.suggestion.city.toLowerCase() &&
+          (originCityContext.country ?? '').toLowerCase() ===
+            (item.suggestion.country ?? '').toLowerCase();
+        if (sameCity) {
+          selectOriginValue(item.originValue);
+          return;
+        }
+        setOriginCityContext({
+          city: item.suggestion.city,
+          country: item.suggestion.country || undefined,
+        });
+        setOriginQuery(item.suggestion.city);
+        selectOriginValue(item.originValue);
+        return;
+      }
+
+      setOriginCityContext(null);
+      selectOriginValue(item.originValue);
+      if (item.kind === 'airport' || item.kind === 'preset') {
+        setOriginQuery(item.originValue);
+      }
+    },
+    [originCityContext, selectOriginValue],
+  );
+
   const startGeneration = useCallback(() => {
+    hasUserGeneratedRef.current = true;
+    writePlannerPreferences(activity.legacyId, preferences);
+    setShowLanguageCaveat(false);
     setPhase('generating');
     setGenerationStep(0);
+    const guideId = createGuideId();
+    setActiveGuideId(guideId);
     setGenerationRequest({
-      guideId: createGuideId(),
+      guideId,
       departure: preferences.origin,
       headcount: headcountFor(preferences.journeyType),
       budgetTier: toBudgetTier(preferences.travelStyle),
-      note: preferences.priorities.map((priority) => copy.steps.priority.options[priority].title).join('；'),
+      note: preferences.priorities
+        .map((priority) => copy.steps.priority.options[priority].title)
+        .join(locale === 'zh' ? '；' : '; '),
+      locale,
     });
-  }, [copy.steps.priority.options, preferences]);
+  }, [activity.legacyId, copy.steps.priority.options, locale, preferences]);
 
   useEffect(() => {
     if (phase !== 'generating' || !generationRequest) return;
 
-    const controller = new AbortController();
     let cancelled = false;
+    const controller = new AbortController();
+    const isAbortError = (error: unknown) =>
+      (error instanceof DOMException && error.name === 'AbortError') ||
+      (error instanceof Error && error.name === 'AbortError');
+    const isTimeoutError = (error: unknown) =>
+      (error instanceof DOMException && error.name === 'TimeoutError') ||
+      (error instanceof Error && error.name === 'TimeoutError');
+    const isRetryableRateLimit = (error: unknown) => isRavenApiStatusError(error, 429);
+    const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+    const MAX_GENERATE_RATE_RETRIES = 4;
+    const MAX_POLL_RATE_RETRIES = 8;
+
+    const startJobWithRetry = async () => {
+      let attempt = 0;
+      while (!cancelled) {
+        try {
+          return await generateRavenPlanAsync(activity.legacyId, generationRequest);
+        } catch (error) {
+          if (cancelled || isAbortError(error)) throw error;
+          // Brief backoff for transient 429 (Strict Mode double-start / short bursts).
+          if (isRetryableRateLimit(error) && attempt < MAX_GENERATE_RATE_RETRIES) {
+            attempt += 1;
+            await wait(1500 * attempt);
+            continue;
+          }
+          throw error;
+        }
+      }
+      throw new DOMException('Aborted', 'AbortError');
+    };
+
     const poll = async () => {
       try {
-        const { jobId } = await generateRavenPlanAsync(activity.legacyId, generationRequest);
+        const { jobId } = await startJobWithRetry();
+        if (cancelled) return;
+        let pollRateLimitHits = 0;
         while (!cancelled) {
-          const job = await getRavenPlanGenerationJob(jobId, controller.signal);
+          let job;
+          try {
+            job = await getRavenPlanGenerationJob(jobId, controller.signal);
+            pollRateLimitHits = 0;
+          } catch (error) {
+            if (cancelled || isAbortError(error)) return;
+            // Transient poll timeout — keep waiting on the same job.
+            if (isTimeoutError(error)) {
+              await wait(1500);
+              continue;
+            }
+            if (isRetryableRateLimit(error)) {
+              pollRateLimitHits += 1;
+              if (pollRateLimitHits > MAX_POLL_RATE_RETRIES) throw error;
+              await wait(1500 * Math.min(pollRateLimitHits, 4));
+              continue;
+            }
+            throw error;
+          }
+          if (cancelled) return;
           if (job.progress) {
-            setGenerationStep(Math.min(copy.generation.steps.length, Math.ceil((job.progress.percent / 100) * copy.generation.steps.length)));
+            setGenerationStep(
+              Math.min(
+                copy.generation.steps.length,
+                Math.ceil((job.progress.percent / 100) * copy.generation.steps.length),
+              ),
+            );
           }
           if (job.status === 'completed' && job.plan) {
-            setPlan(mapRemotePlan(job.plan, fallbackPlan().artistTimeline));
+            const resolved = resolveResultPlan(job.plan, fallbackPlanRef.current(), locale, {
+              preferRemote: true,
+            });
+            setRemotePlan(job.plan);
+            if (generationRequest.guideId) {
+              setActiveGuideId(generationRequest.guideId);
+            }
+            setPlan(resolved.plan);
+            setShowLanguageCaveat(resolved.showLanguageCaveat);
             setPhase('result');
             return;
           }
-          if (job.status === 'failed') throw new Error(job.errorMessage || '攻略生成失败，请稍后重试');
-          await new Promise((resolve) => window.setTimeout(resolve, 1500));
+          if (job.status === 'failed') throw new Error(job.errorMessage || 'generation_failed');
+          await wait(1500);
         }
       } catch (error) {
-        if (!cancelled && !(error instanceof DOMException && error.name === 'AbortError')) {
-          window.alert(error instanceof Error ? error.message : '攻略生成失败，请稍后重试');
-          setPhase('setup');
+        if (!cancelled && !isAbortError(error)) {
+          setPhase('error');
         }
       }
     };
@@ -297,7 +595,7 @@ export function AiPlannerFlow({
       cancelled = true;
       controller.abort();
     };
-  }, [activity.legacyId, copy.generation.steps.length, fallbackPlan, generationRequest, phase]);
+  }, [activity.legacyId, copy.generation.steps.length, generationRequest, locale, phase]);
 
   const goNext = () => {
     if (stepIndex < SETUP_STEPS.length - 1) {
@@ -314,6 +612,23 @@ export function AiPlannerFlow({
       return;
     }
     if (stepIndex > 0) setStepIndex((value) => value - 1);
+  };
+
+  const retryGeneration = () => {
+    // Reuse the same generationRequest (including guideId) so the backend can
+    // dedupe to an in-flight job instead of starting a brand-new one.
+    if (!generationRequest) {
+      startGeneration();
+      return;
+    }
+    setShowLanguageCaveat(false);
+    setGenerationStep(0);
+    setPhase('generating');
+  };
+
+  const returnToPreferences = () => {
+    setPhase('setup');
+    setStepIndex(SETUP_STEPS.length - 1);
   };
 
   const togglePriority = (priority: PersonalPriority) => {
@@ -427,31 +742,33 @@ export function AiPlannerFlow({
                 <input
                   type="search"
                   value={originQuery}
-                  onChange={(event) => setOriginQuery(event.target.value)}
+                  onChange={(event) => {
+                    setOriginCityContext(null);
+                    setOriginQuery(event.target.value);
+                  }}
                   placeholder={copy.steps.origin.searchPlaceholder}
                   autoComplete="off"
                 />
               </label>
-              <div className="plan-step__cards plan-step__cards--locations">
-                {filteredOrigins.map((city) => {
-                  const selected = preferences.origin === city;
+              <div className="plan-step__cards plan-step__cards--locations" aria-busy={originSuggestionsLoading}>
+                {originOptions.map((item) => {
+                  const selected = preferences.origin === item.originValue;
+                  const Icon = item.kind === 'airport' ? Plane : MapPin;
                   return (
                     <button
-                      key={city}
+                      key={item.key}
                       type="button"
                       className={`plan-option-card plan-option-card--location${selected ? ' is-selected' : ''}`}
                       aria-pressed={selected}
-                      onClick={() =>
-                        setPreferences((prev) => ({
-                          ...prev,
-                          origin: city,
-                        }))
-                      }
+                      onClick={() => handleOriginOptionClick(item)}
                     >
                       <span className="plan-option-card__icon" aria-hidden>
-                        <MapPin size={18} strokeWidth={2} />
+                        <Icon size={18} strokeWidth={2} />
                       </span>
-                      <span className="plan-option-card__title">{city}</span>
+                      <span className="plan-option-card__title">{item.label}</span>
+                      {item.subtitle ? (
+                        <span className="plan-option-card__description">{item.subtitle}</span>
+                      ) : null}
                     </button>
                   );
                 })}
@@ -623,10 +940,20 @@ export function AiPlannerFlow({
 
       {phase === 'generating' ? (
         <section className="plan-generation" aria-live="polite">
+          {image ? (
+            <>
+              <EventImage src={image} alt="" className="plan-generation__image" sizes="(max-width: 960px) 100vw, 80vw" />
+              <div className="plan-generation__scrim" aria-hidden />
+            </>
+          ) : null}
           <div className="plan-generation__glow" aria-hidden />
           <div className="plan-generation__icon" aria-hidden>
             <Sparkles size={22} strokeWidth={2} />
           </div>
+          <p className="plan-generation__festival">
+            {copy.generation.festivalContext.replace('{festival}', eventTitle)}
+          </p>
+          {resultMeta ? <p className="plan-generation__meta">{resultMeta}</p> : null}
           <h2 className="plan-generation__title">{copy.generation.title}</h2>
           <p className="plan-generation__lead">{copy.generation.lead}</p>
           <ol className="plan-generation__steps">
@@ -655,161 +982,71 @@ export function AiPlannerFlow({
         </section>
       ) : null}
 
-      {phase === 'result' && plan ? (
-        <section className="plan-result">
-          <header className="plan-result__hero">
-            {image ? (
-              <EventImage
-                src={image}
-                alt=""
-                className="plan-result__hero-image"
-                sizes="(max-width: 960px) 100vw, 80vw"
-              />
-            ) : null}
-            <div className="plan-result__hero-scrim" aria-hidden />
-            <div className="plan-result__hero-glow" aria-hidden />
-            <div className="plan-result__header">
-              <span className="plan-result__badge">{copy.result.badge}</span>
-              <h2 className="plan-result__title">{eventTitle}</h2>
-              <p className="plan-result__lead">{copy.result.lead}</p>
-              {resultMeta ? <p className="plan-result__meta">{resultMeta}</p> : null}
-              {favoriteArtists.length ? (
-                <ul className="plan-result__artist-chips" aria-label={copy.contextArtists}>
-                  {favoriteArtists.slice(0, 4).map((artist) => (
-                    <li key={artist}>{artist}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          </header>
-
-          <div className="plan-result__scenes">
-            <article className="plan-result__scene plan-result__scene--opening">
-              <header className="plan-result__scene-head">
-                <h3 className="plan-result__scene-title">{copy.result.summaryTitle}</h3>
-              </header>
-              <div className="plan-result__summary-block">
-                <span className="plan-result__label">{copy.result.vibeLabel}</span>
-                <p className="plan-result__value plan-result__value--vibe">{plan.vibe}</p>
-              </div>
-              <div className="plan-result__summary-block">
-                <span className="plan-result__label">{copy.result.experienceLabel}</span>
-                <ul className="plan-result__experience-list">
-                  {plan.experiences.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            </article>
-
-            <article className="plan-result__scene plan-result__scene--timeline">
-              <header className="plan-result__scene-head">
-                <h3 className="plan-result__scene-title">{copy.result.artistTitle}</h3>
-              </header>
-              {plan.artistTimeline.days.length ? (
-                <div className="ai-planner__timeline">
-                  {plan.artistTimeline.days.map((day) => (
-                    <section className="ai-planner__timeline-day" key={day.label}>
-                      <h4 className="ai-planner__timeline-day-label">{day.label}</h4>
-                      <ol className="ai-planner__timeline-sets">
-                        {day.sets.map((set) => (
-                          <li
-                            className={`ai-planner__timeline-set${set.highlight ? ' is-highlight' : ''}`}
-                            key={`${day.label}-${set.time}-${set.artist}`}
-                          >
-                            <span className="ai-planner__timeline-time">{set.time}</span>
-                            <div className="ai-planner__timeline-set-copy">
-                              <p className="ai-planner__timeline-artist">{set.artist}</p>
-                              <p className="ai-planner__timeline-stage">{set.stage}</p>
-                            </div>
-                            <Music2 size={13} strokeWidth={2} aria-hidden />
-                          </li>
-                        ))}
-                      </ol>
-                    </section>
-                  ))}
-                </div>
-              ) : (
-                <p className="plan-result__value plan-result__value--muted">{copy.result.artistTimelineEmpty}</p>
-              )}
-            </article>
-
-            <article className="plan-result__scene plan-result__scene--travel">
-              <header className="plan-result__scene-head">
-                <h3 className="plan-result__scene-title">{copy.result.travelTitle}</h3>
-              </header>
-              <ol className="plan-result__travel-rows">
-                <li className="plan-result__travel-row">
-                  <span className="plan-result__travel-icon" aria-hidden>
-                    <MapPin size={15} strokeWidth={2} />
-                  </span>
-                  <div>
-                    <span className="plan-result__label">{copy.result.travelStay}</span>
-                    <p className="plan-result__value">{plan.travel.stay}</p>
-                  </div>
-                </li>
-                <li className="plan-result__travel-row">
-                  <span className="plan-result__travel-icon" aria-hidden>
-                    <Plane size={15} strokeWidth={2} />
-                  </span>
-                  <div>
-                    <span className="plan-result__label">{copy.result.travelFlight}</span>
-                    <p className="plan-result__value">{plan.travel.flight}</p>
-                  </div>
-                </li>
-                <li className="plan-result__travel-row">
-                  <span className="plan-result__travel-icon" aria-hidden>
-                    <Compass size={15} strokeWidth={2} />
-                  </span>
-                  <div>
-                    <span className="plan-result__label">{copy.result.travelTransport}</span>
-                    <p className="plan-result__value">{plan.travel.transport}</p>
-                  </div>
-                </li>
-              </ol>
-            </article>
-
-            <article className="plan-result__scene plan-result__scene--budget">
-              <header className="plan-result__scene-head">
-                <h3 className="plan-result__scene-title">{copy.result.budgetTitle}</h3>
-              </header>
-              <div className="plan-result__budget-hero">
-                <span className="plan-result__label">{copy.result.budgetTotal}</span>
-                <p className="plan-result__budget-total">{plan.budget.total}</p>
-              </div>
-              <ul className="ai-planner__budget-list">
-                {plan.budget.items.map((item) => (
-                  <li className="ai-planner__budget-row" key={item.label}>
-                    <div className="ai-planner__budget-row-head">
-                      <span>{item.label}</span>
-                      <span>{item.amount}</span>
-                    </div>
-                    {item.share != null ? (
-                      <span className="ai-planner__budget-track" aria-hidden>
-                        <span className="ai-planner__budget-fill" style={{ width: `${item.share}%` }} />
-                      </span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </article>
+      {phase === 'error' ? (
+        <section className="plan-generation plan-generation--error" role="alert" aria-live="assertive">
+          {image ? (
+            <>
+              <EventImage src={image} alt="" className="plan-generation__image" sizes="(max-width: 960px) 100vw, 80vw" />
+              <div className="plan-generation__scrim" aria-hidden />
+            </>
+          ) : null}
+          <div className="plan-generation__glow" aria-hidden />
+          <div className="plan-generation__icon plan-generation__icon--error" aria-hidden>
+            <RotateCcw size={22} strokeWidth={2} />
           </div>
-
-          <footer className="plan-result__footer">
-            <TrackedLink
-              className="button"
-              href={waitlistHref}
-              eventName="planner_create_plan_click"
-              eventProperties={{ event: String(activity.legacyId), locale, source: 'planner-result' }}
-            >
-              {copy.result.primaryCta}
-              <ArrowRight size={15} strokeWidth={2.25} aria-hidden />
-            </TrackedLink>
-            <button type="button" className="button secondary" onClick={goBack}>
-              {copy.result.secondaryCta}
+          <p className="plan-generation__festival">
+            {copy.generation.festivalContext.replace('{festival}', eventTitle)}
+          </p>
+          {resultMeta ? <p className="plan-generation__meta">{resultMeta}</p> : null}
+          <p className="plan-generation__eyebrow">{copy.generation.error.eyebrow}</p>
+          <h2 className="plan-generation__title">{copy.generation.error.title}</h2>
+          <p className="plan-generation__lead">{copy.generation.error.lead}</p>
+          <div className="plan-generation__actions">
+            <button type="button" className="button plan-generation__action" onClick={retryGeneration}>
+              <RotateCcw size={15} strokeWidth={2.25} aria-hidden />
+              {copy.generation.error.retry}
             </button>
-          </footer>
+            <button
+              type="button"
+              className="button secondary plan-generation__action"
+              onClick={returnToPreferences}
+            >
+              <ArrowLeft size={15} strokeWidth={2.25} aria-hidden />
+              {copy.generation.error.adjust}
+            </button>
+          </div>
         </section>
+      ) : null}
+
+      {phase === 'result' && plan ? (
+        <RavenJourneyResult
+          locale={locale}
+          journey={buildRavenJourneyView({
+            remote: remotePlan,
+            local: plan,
+            locale,
+            festivalName: eventTitle,
+            destination: metaLocation || activity.city || activity.location || '',
+            festivalDates: metaDate || activity.date || '',
+            favoriteArtists,
+            hasTimedSchedule,
+            scheduleDays,
+            travelersFallback: headcountFor(preferences.journeyType),
+          })}
+          image={image}
+          showLanguageCaveat={showLanguageCaveat}
+          persistenceNotice={!initialGuideId}
+          shareUrl={
+            activeGuideId
+              ? `${typeof window !== 'undefined' ? window.location.origin : getSiteUrl()}${eventPlanPath(locale, activity)}?guideId=${encodeURIComponent(activeGuideId)}`
+              : undefined
+          }
+          onSave={() => {
+            window.location.href = waitlistHref;
+          }}
+          onEditPreferences={goBack}
+          onRebuild={startGeneration}
+        />
       ) : null}
     </div>
   );

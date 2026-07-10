@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { PlannerLandingContent } from '../../../../../components/planner/PlannerLandingContent';
-import { AiPlannerFlow } from '../../../../../components/planner/AiPlannerFlow';
+import { PlanPageShell } from '../../../../../components/planner/PlanPageShell';
 import { EventLoadError } from '../../../../../components/states/EventLoadError';
 import { EventUnavailableState } from '../../../../../components/states/EventUnavailableState';
 import {
@@ -113,47 +113,37 @@ export default async function AiPlannerPage({ params, searchParams }: PlannerPag
 
   return (
     <main className="plan-page plan-page--journey" data-atmosphere={atmosphere}>
-      <PlannerLandingContent
+      <PlanPageShell
         locale={locale}
+        activity={activity}
         eventTitle={eventTitle}
         metaDate={metaDate ?? ''}
         metaLocation={metaLocation}
-        image={activityImage}
-        landing={landing}
-        detailHref={detailPath}
-        lineupHref={lineupHref}
-        travelHref={travelHref}
-        legacyId={activity.legacyId}
-        entryFrom={entryFrom}
         djs={djs}
         performances={performances}
+        eventPath={detailPath}
+        image={activityImage}
+        waitlistHref={waitlistHref}
+        initialRemotePlan={initialRemotePlan}
+        initialGuideId={resolvedSearch.guideId ?? null}
+        landing={
+          <PlannerLandingContent
+            locale={locale}
+            eventTitle={eventTitle}
+            metaDate={metaDate ?? ''}
+            metaLocation={metaLocation}
+            image={activityImage}
+            landing={landing}
+            detailHref={detailPath}
+            lineupHref={lineupHref}
+            travelHref={travelHref}
+            legacyId={activity.legacyId}
+            entryFrom={entryFrom}
+            djs={djs}
+            performances={performances}
+          />
+        }
       />
-
-      <section
-        id="planner-form"
-        className="section section--plan"
-        tabIndex={-1}
-        aria-label={t.aiPlanner.landing.plannerSection}
-      >
-        <div className="container container--plan">
-          <div className="plan-page__composer">
-            <AiPlannerFlow
-              locale={locale}
-              activity={activity}
-              eventTitle={eventTitle}
-              metaDate={metaDate ?? ''}
-              metaLocation={metaLocation}
-              djs={djs}
-              performances={performances}
-              eventPath={detailPath}
-              image={activityImage}
-              waitlistHref={waitlistHref}
-              hideHeader
-              initialRemotePlan={initialRemotePlan}
-            />
-          </div>
-        </div>
-      </section>
 
       <script
         type="application/ld+json"
