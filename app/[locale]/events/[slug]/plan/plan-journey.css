@@ -1178,16 +1178,17 @@
 
 .raven-journey__hero-meta {
   margin: 0;
-  font-size: 13px;
-  letter-spacing: 0.01em;
-  color: rgba(244, 241, 234, 0.58);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: rgba(244, 241, 234, 0.48);
+  line-height: 1.55;
 }
 
 .raven-journey__context {
   display: grid;
-  gap: 14px;
-  max-width: 640px;
-  padding-block: 4px;
+  gap: 16px;
+  max-width: 48ch;
+  padding-block: clamp(12px, 2vw, 20px) 4px;
 }
 
 .raven-journey__hero-breath {
@@ -1195,13 +1196,14 @@
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 10px;
+  gap: 12px;
   max-width: 48ch;
 }
 
 .raven-journey__hero-breath li {
-  font-size: 16px;
-  line-height: 1.45;
+  font-size: clamp(15px, 1.9vw, 18px);
+  line-height: 1.55;
+  letter-spacing: -0.015em;
   color: rgba(244, 241, 234, 0.84);
   padding-left: 12px;
   border-left: 2px solid rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.45);
@@ -1281,6 +1283,7 @@
 .raven-journey__finale {
   display: grid;
   gap: 20px;
+  padding-block: calc(var(--festival-density, clamp(56px, 8vw, 96px)) * 0.28) 0;
 }
 
 .raven-journey__section-head {
@@ -1328,7 +1331,7 @@
 .raven-journey__section--budget .raven-journey__budget-total {
   margin-top: 8px;
   font-size: clamp(40px, 6vw, 64px);
-  letter-spacing: -0.04em;
+  letter-spacing: var(--festival-title-tracking, -0.04em);
   color: rgba(244, 241, 234, 0.98);
 }
 
@@ -1353,6 +1356,24 @@
 
 .plan-page--journey[data-atmosphere='steel'] .raven-journey__section--music {
   gap: 30px;
+}
+
+.plan-page--journey[data-atmosphere='amber'] .raven-journey__section--timeline,
+.plan-page--journey[data-atmosphere='ember'] .raven-journey__section--timeline {
+  gap: 34px;
+}
+
+.plan-page--journey[data-atmosphere='electric'] .raven-journey__section--travel,
+.plan-page--journey[data-atmosphere='neon'] .raven-journey__section--travel {
+  gap: 24px;
+}
+
+.plan-page--journey[data-atmosphere='steel'] .raven-journey__section--budget .raven-journey__budget-total {
+  letter-spacing: -0.05em;
+}
+
+.plan-page--journey[data-atmosphere='lime'] .raven-journey__hero-breath li {
+  border-left-color: rgba(var(--festival-accent-rgb), 0.55);
 }
 
 .raven-journey__story {
@@ -1483,45 +1504,46 @@
   margin: 0 0 12px;
   font-family: var(--font-display);
   font-size: clamp(20px, 2.6vw, 26px);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--festival-title-tracking, -0.02em);
 }
 
-.raven-journey__chapter-sets {
+.raven-journey__chapter-nights {
   margin: 0;
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 0;
+  gap: 18px;
 }
 
-.raven-journey__chapter-sets li {
+.raven-journey__chapter-nights li {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 16px;
-  padding: 14px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 4px;
+  padding: 0 0 0 14px;
+  border-left: 2px solid rgba(255, 255, 255, 0.08);
 }
 
-.raven-journey__chapter-sets li:last-child {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.raven-journey__chapter-time {
-  font-variant-numeric: tabular-nums;
-  color: rgba(244, 241, 234, 0.55);
-  font-size: 14px;
-  padding-top: 4px;
+.raven-journey__chapter-nights li.is-highlight {
+  border-left-color: rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.7);
 }
 
 .raven-journey__chapter-artist {
   margin: 0;
-  font-size: 17px;
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 24px);
+  letter-spacing: -0.02em;
   color: rgba(244, 241, 234, 0.94);
+  line-height: 1.2;
 }
 
-.raven-journey__chapter-sets li.is-highlight .raven-journey__chapter-artist,
-.raven-journey__chapter-sets li.is-highlight .raven-journey__chapter-time {
-  color: rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.95);
+.raven-journey__chapter-nights li.is-highlight .raven-journey__chapter-artist {
+  color: rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.98);
+}
+
+.raven-journey__chapter-scene {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(244, 241, 234, 0.55);
+  letter-spacing: 0.01em;
 }
 
 .raven-journey__disclosure {
@@ -1721,10 +1743,6 @@
   .raven-journey__finale-actions .button {
     width: 100%;
     justify-content: center;
-  }
-
-  .raven-journey__chapter-sets li {
-    grid-template-columns: 56px minmax(0, 1fr);
   }
 }
 

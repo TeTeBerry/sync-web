@@ -148,7 +148,8 @@ describe('buildRavenJourneyView', () => {
       favoriteArtists: ['Amelie Lens'],
     });
     expect(view.breath.length).toBeGreaterThan(0);
-    expect(view.breath.some((line) => /Wake|Hold|Get there|Amelie|festival/i.test(line))).toBe(true);
+    expect(view.breath.length).toBeLessThanOrEqual(4);
+    expect(view.breath.some((line) => /Wake|Hold|Get there|Amelie|festival|Keep the trip/i.test(line))).toBe(true);
   });
 
   it('uses a confident budget total amount rather than a section title', () => {

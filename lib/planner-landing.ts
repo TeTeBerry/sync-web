@@ -5,6 +5,7 @@ import { buildEventTravelData, type EventTravelData, type TravelFaqItem } from '
 import { getMessages, type Locale } from './i18n';
 import { buildFeaturedArtists } from './lineup-preview';
 import { buildPlannerPlan, type PlannerPlan } from './planner-plan';
+import { formatDisplayMoneyRange } from './raven-currency';
 import type { Activity } from './types';
 
 export type PlannerExampleTrip = {
@@ -97,10 +98,14 @@ function estimateFlightPrice(travelData: EventTravelData, locale: Locale): strin
 
 function estimateNightlyCost(travelData: EventTravelData, locale: Locale): string {
   const mid = travelData.stay.items.options.find((option) => option.tier === 'mid');
+  const fallback = formatDisplayMoneyRange(600, 1200, 'CNY', locale, {
+    approx: false,
+    suffix: locale === 'zh' ? ' / 晚' : ' / night',
+  });
   if (locale === 'zh') {
-    return mid ? `中档约 ${travelData.budget.items.tiers[1]?.estimate ?? '¥600–1,200 / 晚'}` : '¥600–1,200 / 晚';
+    return mid ? `中档约 ${travelData.budget.items.tiers[1]?.estimate ?? fallback}` : fallback;
   }
-  return mid ? `Mid-tier from ${travelData.budget.items.tiers[1]?.estimate ?? '$80–160 / night'}` : '$80–160 / night';
+  return mid ? `Mid-tier from ${travelData.budget.items.tiers[1]?.estimate ?? fallback}` : fallback;
 }
 
 export function buildPlannerExampleTrip(

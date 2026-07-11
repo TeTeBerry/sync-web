@@ -565,7 +565,12 @@ export function buildRavenJourneyView(input: {
         ? `Get there via ${glanceFlight.headline}`
         : `经 ${glanceFlight.headline} 抵达`
       : null,
-  ].filter((line): line is string => Boolean(line?.trim())).slice(0, 3);
+    budgetTotal
+      ? en
+        ? `Keep the trip around ${budgetTotal}`
+        : `这趟旅程大约 ${budgetTotal}`
+      : null,
+  ].filter((line): line is string => Boolean(line?.trim())).slice(0, 4);
 
   return {
     festivalName: remote?.activityName || festivalName,

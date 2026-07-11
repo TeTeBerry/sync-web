@@ -21,6 +21,17 @@ export function toDisplayAmount(
   return amount * CNY_PER_USD;
 }
 
+function formatAmountDigits(amount: number, locale: Locale): string {
+  return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'zh-CN', {
+    maximumFractionDigits: 0,
+  }).format(Math.round(amount));
+}
+
+function moneyPrefix(locale: Locale, approx: boolean): string {
+  if (!approx) return '';
+  return locale === 'en' ? 'About ' : '约 ';
+}
+
 export function formatDisplayMoney(
   amount: number,
   from: DisplayCurrency,
@@ -28,14 +39,35 @@ export function formatDisplayMoney(
   options?: { approx?: boolean; suffix?: string },
 ): string {
   const currency = displayCurrencyForLocale(locale);
-  const rounded = Math.round(toDisplayAmount(amount, from, locale));
+  const rounded = toDisplayAmount(amount, from, locale);
   const symbol = currency === 'USD' ? '$' : '¥';
   const approx = options?.approx !== false;
   const suffix = options?.suffix ?? '';
-  if (locale === 'en') {
-    return `${approx ? 'About ' : ''}${symbol}${rounded}${suffix}`;
+  return `${moneyPrefix(locale, approx)}${symbol}${formatAmountDigits(rounded, locale)}${suffix}`;
+}
+
+/** Format a CNY-authored (or other source) min–max band into the locale display currency. */
+export function formatDisplayMoneyRange(
+  min: number,
+  max: number,
+  from: DisplayCurrency,
+  locale: Locale,
+  options?: { approx?: boolean; suffix?: string; plus?: boolean },
+): string {
+  const currency = displayCurrencyForLocale(locale);
+  const a = Math.round(toDisplayAmount(min, from, locale));
+  const b = Math.round(toDisplayAmount(max, from, locale));
+  const symbol = currency === 'USD' ? '$' : '¥';
+  const approx = options?.approx !== false;
+  const suffix = options?.suffix ?? '';
+  const prefix = moneyPrefix(locale, approx);
+  if (options?.plus) {
+    return `${prefix}${symbol}${formatAmountDigits(a, locale)}+${suffix}`;
   }
-  return `${approx ? '约 ' : ''}${symbol}${rounded}${suffix}`;
+  if (a === b) {
+    return `${prefix}${symbol}${formatAmountDigits(a, locale)}${suffix}`;
+  }
+  return `${prefix}${symbol}${formatAmountDigits(a, locale)}–${formatAmountDigits(b, locale)}${suffix}`;
 }
 
 /**

@@ -1,6 +1,7 @@
 import type { Activity } from './types';
 import type { Locale } from './i18n';
 import { eventPath } from './event-slug';
+import { formatDisplayMoneyRange } from './raven-currency';
 
 export type TravelTier = 'budget' | 'mid' | 'premium';
 
@@ -86,11 +87,6 @@ function regionContext(activity: Activity, locale: Locale) {
   const isHmt = activity.region === 'hmt';
   const isDomestic = !isOverseas && !isHmt;
   return { city, isOverseas, isHmt, isDomestic };
-}
-
-function currencySymbol(locale: Locale, isOverseas: boolean): string {
-  if (locale === 'zh' && !isOverseas) return '¥';
-  return isOverseas ? '$' : '¥';
 }
 
 function buildSeoLinks(locale: Locale, activity: Activity): TravelSeoLinks {
@@ -340,28 +336,54 @@ function buildTicketsSection(
   };
 }
 
+/** CNY-authored per-person bands (excl. tickets); EN display converts via raven-currency. */
+const BUDGET_TIER_CNY = {
+  domestic: {
+    budget: { min: 1200, max: 2000 },
+    mid: { min: 2200, max: 3500 },
+    premium: { min: 4000, max: 4000, plus: true },
+  },
+  overseas: {
+    budget: { min: 1800, max: 2800 },
+    mid: { min: 3200, max: 4800 },
+    premium: { min: 5500, max: 5500, plus: true },
+  },
+} as const;
+
+function formatBudgetEstimate(
+  band: { min: number; max: number; plus?: boolean },
+  locale: Locale,
+): string {
+  const suffix = locale === 'zh' ? ' / 人' : ' / person';
+  return formatDisplayMoneyRange(band.min, band.max, 'CNY', locale, {
+    approx: false,
+    suffix,
+    plus: band.plus,
+  });
+}
+
 function buildBudgetSection(
   activity: Activity,
   locale: Locale,
 ): EventTravelData['budget'] {
   const { isOverseas } = regionContext(activity, locale);
-  const sym = currencySymbol(locale, isOverseas);
+  const bands = isOverseas ? BUDGET_TIER_CNY.overseas : BUDGET_TIER_CNY.domestic;
 
   if (locale === 'zh') {
     const tiers: TravelBudgetTier[] = [
       {
         tier: 'budget',
-        estimate: isOverseas ? `${sym}1,800–2,800 / 人` : `${sym}1,200–2,000 / 人`,
+        estimate: formatBudgetEstimate(bands.budget, locale),
         note: '经济交通 + 合住 + 基础餐饮',
       },
       {
         tier: 'mid',
-        estimate: isOverseas ? `${sym}3,200–4,800 / 人` : `${sym}2,200–3,500 / 人`,
+        estimate: formatBudgetEstimate(bands.mid, locale),
         note: '舒适交通 + 中档酒店 + 日常餐饮',
       },
       {
         tier: 'premium',
-        estimate: isOverseas ? `${sym}5,500+ / 人` : `${sym}4,000+ / 人`,
+        estimate: formatBudgetEstimate(bands.premium, locale),
         note: '优选航班 + 品质住宿 + 专车接驳',
       },
     ];
@@ -378,17 +400,17 @@ function buildBudgetSection(
   const tiers: TravelBudgetTier[] = [
     {
       tier: 'budget',
-      estimate: isOverseas ? `${sym}1,800–2,800 / person` : `${sym}1,200–2,000 / person`,
+      estimate: formatBudgetEstimate(bands.budget, locale),
       note: 'Economy transit + shared stay + basic meals',
     },
     {
       tier: 'mid',
-      estimate: isOverseas ? `${sym}3,200–4,800 / person` : `${sym}2,200–3,500 / person`,
+      estimate: formatBudgetEstimate(bands.mid, locale),
       note: 'Comfortable transit + mid hotels + everyday dining',
     },
     {
       tier: 'premium',
-      estimate: isOverseas ? `${sym}5,500+ / person` : `${sym}4,000+ / person`,
+      estimate: formatBudgetEstimate(bands.premium, locale),
       note: 'Preferred flights + boutique stay + private transfers',
     },
   ];
@@ -514,8 +536,7 @@ function buildFaq(activity: Activity, locale: Locale): TravelFaqItem[] {
     },
     {
       question: 'How much should I budget?',
-      answer:
-        'Excluding tickets, domestic trips often run $1,200–3,500 per person by tier; overseas costs more — use the Raven planner for your origin.',
+      answer: `Excluding tickets, domestic trips often run ${formatDisplayMoneyRange(1200, 3500, 'CNY', 'en', { approx: false })} per person by tier; overseas costs more — use the Raven planner for your origin.`,
     },
   ];
 }

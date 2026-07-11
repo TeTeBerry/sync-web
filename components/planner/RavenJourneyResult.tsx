@@ -169,6 +169,8 @@ export function RavenJourneyResult({
   const budgetLineItems = journey.budget.items.filter(
     (item) => !isBudgetTotalLabel(item.label),
   );
+  const breathLines = journey.breath.slice(0, 4);
+  const showMetaQuietly = metaBits.length > 0 && breathLines.length === 0;
 
   return (
     <section className="raven-journey" aria-labelledby="raven-journey-heading">
@@ -200,18 +202,17 @@ export function RavenJourneyResult({
         </div>
       </header>
 
-      {(metaBits.length > 0 || journey.breath.length > 0) && (
+      {(breathLines.length > 0 || showMetaQuietly) && (
         <section className="raven-journey__context" aria-label={copy.contextKicker}>
-          {metaBits.length ? (
-            <p className="raven-journey__hero-meta">{metaBits.join(' · ')}</p>
-          ) : null}
-          {journey.breath.length ? (
+          {breathLines.length ? (
             <ul className="raven-journey__hero-breath">
-              {journey.breath.slice(0, 2).map((line, index) => (
+              {breathLines.map((line, index) => (
                 <li key={`breath-${index}`}>{line}</li>
               ))}
             </ul>
-          ) : null}
+          ) : (
+            <p className="raven-journey__hero-meta">{metaBits.join(' · ')}</p>
+          )}
         </section>
       )}
 
@@ -248,6 +249,88 @@ export function RavenJourneyResult({
               </li>
             ))}
           </ol>
+        </section>
+      ) : null}
+
+      {showMusic ? (
+        <section className="raven-journey__section raven-journey__section--music" aria-labelledby="raven-festival-heading">
+          <header className="raven-journey__section-head">
+            <p className="raven-journey__section-kicker">{copy.festivalKicker}</p>
+            <h3 id="raven-festival-heading" className="raven-journey__section-title">
+              {copy.festivalExperience}
+            </h3>
+          </header>
+
+          {(journey.festivalExperience.dailyFlow.length > 0 ||
+            journey.festivalExperience.setTimesStatus === 'unavailable') && (
+            <div className="raven-journey__block raven-journey__block--peak">
+              <h4 className="raven-journey__block-title">{copy.dailyFlow}</h4>
+              {journey.festivalExperience.setTimesStatus === 'unavailable' ||
+              !journey.festivalExperience.dailyFlow.length ? (
+                <p className="raven-journey__empty">{copy.setTimesUnavailable}</p>
+              ) : (
+                <div className="raven-journey__chapters">
+                  {journey.festivalExperience.dailyFlow.map((day) => (
+                    <section key={day.label} className="raven-journey__chapter">
+                      <h5 className="raven-journey__chapter-label">{day.label}</h5>
+                      <ol className="raven-journey__chapter-nights">
+                        {day.sets.map((set) => (
+                          <li
+                            key={`${day.label}-${set.time}-${set.artist}`}
+                            className={set.highlight ? 'is-highlight' : undefined}
+                          >
+                            <p className="raven-journey__chapter-artist">{set.artist}</p>
+                            <p className="raven-journey__chapter-scene">
+                              {[set.stage, set.time].filter(Boolean).join(' · ')}
+                            </p>
+                          </li>
+                        ))}
+                      </ol>
+                    </section>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {journey.festivalExperience.nonNegotiables.length ? (
+            <div className="raven-journey__block">
+              <h4 className="raven-journey__block-title">{copy.nonNegotiables}</h4>
+              <ul className="raven-journey__artists">
+                {journey.festivalExperience.nonNegotiables.map((artist) => (
+                  <li key={artist}>{artist}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {musicInsight ? <p className="raven-journey__insight-line">{musicInsight}</p> : null}
+
+          {hasMusicDetail ? (
+            <details className="raven-journey__disclosure">
+              <summary>{copy.moreMusicDetail}</summary>
+              {journey.festivalExperience.ravenPicks.length ? (
+                <div className="raven-journey__block">
+                  <h4 className="raven-journey__block-title">{copy.ravenPicks}</h4>
+                  <ul className="raven-journey__list">
+                    {journey.festivalExperience.ravenPicks.map((pick, index) => (
+                      <li key={`pick-${index}`}>{pick}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {journey.festivalExperience.conflicts.length ? (
+                <div className="raven-journey__block">
+                  <h4 className="raven-journey__block-title">{copy.potentialConflicts}</h4>
+                  <ul className="raven-journey__list">
+                    {journey.festivalExperience.conflicts.map((conflict, index) => (
+                      <li key={`conflict-${index}`}>{conflict}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </details>
+          ) : null}
         </section>
       ) : null}
 
@@ -312,89 +395,6 @@ export function RavenJourneyResult({
                 </details>
               ) : null}
             </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {showMusic ? (
-        <section className="raven-journey__section raven-journey__section--music" aria-labelledby="raven-festival-heading">
-          <header className="raven-journey__section-head">
-            <p className="raven-journey__section-kicker">{copy.festivalKicker}</p>
-            <h3 id="raven-festival-heading" className="raven-journey__section-title">
-              {copy.festivalExperience}
-            </h3>
-          </header>
-
-          {(journey.festivalExperience.dailyFlow.length > 0 ||
-            journey.festivalExperience.setTimesStatus === 'unavailable') && (
-            <div className="raven-journey__block raven-journey__block--peak">
-              <h4 className="raven-journey__block-title">{copy.dailyFlow}</h4>
-              {journey.festivalExperience.setTimesStatus === 'unavailable' ||
-              !journey.festivalExperience.dailyFlow.length ? (
-                <p className="raven-journey__empty">{copy.setTimesUnavailable}</p>
-              ) : (
-                <div className="raven-journey__chapters">
-                  {journey.festivalExperience.dailyFlow.map((day) => (
-                    <section key={day.label} className="raven-journey__chapter">
-                      <h5 className="raven-journey__chapter-label">{day.label}</h5>
-                      <ol className="raven-journey__chapter-sets">
-                        {day.sets.map((set) => (
-                          <li
-                            key={`${day.label}-${set.time}-${set.artist}`}
-                            className={set.highlight ? 'is-highlight' : undefined}
-                          >
-                            <span className="raven-journey__chapter-time">{set.time}</span>
-                            <div>
-                              <p className="raven-journey__chapter-artist">{set.artist}</p>
-                              <p className="raven-journey__muted">{set.stage}</p>
-                            </div>
-                          </li>
-                        ))}
-                      </ol>
-                    </section>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {journey.festivalExperience.nonNegotiables.length ? (
-            <div className="raven-journey__block">
-              <h4 className="raven-journey__block-title">{copy.nonNegotiables}</h4>
-              <ul className="raven-journey__artists">
-                {journey.festivalExperience.nonNegotiables.map((artist) => (
-                  <li key={artist}>{artist}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          {musicInsight ? <p className="raven-journey__insight-line">{musicInsight}</p> : null}
-
-          {hasMusicDetail ? (
-            <details className="raven-journey__disclosure">
-              <summary>{copy.moreMusicDetail}</summary>
-              {journey.festivalExperience.ravenPicks.length ? (
-                <div className="raven-journey__block">
-                  <h4 className="raven-journey__block-title">{copy.ravenPicks}</h4>
-                  <ul className="raven-journey__list">
-                    {journey.festivalExperience.ravenPicks.map((pick, index) => (
-                      <li key={`pick-${index}`}>{pick}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-              {journey.festivalExperience.conflicts.length ? (
-                <div className="raven-journey__block">
-                  <h4 className="raven-journey__block-title">{copy.potentialConflicts}</h4>
-                  <ul className="raven-journey__list">
-                    {journey.festivalExperience.conflicts.map((conflict, index) => (
-                      <li key={`conflict-${index}`}>{conflict}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </details>
           ) : null}
         </section>
       ) : null}
@@ -465,12 +465,12 @@ export function RavenJourneyResult({
             {copy.save}
             <ArrowRight size={15} strokeWidth={2.25} aria-hidden />
           </button>
-          <button type="button" className="button secondary" onClick={handleShare} disabled={!shareUrl}>
-            <Link2 size={15} strokeWidth={2.25} aria-hidden />
-            {shareJourneyLabel}
-          </button>
         </div>
         <div className="raven-journey__finale-secondary">
+          <button type="button" className="raven-journey__text-action" onClick={handleShare} disabled={!shareUrl}>
+            <Link2 size={14} strokeWidth={2.25} aria-hidden />
+            {shareJourneyLabel}
+          </button>
           <button type="button" className="raven-journey__text-action" onClick={onEditPreferences}>
             {copy.editPreferences}
           </button>
