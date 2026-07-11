@@ -92,7 +92,8 @@ describe('resolveResultPlan', () => {
 
   it('keeps remote content for en orchestration results and caveats chinese copy', () => {
     const resolved = resolveResultPlan(makeRemotePlan(), localPlan, 'en');
-    expect(resolved.plan.travel.flight).toMatch(/新加坡/);
+    // Getting there must not keep Chinese transport prose on EN locale.
+    expect(resolved.plan.travel.flight).toBe('');
     expect(resolved.plan.vibe).not.toBe(localPlan.vibe);
     expect(resolved.showLanguageCaveat).toBe(true);
   });

@@ -149,7 +149,32 @@ function localizeFlightLabel(value: string | undefined, locale: Locale): string 
     .replace(/(\d+)\s*次经停/g, '$1 stop(s)')
     .replace(/(\d+)\s*次中转/g, '$1 stop(s)')
     .replace(/经停/g, 'Stopover')
-    .replace(/中转/g, 'Connection');
+    .replace(/中转/g, 'Connection')
+    .replace(/去程/g, 'Outbound')
+    .replace(/返程/g, 'Return')
+    .replace(/约\s*/g, 'about ')
+    .replace(/\/人起/g, '/ person')
+    .replace(/\/人/g, '/ person');
+}
+
+/** Prefer English-safe prose for EN locale; drop Chinese-dominated lines. */
+export function englishSafeLines(lines: string[] | undefined, locale: Locale): string[] {
+  if (!lines?.length) return [];
+  if (locale !== 'en') return lines.filter(Boolean);
+  return lines
+    .map((line) => localizeFlightLabel(line, locale)?.trim() || '')
+    .filter((line) => line && !looksLikeChineseCopy(line));
+}
+
+function englishSafeText(
+  value: string | undefined,
+  locale: Locale,
+  fallback = '',
+): string {
+  if (!value?.trim()) return fallback;
+  if (locale !== 'en') return value;
+  const localized = localizeFlightLabel(value, locale)?.trim() || value.trim();
+  return looksLikeChineseCopy(localized) ? fallback : localized;
 }
 
 function localizeHotelCopy(value: string | undefined, locale: Locale): string | undefined {
@@ -341,36 +366,62 @@ export function buildRavenJourneyView(input: {
   const flightOffers = remote?.transport.flightOffers ?? [];
   const flightBadges = assignFlightBadges(flightOffers, locale);
   const recommendedOffer = flightOffers[0];
+  const transportLinesSafe = englishSafeLines(remote?.transport.lines, locale);
+  const localFlightSafe =
+    englishSafeText(local.travel.flight, locale) ||
+    (en
+      ? destination
+        ? `Flights toward ${destination.split(',')[0]!.trim()}`
+        : `Flights for ${festivalName}`
+      : '');
   const flightOptions: RavenJourneyFlightOption[] =
     flightOffers.length > 0
       ? flightOffers.slice(0, 3).map((offer, index) => ({
           badge: flightBadges[index] || (en ? 'Alternative' : '备选'),
-          route: offer.outbound.route,
-          detail: flightOfferDetail(offer, locale),
+          route: englishSafeText(
+            offer.outbound.route,
+            locale,
+            `${offer.outbound.depAirport ?? ''}→${offer.outbound.arrAirport ?? ''}`.replace(/^→|→$/g, '') ||
+              (en ? 'Flight route' : '航线'),
+          ),
+          detail: englishSafeText(flightOfferDetail(offer, locale), locale),
           price: formatMoney(offer.pricePerAdult, offer.currency, locale) + (en ? ' / person' : '/人'),
           cabin: localizeFlightLabel(offer.cabinLabel, locale),
           source: 'live' as const,
           tradeoff: flightTradeoff(offer, recommendedOffer, locale),
         }))
-      : remote?.transport.lines?.length
+      : transportLinesSafe.length
         ? [
             {
               badge: en ? 'Recommended' : '推荐',
-              route: remote.transport.lines[0]!,
-              detail: remote.transport.lines.slice(1, 3).join(' · '),
+              route: transportLinesSafe[0]!,
+              detail: transportLinesSafe.slice(1, 3).join(' · '),
               source: 'estimated' as const,
             },
           ]
-        : local.travel.flight
+        : localFlightSafe
           ? [
               {
                 badge: en ? 'Recommended' : '推荐',
-                route: local.travel.flight,
+                route: localFlightSafe,
                 detail: '',
                 source: 'estimated' as const,
               },
             ]
           : [];
+
+  const primaryFlightOption = flightOptions[0];
+  const flightRecommendation =
+    primaryFlightOption?.route ||
+    transportLinesSafe[0] ||
+    localFlightSafe ||
+    (en ? 'Route still assembling' : '航线组装中');
+  const flightReasons =
+    transportLinesSafe.length > 1
+      ? transportLinesSafe.slice(1, 3)
+      : primaryFlightOption?.detail
+        ? []
+        : [];
 
   const budgetItemsRaw = remote?.budget?.items ?? [];
   const budgetItems: RavenJourneyBudgetItem[] =
@@ -490,7 +541,6 @@ export function buildRavenJourneyView(input: {
     .slice(0, 4);
 
   const primaryStay = stayOptionsSource[0];
-  const primaryFlight = flightOptions[0];
   const ravenPicks = [
     ...local.experiences.slice(0, 2),
     ...(remote?.nightlife.spots ?? [])
@@ -516,9 +566,9 @@ export function buildRavenJourneyView(input: {
     (en ? 'Stay near the festival rhythm' : '贴近音乐节节奏的住宿');
 
   const glanceFlight = {
-    headline: primaryFlight?.route || (en ? 'Getting there is still assembling' : '抵达方式组装中'),
-    detail: primaryFlight?.price || primaryFlight?.detail || '',
-    reason: remote?.transport.lines[1],
+    headline: primaryFlightOption?.route || (en ? 'Getting there is still assembling' : '抵达方式组装中'),
+    detail: primaryFlightOption?.price || primaryFlightOption?.detail || '',
+    reason: flightReasons[0],
   };
   const glanceStay = {
     headline: primaryStay?.name || local.travel.stay || (en ? 'Stay still assembling' : '住宿组装中'),
@@ -621,12 +671,8 @@ export function buildRavenJourneyView(input: {
       options: stayOptionsSource,
     },
     flightStrategy: {
-      recommendation:
-        primaryFlight?.route ||
-        remote?.transport.lines[0] ||
-        local.travel.flight ||
-        (en ? 'Route still assembling' : '航线组装中'),
-      reasons: remote?.transport.lines.slice(1, 3) ?? [],
+      recommendation: flightRecommendation,
+      reasons: flightReasons,
       options: flightOptions,
     },
     timeline,

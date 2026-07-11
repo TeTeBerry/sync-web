@@ -300,6 +300,32 @@ describe('buildRavenJourneyView', () => {
     expect(view.flightStrategy.options[1]?.tradeoff).toMatch(/stops|fare|route/i);
   });
 
+  it('keeps Getting there English when remote transport lines are Chinese', () => {
+    const view = buildRavenJourneyView({
+      remote: makeRemote({
+        transport: {
+          title: '出行',
+          lines: [
+            '从「伦敦」前往安特卫普为国际出行，建议提前 1–2 天飞抵',
+            '建议搭乘国际航班飞往布鲁塞尔；往返机票建议提前关注',
+            '抵目的地机场后的接驳见下方会场接驳',
+          ],
+          flightOffers: [],
+        },
+      }),
+      local: localPlan,
+      locale: 'en',
+      festivalName: 'Tomorrowland Belgium',
+      destination: 'Boom, Belgium',
+      festivalDates: 'Jul 17–19',
+      favoriteArtists: [],
+    });
+    expect(view.flightStrategy.recommendation).not.toMatch(/[\u4e00-\u9fff]/);
+    expect(view.flightStrategy.reasons.join(' ')).not.toMatch(/[\u4e00-\u9fff]/);
+    expect(view.flightStrategy.options[0]?.route).not.toMatch(/[\u4e00-\u9fff]/);
+    expect(view.flightStrategy.options[0]?.route).toMatch(/Balanced flights|Boom|Tomorrowland/i);
+  });
+
   it('uses travelersFallback when remote headcount is missing', () => {
     const view = buildRavenJourneyView({
       remote: { ...makeRemote(), headcount: undefined as unknown as number },

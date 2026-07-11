@@ -99,7 +99,10 @@ export function mapRemotePlan(
     artistTimeline: remoteTimeline.length ? { days: remoteTimeline } : fallbackTimeline,
     travel: {
       stay: listJoin(locale, hotels) || plan.accommodation.title,
-      flight: listJoin(locale, plan.transport.lines) || plan.transport.title,
+      flight:
+        locale === 'en' && looksLikeChineseCopy(listJoin(locale, plan.transport.lines) || plan.transport.title)
+          ? ''
+          : listJoin(locale, plan.transport.lines) || plan.transport.title,
       transport:
         listJoin(locale, venueTransport) ||
         listJoin(locale, plan.parking?.lines ?? []) ||
