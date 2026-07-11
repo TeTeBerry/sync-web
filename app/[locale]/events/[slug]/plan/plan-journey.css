@@ -1105,6 +1105,172 @@
   padding: clamp(64px, 10vw, 120px) clamp(20px, 4vw, 48px);
 }
 
+/* First-time journey assembly: the plan is already mounted beneath this overlay. */
+.journey-reveal {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  isolation: isolate;
+  background: #07070b;
+  color: var(--ink-strong, #f4f1ea);
+}
+
+.journey-reveal__image,
+.journey-reveal__scrim,
+.journey-reveal__glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.journey-reveal__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(14px) saturate(0.82);
+  opacity: 0.42;
+  transform: scale(1.06);
+}
+
+.journey-reveal__scrim {
+  background:
+    linear-gradient(180deg, rgba(5, 5, 9, 0.7), rgba(5, 5, 9, 0.94)),
+    radial-gradient(ellipse 70% 54% at 50% 15%, rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.18), transparent 70%);
+}
+
+.journey-reveal__glow {
+  inset: -24% 10% auto;
+  height: 55%;
+  background: radial-gradient(ellipse at center, rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.22), transparent 67%);
+  filter: blur(40px);
+}
+
+.journey-reveal__content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  width: min(100% - 40px, 560px);
+  text-align: center;
+}
+
+.journey-reveal__brand {
+  color: rgba(244, 241, 234, 0.9);
+}
+
+.journey-reveal__status {
+  min-height: 24px;
+  margin-top: 44px;
+  color: rgba(244, 241, 234, 0.62);
+  font-size: 14px;
+  letter-spacing: -0.01em;
+}
+
+.journey-reveal__status p {
+  margin: 0;
+}
+
+.journey-reveal__route {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 390px);
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.journey-reveal__route li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 14px;
+  min-height: 27px;
+}
+
+.journey-reveal__route-line {
+  position: absolute;
+  top: 23px;
+  bottom: -16px;
+  left: 4px;
+  width: 1px;
+  background: linear-gradient(rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.85), rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.08));
+}
+
+.journey-reveal__route-label {
+  color: rgba(244, 241, 234, 0.4);
+  font-size: 10px;
+  font-weight: var(--fw-semibold, 600);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.journey-reveal__route-value {
+  overflow: hidden;
+  color: rgba(244, 241, 234, 0.9);
+  font-size: 14px;
+  font-weight: var(--fw-medium, 500);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.journey-reveal__title {
+  margin: 38px 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(36px, 6vw, 62px);
+  font-weight: var(--fw-extrabold, 800);
+  letter-spacing: var(--festival-title-tracking, -0.04em);
+  line-height: 0.96;
+  text-shadow: 0 0 28px rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.28);
+}
+
+.journey-reveal__skip {
+  position: absolute;
+  z-index: 2;
+  right: clamp(18px, 4vw, 36px);
+  bottom: clamp(18px, 4vw, 30px);
+  border: 0;
+  background: transparent;
+  color: rgba(244, 241, 234, 0.55);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.journey-reveal__skip:hover,
+.journey-reveal__skip:focus-visible {
+  color: var(--ink-strong, #f4f1ea);
+}
+
+.raven-journey.is-revealing [data-journey-reveal] {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.raven-journey.has-revealed [data-journey-reveal] {
+  animation: journey-result-arrive 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.raven-journey.has-revealed .raven-journey__body > [data-journey-reveal]:nth-child(1) { animation-delay: 80ms; }
+.raven-journey.has-revealed .raven-journey__body > [data-journey-reveal]:nth-child(2) { animation-delay: 180ms; }
+.raven-journey.has-revealed .raven-journey__body > [data-journey-reveal]:nth-child(3) { animation-delay: 280ms; }
+.raven-journey.has-revealed .raven-journey__body > [data-journey-reveal]:nth-child(4) { animation-delay: 380ms; }
+.raven-journey.has-revealed .raven-journey__body > [data-journey-reveal]:nth-child(5) { animation-delay: 480ms; }
+
+@keyframes journey-result-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ── Your Raven Journey result ── */
 .raven-journey {
   display: grid;
@@ -1971,4 +2137,3 @@ body:has(.plan-page-shell[data-journey-phase='error']) .site-header {
     opacity: 0.08;
   }
 }
-

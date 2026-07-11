@@ -46,9 +46,11 @@ import {
   type PlannerOriginListItem,
 } from '../../lib/planner-origin';
 import { buildRavenJourneyView } from '../../lib/raven-journey';
+import { resolveGenerationStep } from '../../lib/planner-generation-progress';
 import { TrackedLink } from '../TrackedLink';
 import { EventImage } from '../EventImage';
 import { RavenJourneyResult } from './RavenJourneyResult';
+import { JourneyReveal } from './JourneyReveal';
 import { eventPlanPath } from '../../lib/event-slug';
 import { getSiteUrl } from '../../lib/site';
 
@@ -229,6 +231,8 @@ export function AiPlannerFlow({
   const [remotePlan, setRemotePlan] = useState<RavenTravelGuidePlan | null>(initialRemotePlan);
   const [activeGuideId, setActiveGuideId] = useState<string | null>(initialGuideId);
   const [showLanguageCaveat, setShowLanguageCaveat] = useState(false);
+  const [showJourneyReveal, setShowJourneyReveal] = useState(false);
+  const [hasJourneyRevealed, setHasJourneyRevealed] = useState(false);
   const [generationRequest, setGenerationRequest] = useState<RavenPlanGenerationPayload | null>(null);
   const hasUserGeneratedRef = useRef(false);
   const sharedPlanSeededRef = useRef(false);
@@ -250,6 +254,10 @@ export function AiPlannerFlow({
   );
   const fallbackPlanRef = useRef(fallbackPlan);
   fallbackPlanRef.current = fallbackPlan;
+  const dismissJourneyReveal = useCallback((shouldAnimateResult = true) => {
+    setShowJourneyReveal(false);
+    setHasJourneyRevealed(shouldAnimateResult);
+  }, []);
 
   const hasTimedSchedule = useMemo(
     () =>
@@ -388,6 +396,8 @@ export function AiPlannerFlow({
     hasUserGeneratedRef.current = true;
     writePlannerPreferences(activity.legacyId, preferences);
     setShowLanguageCaveat(false);
+    setShowJourneyReveal(false);
+    setHasJourneyRevealed(false);
     setPhase('generating');
     setGenerationStep(0);
     const guideId = createGuideId();
@@ -465,14 +475,7 @@ export function AiPlannerFlow({
             throw error;
           }
           if (cancelled) return;
-          if (job.progress) {
-            setGenerationStep(
-              Math.min(
-                copy.generation.steps.length,
-                Math.ceil((job.progress.percent / 100) * copy.generation.steps.length),
-              ),
-            );
-          }
+          setGenerationStep(resolveGenerationStep(job, copy.generation.steps.length));
           if (job.status === 'completed' && job.plan) {
             const resolved = resolveResultPlan(job.plan, fallbackPlanRef.current(), locale, {
               preferRemote: true,
@@ -483,6 +486,8 @@ export function AiPlannerFlow({
             }
             setPlan(resolved.plan);
             setShowLanguageCaveat(resolved.showLanguageCaveat);
+            setShowJourneyReveal(true);
+            setHasJourneyRevealed(false);
             setPhase('result');
             return;
           }
@@ -528,6 +533,8 @@ export function AiPlannerFlow({
       return;
     }
     setShowLanguageCaveat(false);
+    setShowJourneyReveal(false);
+    setHasJourneyRevealed(false);
     setGenerationStep(0);
     setPhase('generating');
   };
@@ -960,6 +967,19 @@ export function AiPlannerFlow({
           }}
           onEditPreferences={goBack}
           onRebuild={startGeneration}
+          isRevealing={showJourneyReveal}
+          hasRevealed={hasJourneyRevealed}
+        />
+      ) : null}
+      {phase === 'result' && plan ? (
+        <JourneyReveal
+          active={showJourneyReveal}
+          locale={locale}
+          origin={preferences.origin}
+          destination={metaLocation || activity.city || activity.location || ''}
+          festivalName={eventTitle}
+          image={image}
+          onComplete={dismissJourneyReveal}
         />
       ) : null}
     </div>

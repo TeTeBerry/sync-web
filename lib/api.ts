@@ -395,8 +395,10 @@ export type RavenTravelGuidePlan = {
 
 export type RavenPlanGenerationJob = {
   jobId: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  progress?: { step: string; percent: number };
+  // Deployed generators may expose the pipeline stage either here or in progress.step.
+  status: string;
+  // Support both the current structured contract and the legacy numeric progress response.
+  progress?: number | { step?: string; percent?: number };
   plan?: RavenTravelGuidePlan;
   errorMessage?: string;
 };

@@ -25,6 +25,8 @@ type RavenJourneyResultProps = {
   onSave: () => void;
   onEditPreferences: () => void;
   onRebuild: () => void;
+  isRevealing?: boolean;
+  hasRevealed?: boolean;
 };
 
 function TravelStay({
@@ -103,6 +105,8 @@ export function RavenJourneyResult({
   onSave,
   onEditPreferences,
   onRebuild,
+  isRevealing = false,
+  hasRevealed = false,
 }: RavenJourneyResultProps) {
   const t = getMessages(locale);
   const copy = t.aiPlanner.journeyResult;
@@ -182,8 +186,13 @@ export function RavenJourneyResult({
 
   // Festival-first chapter: Music before Stay (aligned with design bible).
   return (
-    <section className="raven-journey" aria-labelledby="raven-journey-heading">
-      <header className="raven-journey__reveal">
+    <section
+      className={`raven-journey${isRevealing ? ' is-revealing' : ''}${hasRevealed ? ' has-revealed' : ''}`}
+      aria-labelledby="raven-journey-heading"
+      aria-hidden={isRevealing || undefined}
+      inert={isRevealing || undefined}
+    >
+      <header className="raven-journey__reveal" data-journey-reveal>
         {image ? (
           <EventImage
             src={image}
@@ -207,7 +216,7 @@ export function RavenJourneyResult({
 
       <div className="raven-journey__body">
         {(breathLines.length > 0 || showMetaQuietly) && (
-          <section className="raven-journey__context" aria-label={copy.contextKicker}>
+          <section className="raven-journey__context" aria-label={copy.contextKicker} data-journey-reveal>
             {breathLines.length ? (
               <ul className="raven-journey__hero-breath">
                 {breathLines.map((line, index) => (
@@ -221,7 +230,7 @@ export function RavenJourneyResult({
         )}
 
         {showLanguageCaveat ? (
-          <p className="raven-journey__whisper" role="note">
+          <p className="raven-journey__whisper" role="note" data-journey-reveal>
             {t.aiPlanner.result.languageCaveat}
           </p>
         ) : null}
@@ -230,6 +239,7 @@ export function RavenJourneyResult({
           <section
             className="raven-journey__section raven-journey__section--timeline"
             aria-labelledby="raven-timeline-heading"
+            data-journey-reveal
           >
             <header className="raven-journey__section-head">
               <p className="raven-journey__section-kicker">{copy.timelineKicker}</p>
@@ -278,6 +288,7 @@ export function RavenJourneyResult({
           <section
             className="raven-journey__section raven-journey__section--music"
             aria-labelledby="raven-festival-heading"
+            data-journey-reveal
           >
             <header className="raven-journey__section-head raven-journey__section-head--bare">
               <h3 id="raven-festival-heading" className="raven-journey__section-title">
@@ -380,6 +391,7 @@ export function RavenJourneyResult({
           <section
             className="raven-journey__section raven-journey__section--travel"
             aria-labelledby="raven-travel-heading"
+            data-journey-reveal
           >
             <p id="raven-travel-heading" className="raven-journey__editorial-open">
               {copy.travelTitle}
@@ -454,6 +466,7 @@ export function RavenJourneyResult({
           <section
             className="raven-journey__section raven-journey__section--budget"
             aria-labelledby="raven-budget-heading"
+            data-journey-reveal
           >
             {journey.budget.total ? (
               <p className="raven-journey__budget-total" id="raven-budget-heading">
@@ -494,6 +507,7 @@ export function RavenJourneyResult({
           <section
             className="raven-journey__section raven-journey__section--essentials"
             aria-label={copy.essentialsTitle}
+            data-journey-reveal
           >
             <details className="raven-journey__disclosure raven-journey__disclosure--quiet">
               <summary>{copy.essentialsToggle}</summary>
@@ -513,7 +527,7 @@ export function RavenJourneyResult({
           </section>
         ) : null}
 
-        <footer className="raven-journey__finale">
+        <footer className="raven-journey__finale" data-journey-reveal>
           <p className="raven-journey__finale-lead">{copy.finaleLead}</p>
           <p className="raven-journey__finale-festival">{journey.festivalName}</p>
           <div className="raven-journey__finale-actions">

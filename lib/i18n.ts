@@ -964,10 +964,10 @@ export const messages = {
         lead: '基于你的艺人、偏好和这场电音节的数据。',
         festivalContext: '{festival} 的旅程',
         steps: [
-          '分析你的艺人品味',
-          '解读电音节日程',
-          '构建你的追 Set 路线',
-          '规划你的出行旅程',
+          '准备你的旅程数据',
+          '挑选合适入住地',
+          '寻找合适航班路线',
+          '组装你的 festival 旅程',
         ],
         error: {
           eyebrow: '旅程暂时停靠',
@@ -2103,10 +2103,10 @@ export const messages = {
         lead: 'Based on your artists, preferences, and this festival\'s data.',
         festivalContext: 'Your {festival} journey',
         steps: [
-          'Analyzing your artist taste',
-          'Understanding festival schedule',
-          'Building your set route',
-          'Planning your journey',
+          'Preparing your journey data',
+          'Selecting the best stay',
+          'Finding the best flight route',
+          'Assembling your festival journey',
         ],
         error: {
           eyebrow: 'Journey paused',
