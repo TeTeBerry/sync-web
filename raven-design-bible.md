@@ -516,9 +516,9 @@ Journey Hero
 ↓
 Journey Timeline
 ↓
-Stay Recommendation
-↓
 Music Plan
+↓
+Stay Recommendation
 ↓
 Budget Confidence
 ↓
@@ -526,6 +526,9 @@ Travel Checklist
 ↓
 Final CTA
 ```
+
+Music comes before stay so the festival remains the emotional center of the journey.
+Stay and logistics follow once the nights feel real.
 
 Avoid:
 

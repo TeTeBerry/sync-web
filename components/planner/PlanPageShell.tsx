@@ -49,6 +49,9 @@ export function PlanPageShell({
   // Hide SEO/demo landing while generating or showing a real journey so demo
   // content never sits beside user data. FAQ remains in page JSON-LD for SEO.
   const hideDemo = phase === 'result' || phase === 'generating';
+  // Result / generating / error leave the composer shell — full-bleed journey stage.
+  // Keep a stable DOM depth so AiPlannerFlow does not remount across phase changes.
+  const immersive = phase === 'result' || phase === 'generating' || phase === 'error';
 
   return (
     <div className="plan-page-shell" data-journey-phase={phase}>
@@ -62,11 +65,11 @@ export function PlanPageShell({
 
       <section
         id="planner-form"
-        className="section section--plan"
+        className={`section section--plan${immersive ? ' section--plan-immersive' : ''}`}
         tabIndex={-1}
       >
-        <div className="container container--plan">
-          <div className="plan-page__composer">
+        <div className={immersive ? 'plan-page__stage' : 'container container--plan'}>
+          <div className={immersive ? 'plan-page__stage-inner' : 'plan-page__composer'}>
             <AiPlannerFlow
               locale={locale}
               activity={activity}

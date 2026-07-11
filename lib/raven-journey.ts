@@ -90,6 +90,8 @@ export type RavenJourneyView = {
     total: string;
     items: RavenJourneyBudgetItem[];
     insight?: string;
+    /** Calm confidence cue for Budget Confidence primitive. */
+    confidence: PriceSource;
   };
   essentials: RavenJourneyEssentialsGroup[];
   insights: string[];
@@ -541,7 +543,11 @@ export function buildRavenJourneyView(input: {
   const glanceBudget = {
     headline: budgetTotal,
     detail: budgetItems[0] ? `${budgetItems[0].label} ${budgetItems[0].amount}` : '',
-    source: (budgetItems.some((item) => item.source === 'live') ? 'live' : 'estimated') as PriceSource,
+    source: (budgetItems.some((item) => item.source === 'live')
+      ? 'live'
+      : budgetItems.some((item) => item.source === 'unavailable')
+        ? 'unavailable'
+        : 'estimated') as PriceSource,
   };
 
   const breath = [
@@ -570,7 +576,13 @@ export function buildRavenJourneyView(input: {
         ? `Keep the trip around ${budgetTotal}`
         : `这趟旅程大约 ${budgetTotal}`
       : null,
-  ].filter((line): line is string => Boolean(line?.trim())).slice(0, 4);
+  ]
+    .filter((line): line is string => Boolean(line?.trim()))
+    .filter(
+      (line) =>
+        !/still assembling|组装中|Stay still|Route still|unavailable|暂不可用/i.test(line),
+    )
+    .slice(0, 3);
 
   return {
     festivalName: remote?.activityName || festivalName,
@@ -622,6 +634,7 @@ export function buildRavenJourneyView(input: {
       total: budgetTotal,
       items: budgetItems,
       insight: tipItems.find((tip) => /budget|share|room|预算|合住|人均/i.test(tip)),
+      confidence: glanceBudget.source,
     },
     essentials,
     insights,
