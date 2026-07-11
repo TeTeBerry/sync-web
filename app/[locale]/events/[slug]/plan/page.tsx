@@ -1,16 +1,16 @@
-import type { Metadata } from 'next';
-import { notFound, permanentRedirect } from 'next/navigation';
-import { PlannerLandingContent } from '../../../../../components/planner/PlannerLandingContent';
-import { PlanPageShell } from '../../../../../components/planner/PlanPageShell';
-import { EventLoadError } from '../../../../../components/states/EventLoadError';
-import { EventUnavailableState } from '../../../../../components/states/EventUnavailableState';
+import type { Metadata } from "next";
+import { notFound, permanentRedirect } from "next/navigation";
+import { PlannerLandingContent } from "../../../../../components/planner/PlannerLandingContent";
+import { PlanPageShell } from "../../../../../components/planner/PlanPageShell";
+import { EventLoadError } from "../../../../../components/states/EventLoadError";
+import { EventUnavailableState } from "../../../../../components/states/EventUnavailableState";
 import {
   fetchActivitySchedule,
   getActivity,
   getActivityImage,
   getActivityTitle,
   getSavedRavenPlan,
-} from '../../../../../lib/api';
+} from "../../../../../lib/api";
 import {
   eventLineupPath,
   eventPath,
@@ -18,12 +18,16 @@ import {
   eventSlugMatches,
   eventTravelPath,
   parseEventLegacyId,
-} from '../../../../../lib/event-slug';
-import { getFestivalAtmosphere } from '../../../../../lib/festival-atmosphere';
-import { buildPlannerLandingData } from '../../../../../lib/planner-landing';
-import { resolveJourneyEntryFrom } from '../../../../../lib/planner-journey';
-import { buildPlannerJsonLd, buildPlannerMetadata } from '../../../../../lib/seo';
-import { getSiteUrl } from '../../../../../lib/site';
+} from "../../../../../lib/event-slug";
+import { getFestivalAtmosphere } from "../../../../../lib/festival-atmosphere";
+import { buildPlannerLandingData } from "../../../../../lib/planner-landing";
+import { parseHomepageEstimateContext } from "../../../../../lib/home-budget-estimate";
+import { resolveJourneyEntryFrom } from "../../../../../lib/planner-journey";
+import {
+  buildPlannerJsonLd,
+  buildPlannerMetadata,
+} from "../../../../../lib/seo";
+import { getSiteUrl } from "../../../../../lib/site";
 import {
   activityMetaForLocale,
   DEFAULT_LOCALE,
@@ -32,16 +36,27 @@ import {
   localizeActivity,
   localizedPath,
   type Locale,
-} from '../../../../../lib/i18n';
+} from "../../../../../lib/i18n";
 
 type PlannerPageProps = {
   params: Promise<{ locale: string; slug: string }>;
-  searchParams: Promise<{ tab?: string; from?: string; guideId?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    from?: string;
+    guideId?: string;
+    origin?: string;
+    estimate?: string;
+    nights?: string;
+    currency?: string;
+    breakdown?: string;
+  }>;
 };
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: PlannerPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PlannerPageProps): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
   const legacyId = parseEventLegacyId(slug);
@@ -54,7 +69,10 @@ export async function generateMetadata({ params }: PlannerPageProps): Promise<Me
   return buildPlannerMetadata(activity, locale);
 }
 
-export default async function AiPlannerPage({ params, searchParams }: PlannerPageProps) {
+export default async function AiPlannerPage({
+  params,
+  searchParams,
+}: PlannerPageProps) {
   const { locale: rawLocale, slug } = await params;
   const resolvedSearch = await searchParams;
   if (!isLocale(rawLocale)) notFound();
@@ -66,11 +84,11 @@ export default async function AiPlannerPage({ params, searchParams }: PlannerPag
 
   const activityResult = await getActivity(legacyId);
 
-  if (activityResult.status === 'error') {
+  if (activityResult.status === "error") {
     return <EventLoadError locale={locale} />;
   }
 
-  if (activityResult.status === 'not_found' || !activityResult.activity) {
+  if (activityResult.status === "not_found" || !activityResult.activity) {
     return <EventUnavailableState locale={locale} />;
   }
 
@@ -89,27 +107,46 @@ export default async function AiPlannerPage({ params, searchParams }: PlannerPag
   const eventTitle = getActivityTitle(activity);
   const activityImage = getActivityImage(activity);
   const metaLine = activityMetaForLocale(activity, locale);
-  const [metaDate, ...metaLocationParts] = metaLine.split(' · ');
-  const metaLocation = metaLocationParts.join(' · ');
+  const [metaDate, ...metaLocationParts] = metaLine.split(" · ");
+  const metaLocation = metaLocationParts.join(" · ");
   const detailPath = eventPath(locale, activity);
   const lineupHref = eventLineupPath(locale, activity);
   const travelHref = eventTravelPath(locale, activity);
-  const waitlistHref = `${localizedPath(locale, '/waitlist')}?event=${encodeURIComponent(eventTitle)}`;
+  const waitlistHref = `${localizedPath(locale, "/waitlist")}?event=${encodeURIComponent(eventTitle)}`;
   const landing = buildPlannerLandingData(activity, djs, performances, locale);
-  const atmosphere = getFestivalAtmosphere(activity, landing.lineupIntel.genres[0]);
+  const atmosphere = getFestivalAtmosphere(
+    activity,
+    landing.lineupIntel.genres[0],
+  );
   const siteUrl = getSiteUrl();
   const entryFrom = resolveJourneyEntryFrom(resolvedSearch);
-  const savedPlan = resolvedSearch.guideId ? await getSavedRavenPlan(resolvedSearch.guideId).catch(() => null) : null;
-  const initialRemotePlan = savedPlan?.activityLegacyId === activity.legacyId ? savedPlan.plan : null;
+  const savedPlan = resolvedSearch.guideId
+    ? await getSavedRavenPlan(resolvedSearch.guideId).catch(() => null)
+    : null;
+  const initialRemotePlan =
+    savedPlan?.activityLegacyId === activity.legacyId ? savedPlan.plan : null;
+  const initialEstimate = parseHomepageEstimateContext(resolvedSearch);
 
   const breadcrumbItems = [
     { name: t.breadcrumbs.home, url: `${siteUrl}${localizedPath(locale)}` },
-    { name: t.breadcrumbs.events, url: `${siteUrl}${localizedPath(locale, '/events')}` },
+    {
+      name: t.breadcrumbs.events,
+      url: `${siteUrl}${localizedPath(locale, "/events")}`,
+    },
     { name: eventTitle, url: `${siteUrl}${detailPath}` },
-    { name: t.aiPlanner.breadcrumb, url: `${siteUrl}${eventPlanPath(locale, activity)}` },
+    {
+      name: t.aiPlanner.breadcrumb,
+      url: `${siteUrl}${eventPlanPath(locale, activity)}`,
+    },
   ];
 
-  const jsonLd = buildPlannerJsonLd(activity, djs, locale, breadcrumbItems, landing.faq);
+  const jsonLd = buildPlannerJsonLd(
+    activity,
+    djs,
+    locale,
+    breadcrumbItems,
+    landing.faq,
+  );
 
   return (
     <main className="plan-page plan-page--journey" data-atmosphere={atmosphere}>
@@ -117,20 +154,21 @@ export default async function AiPlannerPage({ params, searchParams }: PlannerPag
         locale={locale}
         activity={activity}
         eventTitle={eventTitle}
-        metaDate={metaDate ?? ''}
+        metaDate={metaDate ?? ""}
         metaLocation={metaLocation}
         djs={djs}
         performances={performances}
-        eventPath={detailPath}
         image={activityImage}
         waitlistHref={waitlistHref}
         initialRemotePlan={initialRemotePlan}
         initialGuideId={resolvedSearch.guideId ?? null}
+        initialOrigin={resolvedSearch.origin?.trim() ?? ""}
+        initialEstimate={initialEstimate}
         landing={
           <PlannerLandingContent
             locale={locale}
             eventTitle={eventTitle}
-            metaDate={metaDate ?? ''}
+            metaDate={metaDate ?? ""}
             metaLocation={metaLocation}
             image={activityImage}
             landing={landing}
@@ -148,7 +186,7 @@ export default async function AiPlannerPage({ params, searchParams }: PlannerPag
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
         }}
       />
     </main>

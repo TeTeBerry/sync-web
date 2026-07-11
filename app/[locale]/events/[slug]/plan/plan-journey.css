@@ -1283,7 +1283,7 @@
 
 .raven-journey__body {
   display: grid;
-  gap: var(--festival-density, clamp(48px, 7vw, 88px));
+  gap: var(--festival-density, clamp(56px, 8vw, 104px));
   width: min(720px, calc(100% - var(--page-gutter, 20px) * 2));
   margin-inline: auto;
   padding: clamp(36px, 5vw, 64px) 0 clamp(72px, 10vw, 120px);
@@ -1657,6 +1657,14 @@ body:has(.plan-page-shell[data-journey-phase='error']) .site-header {
   padding-top: clamp(36px, 5vw, 56px);
 }
 
+/* Results lead with confidence, then reveal the fuller story on request. */
+.raven-journey__section--budget { order: 2; }
+.raven-journey__section--music { order: 3; }
+.raven-journey__section--travel { order: 4; }
+.raven-journey__section--timeline { order: 5; }
+.raven-journey__section--essentials { order: 6; }
+.raven-journey__finale { order: 7; }
+
 .raven-journey__section--music .raven-journey__section-title {
   font-size: clamp(34px, 5vw, 52px);
   max-width: 12ch;
@@ -1756,6 +1764,17 @@ body:has(.plan-page-shell[data-journey-phase='error']) .site-header {
 
 .raven-journey__story-title--sm {
   font-size: clamp(18px, 2.4vw, 24px);
+}
+
+.raven-journey__story-title--route {
+  max-width: 30ch;
+  font-size: clamp(20px, 2.8vw, 28px);
+}
+
+.raven-journey__story-note {
+  max-width: 56ch;
+  font-size: 14px;
+  color: rgba(244, 241, 234, 0.56);
 }
 
 .raven-journey__story-why {
@@ -1954,6 +1973,34 @@ body:has(.plan-page-shell[data-journey-phase='error']) .site-header {
   display: grid;
   gap: 28px;
 }
+
+.raven-journey__timeline-disclosure {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.raven-journey__timeline-disclosure summary {
+  display: grid;
+  gap: 8px;
+  padding: 18px 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.raven-journey__timeline-disclosure summary::-webkit-details-marker { display: none; }
+
+.raven-journey__timeline-disclosure summary::after {
+  content: '+';
+  position: absolute;
+  right: 0;
+  align-self: center;
+  color: rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.9);
+  font-size: 20px;
+}
+
+.raven-journey__timeline-disclosure summary { position: relative; padding-right: 32px; }
+.raven-journey__timeline-disclosure[open] summary::after { content: '–'; }
+.raven-journey__timeline-disclosure .raven-journey__timeline { padding-bottom: 18px; }
 
 .raven-journey__timeline-day {
   display: grid;

@@ -1,14 +1,16 @@
-import type { Activity, ActivityListPage } from './types';
-import { isActivityExpired } from './activity-date';
+import type { Activity, ActivityListPage } from "./types";
+import { isActivityExpired } from "./activity-date";
 
 const PRODUCTION_API_BASE =
-  'https://sync-backend-prd-269371-9-1442514260.sh.run.tcloudbase.com/api';
-const DEVELOPMENT_API_BASE = 'http://127.0.0.1:3000/api';
+  "https://sync-backend-prd-269371-9-1442514260.sh.run.tcloudbase.com/api";
+const DEVELOPMENT_API_BASE = "http://127.0.0.1:3000/api";
 
 function isLoopbackApiUrl(value: string): boolean {
   try {
     const { hostname } = new URL(value);
-    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+    return (
+      hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1"
+    );
   } catch {
     return false;
   }
@@ -17,15 +19,15 @@ function isLoopbackApiUrl(value: string): boolean {
 function resolveApiBase(): string {
   const configured = process.env.API_BASE_URL?.trim();
   if (configured) {
-    return configured.replace(/\/$/, '');
+    return configured.replace(/\/$/, "");
   }
 
   const publicConfigured = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
   if (publicConfigured && !isLoopbackApiUrl(publicConfigured)) {
-    return publicConfigured.replace(/\/$/, '');
+    return publicConfigured.replace(/\/$/, "");
   }
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== "production") {
     return DEVELOPMENT_API_BASE;
   }
 
@@ -47,8 +49,8 @@ type ApiEnvelope<T> = {
 function unwrap<T>(payload: T | ApiEnvelope<T>): T {
   if (
     payload &&
-    typeof payload === 'object' &&
-    'data' in payload &&
+    typeof payload === "object" &&
+    "data" in payload &&
     (payload as ApiEnvelope<T>).data !== undefined
   ) {
     return (payload as ApiEnvelope<T>).data as T;
@@ -57,7 +59,7 @@ function unwrap<T>(payload: T | ApiEnvelope<T>): T {
 }
 
 function normalizeBaseUrl(value: string): string {
-  return value.replace(/\/$/, '');
+  return value.replace(/\/$/, "");
 }
 
 const API_FETCH_TIMEOUT_MS = 8_000;
@@ -68,10 +70,12 @@ const RAVEN_POLL_TIMEOUT_MS = 20_000;
 function mergeAbortSignals(
   signals: Array<AbortSignal | undefined>,
 ): AbortSignal | undefined {
-  const active = signals.filter((signal): signal is AbortSignal => Boolean(signal));
+  const active = signals.filter((signal): signal is AbortSignal =>
+    Boolean(signal),
+  );
   if (!active.length) return undefined;
   if (active.length === 1) return active[0];
-  if (typeof AbortSignal.any === 'function') {
+  if (typeof AbortSignal.any === "function") {
     return AbortSignal.any(active);
   }
   return active[0];
@@ -96,22 +100,29 @@ async function ravenApiRequest<T>(
   const { timeoutMs, signal, ...rest } = options ?? {};
   // If the caller already provided a signal (possibly with its own timeout),
   // only add another timeout when timeoutMs is set explicitly.
-  const resolvedTimeoutMs = timeoutMs ?? (signal ? undefined : API_FETCH_TIMEOUT_MS);
+  const resolvedTimeoutMs =
+    timeoutMs ?? (signal ? undefined : API_FETCH_TIMEOUT_MS);
   const timeoutSignal =
-    resolvedTimeoutMs != null && typeof AbortSignal.timeout === 'function'
+    resolvedTimeoutMs != null && typeof AbortSignal.timeout === "function"
       ? AbortSignal.timeout(resolvedTimeoutMs)
       : undefined;
   // Browser requests stay same-origin so production CORS policy cannot block plan generation.
-  const url = typeof window === 'undefined' ? `${normalizeBaseUrl(API_BASE)}${path}` : `/api${path}`;
+  const url =
+    typeof window === "undefined"
+      ? `${normalizeBaseUrl(API_BASE)}${path}`
+      : `/api${path}`;
   const response = await fetch(url, {
     ...rest,
-    cache: 'no-store',
+    cache: "no-store",
     signal: mergeAbortSignals([signal ?? undefined, timeoutSignal]),
   });
 
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as ApiEnvelope<unknown> | null;
-    const message = payload?.message || `Raven API ${path} failed: ${response.status}`;
+    const payload = (await response
+      .json()
+      .catch(() => null)) as ApiEnvelope<unknown> | null;
+    const message =
+      payload?.message || `Raven API ${path} failed: ${response.status}`;
     const error = new Error(message) as Error & { status?: number };
     error.status = response.status;
     throw error;
@@ -122,36 +133,44 @@ async function ravenApiRequest<T>(
 
 export function isRavenApiStatusError(error: unknown, status: number): boolean {
   return (
-    typeof error === 'object' &&
+    typeof error === "object" &&
     error != null &&
-    'status' in error &&
+    "status" in error &&
     (error as { status?: number }).status === status
   );
 }
 
 function getString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 function getNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 function getStringList(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
-  const items = value.map((item) => getString(item)).filter(Boolean) as string[];
+  const items = value
+    .map((item) => getString(item))
+    .filter(Boolean) as string[];
   return items.length ? items : undefined;
 }
 
 function inferCity(activity: Activity): string | undefined {
-  return activity.city ?? activity.area ?? getString(activity.location?.split(/[·,，]/)[0]);
+  return (
+    activity.city ??
+    activity.area ??
+    getString(activity.location?.split(/[·,，]/)[0])
+  );
 }
 
 function normalizeActivity(raw: Activity): Activity {
   return {
     ...raw,
     legacyId: getNumber(raw.legacyId) ?? 0,
-    name: getString(raw.name) ?? getString(raw.title) ?? '未命名活动',
+    name: getString(raw.name) ?? getString(raw.title) ?? "未命名活动",
     code: getString(raw.code),
     date: getString(raw.date),
     startDate: getString(raw.startDate),
@@ -180,7 +199,7 @@ function normalizeActivity(raw: Activity): Activity {
   };
 }
 
-export type ActivitiesFetchStatus = 'ok' | 'empty' | 'error';
+export type ActivitiesFetchStatus = "ok" | "empty" | "error";
 
 export type ActivitiesFetchResult = {
   activities: Activity[];
@@ -188,7 +207,7 @@ export type ActivitiesFetchResult = {
 };
 
 async function fetchActivitiesPayload(): Promise<Activity[]> {
-  const payload = await apiGet<Activity[] | ActivityListPage>('/activities');
+  const payload = await apiGet<Activity[] | ActivityListPage>("/activities");
   const items = Array.isArray(payload) ? payload : (payload.items ?? []);
   return items
     .map(normalizeActivity)
@@ -200,10 +219,10 @@ export async function fetchActivities(): Promise<ActivitiesFetchResult> {
     const activities = await fetchActivitiesPayload();
     return {
       activities,
-      status: activities.length ? 'ok' : 'empty',
+      status: activities.length ? "ok" : "empty",
     };
   } catch {
-    return { activities: [], status: 'error' };
+    return { activities: [], status: "error" };
   }
 }
 
@@ -212,7 +231,7 @@ export async function listActivities(): Promise<Activity[]> {
   return result.activities;
 }
 
-export type ActivityFetchStatus = 'ok' | 'not_found' | 'error';
+export type ActivityFetchStatus = "ok" | "not_found" | "error";
 
 export type ActivityFetchResult = {
   activity: Activity | null;
@@ -221,30 +240,35 @@ export type ActivityFetchResult = {
 
 export async function getActivity(id: number): Promise<ActivityFetchResult> {
   if (!Number.isFinite(id) || id <= 0) {
-    return { activity: null, status: 'not_found' };
+    return { activity: null, status: "not_found" };
   }
 
   try {
-    const response = await fetch(`${normalizeBaseUrl(API_BASE)}/activities/${id}`, {
-      next: { revalidate: 120 },
-    });
+    const response = await fetch(
+      `${normalizeBaseUrl(API_BASE)}/activities/${id}`,
+      {
+        next: { revalidate: 120 },
+      },
+    );
 
     if (response.status === 404) {
-      return { activity: null, status: 'not_found' };
+      return { activity: null, status: "not_found" };
     }
 
     if (!response.ok) {
-      return { activity: null, status: 'error' };
+      return { activity: null, status: "error" };
     }
 
-    const payload = unwrap<Activity | null>((await response.json()) as Activity | ApiEnvelope<Activity | null>);
+    const payload = unwrap<Activity | null>(
+      (await response.json()) as Activity | ApiEnvelope<Activity | null>,
+    );
     if (!payload) {
-      return { activity: null, status: 'not_found' };
+      return { activity: null, status: "not_found" };
     }
 
-    return { activity: normalizeActivity(payload), status: 'ok' };
+    return { activity: normalizeActivity(payload), status: "ok" };
   } catch {
-    return { activity: null, status: 'error' };
+    return { activity: null, status: "error" };
   }
 }
 
@@ -296,14 +320,16 @@ export type ActivitySchedule = {
   performances?: SchedulePerformance[];
 };
 
-export type ScheduleFetchStatus = 'ok' | 'empty' | 'error';
+export type ScheduleFetchStatus = "ok" | "empty" | "error";
 
 export type ScheduleFetchResult = {
   schedule: ActivitySchedule | null;
   status: ScheduleFetchStatus;
 };
 
-export async function fetchActivitySchedule(legacyId: number): Promise<ScheduleFetchResult> {
+export async function fetchActivitySchedule(
+  legacyId: number,
+): Promise<ScheduleFetchResult> {
   try {
     const schedule = await apiGet<ActivitySchedule>(
       `/activities/${legacyId}/itinerary/schedule`,
@@ -313,10 +339,10 @@ export async function fetchActivitySchedule(legacyId: number): Promise<ScheduleF
     const hasContent = djs.length > 0 || performances.length > 0;
     return {
       schedule,
-      status: hasContent ? 'ok' : 'empty',
+      status: hasContent ? "ok" : "empty",
     };
   } catch {
-    return { schedule: null, status: 'error' };
+    return { schedule: null, status: "error" };
   }
 }
 
@@ -324,12 +350,13 @@ export type RavenPlanGenerationPayload = {
   guideId: string;
   departure: string;
   headcount: number;
-  budgetTier: 'economy' | 'standard' | 'comfort';
+  budgetTier: "economy" | "standard" | "comfort";
   selfDrive?: boolean;
   accommodationNights?: number;
+  stayPreference?: "festival" | "city" | "value";
   note?: string;
   /** Plan copy language. Defaults to zh on the server when omitted. */
-  locale?: 'zh' | 'en';
+  locale?: "zh" | "en";
 };
 
 export type RavenTravelGuidePlan = {
@@ -346,7 +373,7 @@ export type RavenTravelGuidePlan = {
     lines: string[];
     flightOffers?: Array<{
       pricePerAdult: number;
-      currency: 'CNY' | 'USD';
+      currency: "CNY" | "USD";
       outbound: {
         route: string;
         depAirport?: string;
@@ -368,7 +395,12 @@ export type RavenTravelGuidePlan = {
   };
   accommodation: {
     title: string;
-    hotels: Array<{ name: string; note: string; reason?: string; bookingHint?: string }>;
+    hotels: Array<{
+      name: string;
+      note: string;
+      reason?: string;
+      bookingHint?: string;
+    }>;
     schemes?: Array<{
       label: string;
       name: string;
@@ -378,9 +410,15 @@ export type RavenTravelGuidePlan = {
     }>;
   };
   parking?: { title: string; lines: string[] };
-  nightlife: { title: string; spots: Array<{ name: string; note: string; reason?: string }> };
+  nightlife: {
+    title: string;
+    spots: Array<{ name: string; note: string; reason?: string }>;
+  };
   tips: { title: string; items: string[] };
-  venueTransport?: { title: string; options: Array<{ label: string; lines: string[] }> };
+  venueTransport?: {
+    title: string;
+    options: Array<{ label: string; lines: string[] }>;
+  };
   documents?: { title: string; items: string[] };
   tickets?: { title: string; channels: Array<{ name: string; note: string }> };
   essentials?: {
@@ -389,8 +427,14 @@ export type RavenTravelGuidePlan = {
     payment: string[];
     apps: string[];
   };
-  budget?: { title: string; items: Array<{ label: string; range: string; note?: string }> };
-  itinerary?: { title: string; days: Array<{ label: string; lines: string[] }> };
+  budget?: {
+    title: string;
+    items: Array<{ label: string; range: string; note?: string }>;
+  };
+  itinerary?: {
+    title: string;
+    days: Array<{ label: string; lines: string[] }>;
+  };
 };
 
 export type RavenPlanGenerationJob = {
@@ -410,24 +454,33 @@ export type RavenSavedPlan = {
   createdAt: string;
 };
 
-export function generateRavenPlan(legacyId: number, payload: RavenPlanGenerationPayload) {
+export function generateRavenPlan(
+  legacyId: number,
+  payload: RavenPlanGenerationPayload,
+) {
   return ravenApiRequest<{ plan: RavenTravelGuidePlan; guideId?: string }>(
     `/raven/activities/${legacyId}/plan/generate`,
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     },
   );
 }
 
-export function generateRavenPlanAsync(legacyId: number, payload: RavenPlanGenerationPayload) {
-  return ravenApiRequest<{ jobId: string }>(`/raven/activities/${legacyId}/plan/generate-async`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    timeoutMs: RAVEN_GENERATE_ASYNC_TIMEOUT_MS,
-  });
+export function generateRavenPlanAsync(
+  legacyId: number,
+  payload: RavenPlanGenerationPayload,
+) {
+  return ravenApiRequest<{ jobId: string }>(
+    `/raven/activities/${legacyId}/plan/generate-async`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      timeoutMs: RAVEN_GENERATE_ASYNC_TIMEOUT_MS,
+    },
+  );
 }
 
 export function getRavenPlanGenerationJob(jobId: string, signal?: AbortSignal) {
@@ -437,12 +490,16 @@ export function getRavenPlanGenerationJob(jobId: string, signal?: AbortSignal) {
   );
 }
 
-export async function getSavedRavenPlan(guideId: string): Promise<RavenSavedPlan | null> {
+export async function getSavedRavenPlan(
+  guideId: string,
+): Promise<RavenSavedPlan | null> {
   if (!guideId.trim()) return null;
-  return ravenApiRequest<RavenSavedPlan | null>(`/raven/plans/${encodeURIComponent(guideId)}`);
+  return ravenApiRequest<RavenSavedPlan | null>(
+    `/raven/plans/${encodeURIComponent(guideId)}`,
+  );
 }
 
-export type RavenPlaceSuggestionKind = 'city' | 'airport';
+export type RavenPlaceSuggestionKind = "city" | "airport";
 
 export type RavenPlaceSuggestion = {
   kind: RavenPlaceSuggestionKind;
@@ -477,27 +534,28 @@ export async function fetchRavenPlaceSuggestions(
   const city = params.city?.trim();
   const country = params.country?.trim();
   if (city) {
-    search.set('city', city);
-    if (country) search.set('country', country);
+    search.set("city", city);
+    if (country) search.set("country", country);
   } else if (keyword) {
-    search.set('keyword', keyword);
+    search.set("keyword", keyword);
   } else {
     return [];
   }
-  if (params.limit != null) search.set('limit', String(params.limit));
+  if (params.limit != null) search.set("limit", String(params.limit));
 
   // OpenFlights cold load can exceed the default 8s Raven timeout.
   const timeoutSignal =
-    typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(25_000) : undefined;
+    typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(25_000)
+      : undefined;
   const signal =
-    params.signal && timeoutSignal && typeof AbortSignal.any === 'function'
+    params.signal && timeoutSignal && typeof AbortSignal.any === "function"
       ? AbortSignal.any([params.signal, timeoutSignal])
       : (params.signal ?? timeoutSignal);
 
-  const result = await ravenApiRequest<{ data: RavenPlaceSuggestion[] } | RavenPlaceSuggestion[]>(
-    `/raven/place-suggestions?${search.toString()}`,
-    { signal },
-  );
+  const result = await ravenApiRequest<
+    { data: RavenPlaceSuggestion[] } | RavenPlaceSuggestion[]
+  >(`/raven/place-suggestions?${search.toString()}`, { signal });
 
   if (Array.isArray(result)) return result;
   if (result && Array.isArray(result.data)) return result.data;
@@ -511,7 +569,9 @@ function activityImageVersion(activity?: Activity | null): string | undefined {
   return Number.isFinite(parsed) ? String(parsed) : stamp;
 }
 
-export function getActivityImage(activity?: Activity | null): string | undefined {
+export function getActivityImage(
+  activity?: Activity | null,
+): string | undefined {
   const image = activity?.image?.trim();
   if (!image) return undefined;
 
@@ -520,10 +580,10 @@ export function getActivityImage(activity?: Activity | null): string | undefined
 
   try {
     const url = new URL(image);
-    url.searchParams.set('v', version);
+    url.searchParams.set("v", version);
     return url.toString();
   } catch {
-    const separator = image.includes('?') ? '&' : '?';
+    const separator = image.includes("?") ? "&" : "?";
     return `${image}${separator}v=${encodeURIComponent(version)}`;
   }
 }

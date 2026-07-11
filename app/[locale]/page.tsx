@@ -13,7 +13,6 @@ import {
   getActivityImage,
   getActivityTitle,
 } from '../../lib/api';
-import { eventPath } from '../../lib/event-slug';
 import { getFestivalAtmosphere } from '../../lib/festival-atmosphere';
 import { activityMeta } from '../../lib/format';
 import {
@@ -116,7 +115,6 @@ export default async function HomePage({ params }: HomePageProps) {
     : [fallbackFestival.date, fallbackFestival.location];
   const atmosphere = heroActivity ? getFestivalAtmosphere(heroActivity) : 'amber';
   const heroImage = heroActivity ? getActivityImage(heroActivity) : undefined;
-
   const timelineMoments = t.home.timeline.days.flatMap((day) =>
     day.items.map((item, index) => ({
       time: index === 0 ? `${day.label} · ${item.time}` : item.time,
@@ -124,7 +122,6 @@ export default async function HomePage({ params }: HomePageProps) {
       kind: item.kind,
     })),
   );
-
   const journey = {
     festival: heroActivity ? festivalName : t.home.dashboard.festival,
     meta: heroActivity ? festivalMeta : t.home.dashboard.meta,
@@ -145,14 +142,14 @@ export default async function HomePage({ params }: HomePageProps) {
         titleLine1={t.home.titleLine1}
         titleLine2={t.home.titleLine2}
         lead={t.home.lead}
-        primaryCta={t.home.primaryCta}
-        exploreCta={t.home.exploreCta}
         festivalName={festivalName}
         festivalDate={festivalDate ?? fallbackFestival.date}
         festivalLocation={festivalLocation ?? fallbackFestival.location}
         imageSrc={heroImage}
         imageAlt={festivalName}
         atmosphere={atmosphere}
+        activities={activities}
+        featuredActivity={heroActivity}
       />
 
       <section
@@ -208,11 +205,10 @@ export default async function HomePage({ params }: HomePageProps) {
           <div className="cta-band__panel">
             <div className="cta-band__atmosphere" aria-hidden>
               <div className="cta-band__glow cta-band__glow--primary" />
-              <div className="cta-band__glow cta-band__glow--accent" />
-              <div className="cta-band__grid" />
             </div>
 
             <div className="cta-band__content">
+              <p className="cta-band__festival">{festivalName}</p>
               <p className="cta-band__crew">{t.home.futureLead}</p>
               <h2 id="cta-title">{t.home.ctaTitle}</h2>
             </div>
@@ -227,17 +223,6 @@ export default async function HomePage({ params }: HomePageProps) {
                 {t.home.ctaButton}
                 <ArrowRight size={16} strokeWidth={2.25} aria-hidden />
               </TrackedLink>
-              {heroActivity ? (
-                <TrackedLink
-                  className="cta-band__secondary-link"
-                  href={eventPath(locale, heroActivity)}
-                  eventName="home_events_click"
-                  eventProperties={{ locale, source: 'footer-festival' }}
-                >
-                  {festivalName}
-                  <ArrowRight size={14} strokeWidth={2.25} aria-hidden />
-                </TrackedLink>
-              ) : null}
             </div>
           </div>
         </div>

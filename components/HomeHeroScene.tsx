@@ -1,10 +1,10 @@
 import Image from 'next/image';
 import { BrandLogo } from './BrandLogo';
 import { EventImage } from './EventImage';
-import { TrackedLink } from './TrackedLink';
-import { ArrowRight } from 'lucide-react';
+import { HomeBudgetEstimator } from './HomeBudgetEstimator';
 import type { FestivalAtmosphere } from '../lib/festival-atmosphere';
-import { localizedPath, type Locale } from '../lib/i18n';
+import type { Locale } from '../lib/i18n';
+import type { Activity } from '../lib/types';
 
 type HomeHeroSceneProps = {
   locale: Locale;
@@ -12,14 +12,14 @@ type HomeHeroSceneProps = {
   titleLine1: string;
   titleLine2: string;
   lead: string;
-  primaryCta: string;
-  exploreCta: string;
   festivalName: string;
   festivalDate: string;
   festivalLocation: string;
   imageSrc?: string;
   imageAlt: string;
   atmosphere: FestivalAtmosphere;
+  activities: Activity[];
+  featuredActivity?: Activity;
 };
 
 export function HomeHeroScene({
@@ -28,14 +28,14 @@ export function HomeHeroScene({
   titleLine1,
   titleLine2,
   lead,
-  primaryCta,
-  exploreCta,
   festivalName,
   festivalDate,
   festivalLocation,
   imageSrc,
   imageAlt,
   atmosphere,
+  activities,
+  featuredActivity,
 }: HomeHeroSceneProps) {
   return (
     <section
@@ -95,6 +95,15 @@ export function HomeHeroScene({
               </span>
             </h1>
 
+            <div className="ai-hero__ctas">
+              <HomeBudgetEstimator
+                locale={locale}
+                activities={activities}
+                featuredActivity={featuredActivity}
+                variant="hero"
+              />
+            </div>
+
             <p className="lead ai-hero__lead">{lead}</p>
 
             <p className="ai-hero__festival-meta">
@@ -108,26 +117,6 @@ export function HomeHeroScene({
               </span>
               <span>{festivalLocation}</span>
             </p>
-          </div>
-
-          <div className="ai-hero__ctas">
-            <TrackedLink
-              className="button button--glow ai-hero__cta-primary"
-              href={localizedPath(locale, '/waitlist')}
-              eventName="home_plan_click"
-              eventProperties={{ locale, source: 'hero-primary' }}
-            >
-              {primaryCta}
-            </TrackedLink>
-            <TrackedLink
-              className="ai-hero__cta-text"
-              href={localizedPath(locale, '/events')}
-              eventName="home_events_click"
-              eventProperties={{ locale, source: 'hero-secondary' }}
-            >
-              {exploreCta}
-              <ArrowRight size={14} strokeWidth={2.25} aria-hidden />
-            </TrackedLink>
           </div>
         </div>
       </div>

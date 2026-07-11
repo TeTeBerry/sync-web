@@ -12,8 +12,9 @@ import {
 } from '../../lib/raven-journey';
 import { getMessages, type Locale } from '../../lib/i18n';
 
-const TIMELINE_LINES_VISIBLE = 2;
-const SETS_VISIBLE = 4;
+const TIMELINE_LINES_VISIBLE = 1;
+const SETS_VISIBLE = 3;
+const FESTIVAL_DAYS_VISIBLE = 2;
 
 type RavenJourneyResultProps = {
   locale: Locale;
@@ -68,7 +69,7 @@ function TravelFlight({
 }) {
   return (
     <article className="raven-journey__story raven-journey__story--support">
-      <h4 className="raven-journey__story-title raven-journey__story-title--sm">
+      <h4 className="raven-journey__story-title raven-journey__story-title--route">
         {option.route || recommendation}
       </h4>
       {option.detail ? <p className="raven-journey__story-note">{option.detail}</p> : null}
@@ -180,7 +181,9 @@ export function RavenJourneyResult({
     hasMusicDetail ||
     Boolean(musicInsight);
   const budgetLineItems = journey.budget.items.filter((item) => !isBudgetTotalLabel(item.label));
-  const breathLines = journey.breath.slice(0, 3);
+  const breathLines = journey.breath.slice(0, 2);
+  const visibleMusicDays = journey.festivalExperience.dailyFlow.slice(0, FESTIVAL_DAYS_VISIBLE);
+  const hiddenMusicDays = journey.festivalExperience.dailyFlow.slice(FESTIVAL_DAYS_VISIBLE);
   const showMetaQuietly = metaBits.length > 0 && breathLines.length === 0;
   const confidenceLine = budgetConfidenceCopy(journey.budget.confidence, copy);
 
@@ -241,13 +244,12 @@ export function RavenJourneyResult({
             aria-labelledby="raven-timeline-heading"
             data-journey-reveal
           >
-            <header className="raven-journey__section-head">
-              <p className="raven-journey__section-kicker">{copy.timelineKicker}</p>
-              <h3 id="raven-timeline-heading" className="raven-journey__section-title">
-                {copy.timelineTitle}
-              </h3>
-            </header>
-            <ol className="raven-journey__timeline">
+            <details className="raven-journey__timeline-disclosure">
+              <summary id="raven-timeline-heading">
+                <span className="raven-journey__section-kicker">{copy.timelineKicker}</span>
+                <span className="raven-journey__section-title">{copy.timelineTitle}</span>
+              </summary>
+              <ol className="raven-journey__timeline">
               {journey.timeline.map((day, dayIndex) => {
                 const visible = day.lines.slice(0, TIMELINE_LINES_VISIBLE);
                 const extra = day.lines.slice(TIMELINE_LINES_VISIBLE);
@@ -280,7 +282,8 @@ export function RavenJourneyResult({
                   </li>
                 );
               })}
-            </ol>
+              </ol>
+            </details>
           </section>
         ) : null}
 
@@ -304,7 +307,7 @@ export function RavenJourneyResult({
                   <p className="raven-journey__empty">{copy.setTimesUnavailable}</p>
                 ) : (
                   <div className="raven-journey__chapters">
-                    {journey.festivalExperience.dailyFlow.map((day) => {
+                    {visibleMusicDays.map((day) => {
                       const visibleSets = prioritizeSets(day.sets, SETS_VISIBLE);
                       const hiddenSets = day.sets.filter((set) => !visibleSets.includes(set));
                       return (
@@ -341,6 +344,24 @@ export function RavenJourneyResult({
                         </section>
                       );
                     })}
+                    {hiddenMusicDays.length ? (
+                      <details className="raven-journey__disclosure raven-journey__disclosure--quiet">
+                        <summary>{copy.moreSets}</summary>
+                        {hiddenMusicDays.map((day) => (
+                          <section key={day.label} className="raven-journey__chapter">
+                            <h4 className="raven-journey__chapter-label">{day.label}</h4>
+                            <ol className="raven-journey__chapter-nights">
+                              {day.sets.map((set) => (
+                                <li key={`${day.label}-${set.time}-${set.artist}`} className={set.highlight ? 'is-highlight' : undefined}>
+                                  <p className="raven-journey__chapter-artist">{set.artist}</p>
+                                  <p className="raven-journey__chapter-scene">{[set.stage, set.time].filter(Boolean).join(' · ')}</p>
+                                </li>
+                              ))}
+                            </ol>
+                          </section>
+                        ))}
+                      </details>
+                    ) : null}
                   </div>
                 )}
               </div>
