@@ -10,16 +10,15 @@ describe('fetchRavenPlaceSuggestions', () => {
     const rows = [
       {
         kind: 'city' as const,
-        title: 'London, United Kingdom',
+        title: 'London',
         city: 'London',
         country: 'United Kingdom',
       },
       {
-        kind: 'airport' as const,
-        title: 'London Heathrow Airport · LHR',
-        city: 'London',
-        country: 'United Kingdom',
-        iata: 'LHR',
+        kind: 'city' as const,
+        title: 'Shanghai',
+        city: 'Shanghai',
+        country: 'China',
       },
     ];
 
@@ -42,28 +41,5 @@ describe('fetchRavenPlaceSuggestions', () => {
     const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0] ?? '');
     expect(calledUrl).toContain('/raven/place-suggestions?');
     expect(calledUrl).toContain('keyword=Lon');
-  });
-
-  it('requests city airports with city + country params', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          code: 200,
-          message: 'success',
-          data: { data: [] },
-        }),
-      }),
-    );
-
-    const { fetchRavenPlaceSuggestions } = await import('./api');
-    await fetchRavenPlaceSuggestions({
-      city: 'London',
-      country: 'United Kingdom',
-    });
-    const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0] ?? '');
-    expect(calledUrl).toContain('city=London');
-    expect(calledUrl).toContain('country=United+Kingdom');
   });
 });

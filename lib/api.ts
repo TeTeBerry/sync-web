@@ -464,8 +464,8 @@ export type FetchRavenPlaceSuggestionsParams = {
 
 /**
  * Raven departure suggestions (OpenFlights).
- * - keyword → cities (+ direct IATA / airport-name hits)
- * - city (+ optional country) → all airports for that city
+ * - keyword → cities only (city name as title; IATA hits resolve to city)
+ * - city (+ optional country) → city + airports (legacy)
  */
 export async function fetchRavenPlaceSuggestions(
   params: FetchRavenPlaceSuggestionsParams,

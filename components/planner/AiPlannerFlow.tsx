@@ -9,7 +9,6 @@ import {
   Heart,
   MapPin,
   Music2,
-  Plane,
   RotateCcw,
   Search,
   Sparkles,
@@ -176,34 +175,23 @@ function headcountFor(journey: JourneyType): number {
   return 3;
 }
 
-function originValueForSuggestion(suggestion: RavenPlaceSuggestion): string {
-  if (suggestion.kind === 'city') return suggestion.city.trim() || suggestion.title.trim();
-  if (suggestion.iata?.trim()) {
-    return `${suggestion.city.trim()} (${suggestion.iata.trim()})`;
-  }
-  return suggestion.title.trim();
-}
-
 type OriginListItem = {
   key: string;
   label: string;
-  kind: 'preset' | 'city' | 'airport';
+  kind: 'preset' | 'city';
   originValue: string;
   subtitle?: string;
   suggestion?: RavenPlaceSuggestion;
 };
 
 function suggestionToOriginItem(suggestion: RavenPlaceSuggestion): OriginListItem {
-  const subtitle =
-    suggestion.kind === 'city'
-      ? suggestion.country
-      : [suggestion.city, suggestion.country, suggestion.iata].filter(Boolean).join(' · ');
+  const city = suggestion.city.trim() || suggestion.title.trim();
   return {
-    key: `${suggestion.kind}:${suggestion.title}:${suggestion.iata ?? ''}:${suggestion.city}:${suggestion.country}`,
-    label: suggestion.title,
-    kind: suggestion.kind,
-    originValue: originValueForSuggestion(suggestion),
-    subtitle: subtitle || undefined,
+    key: `city:${city}:${suggestion.country}`,
+    label: city,
+    kind: 'city',
+    originValue: city,
+    subtitle: suggestion.country.trim() || undefined,
     suggestion,
   };
 }
@@ -231,10 +219,6 @@ export function AiPlannerFlow({
   const [stepIndex, setStepIndex] = useState(0);
   const [originQuery, setOriginQuery] = useState('');
   const [remoteOriginSuggestions, setRemoteOriginSuggestions] = useState<RavenPlaceSuggestion[]>([]);
-  const [originCityContext, setOriginCityContext] = useState<{
-    city: string;
-    country?: string;
-  } | null>(null);
   const [originSuggestionsLoading, setOriginSuggestionsLoading] = useState(false);
   const [favoriteArtists, setFavoriteArtists] = useState<string[]>([]);
   const [generationStep, setGenerationStep] = useState(0);
@@ -338,39 +322,11 @@ export function AiPlannerFlow({
   useEffect(() => {
     if (currentStep !== 'origin') {
       setRemoteOriginSuggestions([]);
-      setOriginCityContext(null);
       setOriginSuggestionsLoading(false);
       return;
     }
 
     const query = originQuery.trim();
-
-    if (originCityContext) {
-      const controller = new AbortController();
-      let cancelled = false;
-      setOriginSuggestionsLoading(true);
-      void fetchRavenPlaceSuggestions({
-        city: originCityContext.city,
-        country: originCityContext.country,
-        signal: controller.signal,
-      })
-        .then((rows) => {
-          if (cancelled) return;
-          setRemoteOriginSuggestions(rows);
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setRemoteOriginSuggestions([]);
-        })
-        .finally(() => {
-          if (!cancelled) setOriginSuggestionsLoading(false);
-        });
-      return () => {
-        cancelled = true;
-        controller.abort();
-      };
-    }
-
     if (!query) {
       setRemoteOriginSuggestions([]);
       setOriginSuggestionsLoading(false);
@@ -388,7 +344,8 @@ export function AiPlannerFlow({
       })
         .then((rows) => {
           if (cancelled) return;
-          setRemoteOriginSuggestions(rows);
+          // Departure picker is city-only single-select.
+          setRemoteOriginSuggestions(rows.filter((row) => row.kind === 'city'));
         })
         .catch(() => {
           if (cancelled) return;
@@ -404,13 +361,9 @@ export function AiPlannerFlow({
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [currentStep, originCityContext, originQuery]);
+  }, [currentStep, originQuery]);
 
   const originOptions = useMemo((): OriginListItem[] => {
-    if (originCityContext) {
-      return remoteOriginSuggestions.map(suggestionToOriginItem);
-    }
-
     const query = originQuery.trim().toLowerCase();
     const presetItems: OriginListItem[] = copy.steps.origin.presets
       .filter((city) => !query || city.toLowerCase().includes(query))
@@ -433,7 +386,7 @@ export function AiPlannerFlow({
       merged.push(preset);
     }
     return merged;
-  }, [copy.steps.origin.presets, originCityContext, originQuery, remoteOriginSuggestions]);
+  }, [copy.steps.origin.presets, originQuery, remoteOriginSuggestions]);
 
   const canContinue = useMemo(() => {
     if (currentStep === 'origin') return preferences.origin.length > 0;
@@ -450,32 +403,10 @@ export function AiPlannerFlow({
 
   const handleOriginOptionClick = useCallback(
     (item: OriginListItem) => {
-      if (item.kind === 'city' && item.suggestion) {
-        const sameCity =
-          originCityContext &&
-          originCityContext.city.toLowerCase() === item.suggestion.city.toLowerCase() &&
-          (originCityContext.country ?? '').toLowerCase() ===
-            (item.suggestion.country ?? '').toLowerCase();
-        if (sameCity) {
-          selectOriginValue(item.originValue);
-          return;
-        }
-        setOriginCityContext({
-          city: item.suggestion.city,
-          country: item.suggestion.country || undefined,
-        });
-        setOriginQuery(item.suggestion.city);
-        selectOriginValue(item.originValue);
-        return;
-      }
-
-      setOriginCityContext(null);
       selectOriginValue(item.originValue);
-      if (item.kind === 'airport' || item.kind === 'preset') {
-        setOriginQuery(item.originValue);
-      }
+      setOriginQuery(item.originValue);
     },
-    [originCityContext, selectOriginValue],
+    [selectOriginValue],
   );
 
   const startGeneration = useCallback(() => {
@@ -743,7 +674,6 @@ export function AiPlannerFlow({
                   type="search"
                   value={originQuery}
                   onChange={(event) => {
-                    setOriginCityContext(null);
                     setOriginQuery(event.target.value);
                   }}
                   placeholder={copy.steps.origin.searchPlaceholder}
@@ -753,7 +683,6 @@ export function AiPlannerFlow({
               <div className="plan-step__cards plan-step__cards--locations" aria-busy={originSuggestionsLoading}>
                 {originOptions.map((item) => {
                   const selected = preferences.origin === item.originValue;
-                  const Icon = item.kind === 'airport' ? Plane : MapPin;
                   return (
                     <button
                       key={item.key}
@@ -763,7 +692,7 @@ export function AiPlannerFlow({
                       onClick={() => handleOriginOptionClick(item)}
                     >
                       <span className="plan-option-card__icon" aria-hidden>
-                        <Icon size={18} strokeWidth={2} />
+                        <MapPin size={18} strokeWidth={2} />
                       </span>
                       <span className="plan-option-card__title">{item.label}</span>
                       {item.subtitle ? (
