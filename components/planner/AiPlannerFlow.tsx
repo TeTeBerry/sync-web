@@ -40,6 +40,11 @@ import {
   type TravelStyle,
 } from '../../lib/planner-plan';
 import { resolveResultPlan, shouldSeedSharedPlan } from '../../lib/planner-result';
+import {
+  buildOriginOptions,
+  isOriginOptionSelected,
+  type PlannerOriginListItem,
+} from '../../lib/planner-origin';
 import { buildRavenJourneyView } from '../../lib/raven-journey';
 import { TrackedLink } from '../TrackedLink';
 import { EventImage } from '../EventImage';
@@ -175,26 +180,7 @@ function headcountFor(journey: JourneyType): number {
   return 3;
 }
 
-type OriginListItem = {
-  key: string;
-  label: string;
-  kind: 'preset' | 'city';
-  originValue: string;
-  subtitle?: string;
-  suggestion?: RavenPlaceSuggestion;
-};
-
-function suggestionToOriginItem(suggestion: RavenPlaceSuggestion): OriginListItem {
-  const city = suggestion.city.trim() || suggestion.title.trim();
-  return {
-    key: `city:${city}:${suggestion.country}`,
-    label: city,
-    kind: 'city',
-    originValue: city,
-    subtitle: suggestion.country.trim() || undefined,
-    suggestion,
-  };
-}
+type OriginListItem = PlannerOriginListItem;
 
 export function AiPlannerFlow({
   locale,
@@ -290,7 +276,11 @@ export function AiPlannerFlow({
 
   useEffect(() => {
     const restored = readPlannerPreferences(activity.legacyId);
-    setPreferences(restored ?? DEFAULT_PREFERENCES);
+    // Never restore a pre-selected origin — the departure step must start blank.
+    setPreferences(
+      restored ? { ...restored, origin: '' } : DEFAULT_PREFERENCES,
+    );
+    setOriginQuery('');
   }, [activity.legacyId]);
 
   useEffect(() => {
@@ -363,30 +353,15 @@ export function AiPlannerFlow({
     };
   }, [currentStep, originQuery]);
 
-  const originOptions = useMemo((): OriginListItem[] => {
-    const query = originQuery.trim().toLowerCase();
-    const presetItems: OriginListItem[] = copy.steps.origin.presets
-      .filter((city) => !query || city.toLowerCase().includes(query))
-      .map((city) => ({
-        key: `preset:${city}`,
-        label: city,
-        kind: 'preset' as const,
-        originValue: city,
-      }));
-
-    if (!query) return presetItems;
-
-    const remoteItems = remoteOriginSuggestions.map(suggestionToOriginItem);
-    if (!remoteItems.length) return presetItems;
-
-    const seen = new Set(remoteItems.map((item) => item.originValue.toLowerCase()));
-    const merged = [...remoteItems];
-    for (const preset of presetItems) {
-      if (seen.has(preset.originValue.toLowerCase())) continue;
-      merged.push(preset);
-    }
-    return merged;
-  }, [copy.steps.origin.presets, originQuery, remoteOriginSuggestions]);
+  const originOptions = useMemo(
+    (): OriginListItem[] =>
+      buildOriginOptions({
+        presets: copy.steps.origin.presets,
+        query: originQuery,
+        remote: remoteOriginSuggestions,
+      }),
+    [copy.steps.origin.presets, originQuery, remoteOriginSuggestions],
+  );
 
   const canContinue = useMemo(() => {
     if (currentStep === 'origin') return preferences.origin.length > 0;
@@ -403,8 +378,8 @@ export function AiPlannerFlow({
 
   const handleOriginOptionClick = useCallback(
     (item: OriginListItem) => {
+      // Selection only — do not mutate the search box (avoids refetch flicker).
       selectOriginValue(item.originValue);
-      setOriginQuery(item.originValue);
     },
     [selectOriginValue],
   );
@@ -674,7 +649,12 @@ export function AiPlannerFlow({
                   type="search"
                   value={originQuery}
                   onChange={(event) => {
-                    setOriginQuery(event.target.value);
+                    const next = event.target.value;
+                    setOriginQuery(next);
+                    // Typing must not keep a prior card selected (no default / no multi-highlight).
+                    setPreferences((prev) =>
+                      prev.origin ? { ...prev, origin: '' } : prev,
+                    );
                   }}
                   placeholder={copy.steps.origin.searchPlaceholder}
                   autoComplete="off"
@@ -682,7 +662,7 @@ export function AiPlannerFlow({
               </label>
               <div className="plan-step__cards plan-step__cards--locations" aria-busy={originSuggestionsLoading}>
                 {originOptions.map((item) => {
-                  const selected = preferences.origin === item.originValue;
+                  const selected = isOriginOptionSelected(preferences.origin, item);
                   return (
                     <button
                       key={item.key}
