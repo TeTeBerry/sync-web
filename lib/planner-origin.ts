@@ -81,7 +81,7 @@ export function isOriginOptionSelected(
  * - Remote rows are deduped by city+country.
  */
 export function buildOriginOptions(input: {
-  presets: string[];
+  presets: readonly string[];
   query: string;
   remote: RavenPlaceSuggestion[];
 }): PlannerOriginListItem[] {
