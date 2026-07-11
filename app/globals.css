@@ -9909,6 +9909,10 @@ h3 {
 
 .plan-page {
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
 }
 
 .plan-page__intro {
