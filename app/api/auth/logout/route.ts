@@ -6,6 +6,7 @@ import {
   rejectUnsafeMutation,
   withAuthCookies,
 } from '../../../../lib/auth/http';
+import { RAVEN_BACKEND_TOKEN_COOKIE } from '../../../../lib/auth/raven-backend-token';
 import { RAVEN_SESSION_COOKIE } from '../../../../lib/auth/sessions';
 
 export const runtime = 'nodejs';
@@ -20,8 +21,16 @@ export async function POST(request: NextRequest) {
 
   const response = NextResponse.json({ ok: true, message: 'Signed out.' });
   ensureCsrfCookie(request, response, secure);
-  return withAuthCookies(response, {
+  const loggedOut = withAuthCookies(response, {
     clearSession: true,
     secure,
   });
+  loggedOut.cookies.set(RAVEN_BACKEND_TOKEN_COOKIE, '', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure,
+    path: '/',
+    maxAge: 0,
+  });
+  return loggedOut;
 }

@@ -63,13 +63,11 @@ export function PlanPageShell({
 
   return (
     <div className="plan-page-shell" data-journey-phase={phase}>
-      <div
-        className={`plan-page-shell__landing${hideDemo ? " is-collapsed" : ""}`}
-        hidden={hideDemo}
-        aria-hidden={hideDemo}
-      >
-        {landing}
-      </div>
+      {/* Unmount demo landing while journey is live — avoids Next.js fill/sizes
+          warnings from priority heroes measured inside `hidden` (width 0). */}
+      {hideDemo ? null : (
+        <div className="plan-page-shell__landing">{landing}</div>
+      )}
 
       <section
         id="planner-form"

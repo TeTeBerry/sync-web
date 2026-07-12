@@ -15,20 +15,18 @@ export function SquadFilterBar({ copy, filters, onChange }: SquadFilterBarProps)
 
   return (
     <section className="squad-filters" aria-label={copy.filters.lookingFor}>
-      <p className="squad-filters__whisper">{copy.filters.whisper}</p>
-      <div className="squad-filters__chips" role="list">
+      <p className="squad-filters__eyebrow">{copy.filters.pathKicker}</p>
+      <h3 className="squad-filters__question">{copy.filters.whisper}</h3>
+      <div className="squad-intent-paths" role="list">
         {intents.map((value) => {
-          const label =
-            value === 'any'
-              ? copy.filters.anyCompany
-              : lookingLabel(value, copy);
+          const label = value === 'any' ? copy.filters.anyCompany : lookingLabel(value, copy);
           const active = filters.lookingFor === value;
           return (
             <button
               key={value}
               type="button"
               role="listitem"
-              className={`squad-chip${active ? ' is-active' : ''}`}
+              className={`squad-intent-path${active ? ' is-active' : ''}`}
               aria-pressed={active}
               onClick={() =>
                 onChange({
@@ -42,7 +40,10 @@ export function SquadFilterBar({ copy, filters, onChange }: SquadFilterBarProps)
                 })
               }
             >
-              {label}
+              <span>{label}</span>
+              <span className="squad-intent-path__mark" aria-hidden>
+                ↗
+              </span>
             </button>
           );
         })}

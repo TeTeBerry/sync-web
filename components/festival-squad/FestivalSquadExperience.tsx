@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { track } from '@vercel/analytics';
 import { Users } from 'lucide-react';
 import { EmptyState } from '../states/EmptyState';
-import { TrackedLink } from '../TrackedLink';
 import { EmailLoginDialog } from '../auth/EmailLoginDialog';
 import { UnverifiedEmailNotice } from '../auth/UnverifiedEmailNotice';
 import { useAuthSession } from '../../hooks/useAuthSession';
@@ -12,34 +11,31 @@ import { trackAuthEvent } from '../../lib/auth/analytics';
 import type { AuthIntendedAction } from '../../lib/auth/types';
 import {
   applySquadFilters,
-  bindSquadProfileToAuthUser,
   createSquadProfileFromDraft,
   DEFAULT_SQUAD_FILTERS,
-  getMockTravelers,
-  matchReasonCopyFromMessages,
-  rankSquadMatches,
+  getSquadMatches,
+  getSquadProfile,
+  localizeMatchReasonCodes,
   readLineupArtistNames,
+  readLineupArtistIds,
   readPlannerPreferences,
-  readSquadProfile,
-  writeSquadProfile,
+  saveSquadProfile,
   type FestivalSquadProfile,
   type SquadFilterState,
   type SquadMatch,
 } from '../../lib/festival-squad';
 import { buildPrefillSquadProfile } from '../../lib/festival-squad/repository';
-import { localizedPath, type Locale, type Messages } from '../../lib/i18n';
+import { type Locale, type Messages } from '../../lib/i18n';
 import { MatchDetailPanel } from './MatchDetailPanel';
 import { SquadArrivalScene } from './SquadArrivalScene';
 import { SquadFilterBar } from './SquadFilterBar';
+import { SquadPresenceControls } from './SquadPresenceControls';
 import { SquadProfileForm } from './SquadProfileForm';
 import { SquadSafetyNotice } from './SquadSafetyNotice';
+import { SquadRequestInbox } from './SquadRequestInbox';
+import { SquadFestivalPrelude } from './SquadFestivalPrelude';
 import { TravelerMatchCard } from './TravelerMatchCard';
-import {
-  formatSquadDate,
-  journeyPathParts,
-  originLabel,
-  stayLabel,
-} from './squad-labels';
+import { formatSquadDate, journeyPathParts, originLabel, stayLabel } from './squad-labels';
 
 type SquadCopy = Messages['festivalSquad'];
 
@@ -74,16 +70,17 @@ export function FestivalSquadExperience({
   copy,
   heroEmbedded = false,
 }: FestivalSquadExperienceProps) {
-  const reasonCopy = matchReasonCopyFromMessages(copy.matchReasons);
   const auth = useAuthSession();
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
   const [profile, setProfile] = useState<FestivalSquadProfile | null>(null);
+  const [matches, setMatches] = useState<SquadMatch[]>([]);
   const [filters, setFilters] = useState<SquadFilterState>(DEFAULT_SQUAD_FILTERS);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [connectionTick, setConnectionTick] = useState(0);
   const [justJoined, setJustJoined] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const pathRef = useRef<HTMLElement | null>(null);
   const [prefill, setPrefill] = useState<Partial<FestivalSquadProfile>>({});
   const [loginOpen, setLoginOpen] = useState(false);
@@ -91,30 +88,35 @@ export function FestivalSquadExperience({
   const [resumeComposeMatchId, setResumeComposeMatchId] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      setProfile(readSquadProfile(eventId));
-      const preferences = readPlannerPreferences(eventId);
-      const lineupArtists = readLineupArtistNames(eventId, artistNameById);
-      const mergedArtists = [...lineupArtists];
-      for (const name of artistNames) {
-        if (!mergedArtists.includes(name)) mergedArtists.push(name);
+    void (async () => {
+      try {
+        if (auth.signedIn) {
+          const current = await getSquadProfile(eventId);
+          setProfile(current);
+        }
+        const preferences = readPlannerPreferences(eventId);
+        const lineupArtists = readLineupArtistNames(eventId, artistNameById);
+        const mergedArtists = [...lineupArtists];
+        for (const name of artistNames) {
+          if (!mergedArtists.includes(name)) mergedArtists.push(name);
+        }
+        setPrefill(
+          buildPrefillSquadProfile({
+            eventId,
+            festivalStartDate,
+            festivalEndDate,
+            festivalDateLabel,
+            preferences,
+            favoriteArtists: mergedArtists,
+          }),
+        );
+        setReady(true);
+        track('festival_squad_opened', { event: String(eventId), locale });
+      } catch {
+        setError(true);
+        setReady(true);
       }
-      setPrefill(
-        buildPrefillSquadProfile({
-          eventId,
-          festivalStartDate,
-          festivalEndDate,
-          festivalDateLabel,
-          preferences,
-          favoriteArtists: mergedArtists,
-        }),
-      );
-      setReady(true);
-      track('festival_squad_opened', { event: String(eventId), locale });
-    } catch {
-      setError(true);
-      setReady(true);
-    }
+    })();
   }, [
     eventId,
     locale,
@@ -123,24 +125,43 @@ export function FestivalSquadExperience({
     festivalDateLabel,
     artistNames,
     artistNameById,
+    auth.signedIn,
   ]);
 
-  // Rebind local Squad ownership when session is already signed in on load.
   useEffect(() => {
     if (!auth.signedIn || !auth.user?.id || !ready) return;
-    const rebound = bindSquadProfileToAuthUser(eventId, auth.user.id);
-    if (rebound) setProfile(rebound);
+    void getSquadProfile(eventId)
+      .then((current) => setProfile(current))
+      .catch(() => setError(true));
   }, [auth.signedIn, auth.user?.id, eventId, ready]);
 
-  const travelers = useMemo(
-    () => getMockTravelers(eventId, festivalDateRange),
-    [eventId, festivalDateRange],
-  );
-
-  const ranked = useMemo(() => {
-    if (!profile) return [];
-    return rankSquadMatches(profile, travelers, reasonCopy);
-  }, [profile, travelers, reasonCopy]);
+  useEffect(() => {
+    if (!profile || profile.matchingPaused || profile.visibility.hideProfile) {
+      setMatches([]);
+      return;
+    }
+    void getSquadMatches(eventId)
+      .then((next) =>
+        setMatches(
+          next.map((match) => ({
+            ...match,
+            reasons: localizeMatchReasonCodes(match.reasons, copy.matchReasons, {
+              artists: match.sharedArtists.length,
+              genres: match.sharedGenres.length,
+            }),
+          })),
+        ),
+      )
+      .catch(() => setError(true));
+  }, [
+    eventId,
+    profile?.id,
+    profile?.matchingPaused,
+    profile?.visibility.hideProfile,
+    copy.matchReasons,
+  ]);
+  const travelers = matches.map((match) => match.profile);
+  const ranked = matches;
 
   const filtered = useMemo(() => {
     if (!profile) return [];
@@ -148,10 +169,7 @@ export function FestivalSquadExperience({
   }, [ranked, profile, filters]);
 
   const featuredMatch = filtered[0] ?? null;
-  const echoMatches = useMemo(
-    () => filtered.slice(1, 1 + ECHO_VISIBLE),
-    [filtered],
-  );
+  const echoMatches = useMemo(() => filtered.slice(1, 1 + ECHO_VISIBLE), [filtered]);
 
   const selectedMatch: SquadMatch | null = useMemo(() => {
     if (!selectedMatchId) return null;
@@ -180,7 +198,9 @@ export function FestivalSquadExperience({
   }
 
   function resumeAction(action: AuthIntendedAction) {
-    trackAuthEvent('auth_returned_to_intended_action', { intendedAction: action });
+    trackAuthEvent('auth_returned_to_intended_action', {
+      intendedAction: action,
+    });
     if (action === 'create_squad_profile') {
       openProfileForm('create');
       return;
@@ -213,7 +233,7 @@ export function FestivalSquadExperience({
     openProfileForm(mode);
   }
 
-  function handleSaveProfile(
+  async function handleSaveProfile(
     draft: Partial<FestivalSquadProfile>,
     existing?: FestivalSquadProfile | null,
   ) {
@@ -221,30 +241,43 @@ export function FestivalSquadExperience({
       requireAuth(existing ? 'edit_squad_profile' : 'create_squad_profile');
       return;
     }
+    setSaveError('');
     const wasCreate = !existing;
-    const next = existing
-      ? writeSquadProfile({
-          ...existing,
-          ...draft,
-          userId: auth.user.id,
-          displayName: draft.displayName?.trim() || existing.displayName,
-          originCity: draft.originCity?.trim() || existing.originCity,
-          lookingFor: draft.lookingFor?.length ? draft.lookingFor : existing.lookingFor,
-        })
-      : writeSquadProfile(
-          createSquadProfileFromDraft(eventId, draft, auth.user.id),
-        );
-    setProfile(next);
-    setProfileOpen(false);
-    if (wasCreate) setJustJoined(true);
-    track('squad_profile_completed', {
-      event: String(eventId),
-      locale,
-      mode: existing ? 'edit' : 'create',
-    });
-    requestAnimationFrame(() => {
-      pathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    const lineup = readLineupArtistIds(eventId, artistNameById);
+    try {
+      const next = await saveSquadProfile(
+        existing
+          ? {
+              ...existing,
+              ...draft,
+              userId: auth.user.id,
+              displayName: draft.displayName?.trim() || existing.displayName,
+              originCity: draft.originCity?.trim() || existing.originCity,
+              lookingFor: draft.lookingFor?.length ? draft.lookingFor : existing.lookingFor,
+            }
+          : createSquadProfileFromDraft(eventId, draft, auth.user.id),
+        lineup.ids,
+        lineup.unresolved,
+      );
+      setProfile(next);
+      setProfileOpen(false);
+      if (wasCreate) setJustJoined(true);
+      track('squad_profile_completed', {
+        event: String(eventId),
+        locale,
+        mode: existing ? 'edit' : 'create',
+      });
+      requestAnimationFrame(() => {
+        pathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    } catch (error) {
+      setSaveError(
+        error instanceof Error && error.message
+          ? error.message
+          : copy.empty.errorLead,
+      );
+      throw error;
+    }
   }
 
   async function handleEmailLogin(email: string) {
@@ -258,8 +291,7 @@ export function FestivalSquadExperience({
       intendedAction: pendingAction,
     });
     const authUserId = result.session.user.id;
-    const rebound = bindSquadProfileToAuthUser(eventId, authUserId);
-    if (rebound) setProfile(rebound);
+    void authUserId;
     setLoginOpen(false);
     const action = result.intendedAction ?? pendingAction;
     setPendingAction(null);
@@ -343,11 +375,7 @@ export function FestivalSquadExperience({
             </button>
           )}
           {auth.signedIn ? (
-            <button
-              type="button"
-              className="squad-text-action"
-              onClick={() => void auth.logout()}
-            >
+            <button type="button" className="squad-text-action" onClick={() => void auth.logout()}>
               Sign out
             </button>
           ) : null}
@@ -358,6 +386,13 @@ export function FestivalSquadExperience({
 
   return (
     <div className={`squad-page${heroEmbedded ? ' squad-page--embedded' : ''}`}>
+      <SquadFestivalPrelude
+        eventTitle={eventTitle}
+        metaLine={metaLine}
+        artistNames={artistNames}
+        copy={copy}
+      />
+
       {actions}
 
       <UnverifiedEmailNotice
@@ -384,7 +419,11 @@ export function FestivalSquadExperience({
           locale={locale}
           existing={profile}
           prefill={prefill}
-          onClose={() => setProfileOpen(false)}
+          errorMessage={saveError}
+          onClose={() => {
+            setSaveError('');
+            setProfileOpen(false);
+          }}
           onSave={(draft) => handleSaveProfile(draft, profile)}
         />
       ) : null}
@@ -400,192 +439,216 @@ export function FestivalSquadExperience({
 
       {!profileOpen && profile ? (
         <>
-          <section className="squad-chapter" aria-labelledby="squad-summary-title">
-            <p className="squad-chapter__kicker">{copy.summary.chapterKicker}</p>
-            <h2 id="squad-summary-title" className="squad-summary__title">
-              {justJoined ? copy.summary.joinedTitle : copy.summary.title}
-            </h2>
-            <p className="squad-chapter__lead">
-              {justJoined ? copy.summary.joinedLead : copy.summary.chapterLead}
-            </p>
-            <p className="squad-chapter__presence">{copy.summary.presence}</p>
-          </section>
-
-          <SquadFilterBar
+          <SquadPresenceControls
+            profile={profile}
             copy={copy}
-            filters={filters}
-            onChange={(next) => {
-              setFilters(next);
-              setSelectedMatchId(null);
-              track('squad_filter_applied', { event: String(eventId), locale });
+            onProfileChange={setProfile}
+            onProfileDeleted={() => {
+              setProfile(null);
+              setMatches([]);
+              setJustJoined(false);
             }}
           />
 
-          <section ref={pathRef} className="squad-path" aria-labelledby="squad-matches-title">
-            <h2 id="squad-matches-title" className="visually-hidden">
-              {copy.summary.title}
-            </h2>
-            <div className="squad-path__rail" aria-hidden />
-
-            <article className="squad-you-stop">
-              <p className="squad-you-stop__kicker">{copy.summary.youOnPath}</p>
-              <h3 className="squad-you-stop__name">{profile.displayName}</h3>
-              <p className="squad-you-stop__path">
-                {yourPathLine ||
-                  [
-                    originLabel(profile),
-                    copy.card.arriving.replace(
-                      '{date}',
-                      formatSquadDate(profile.arrivalDate, locale),
-                    ),
-                    copy.card.staying.replace('{place}', stayLabel(profile, copy)),
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
+          {profile.matchingPaused || profile.visibility.hideProfile ? (
+            <section className="squad-quiet-empty" aria-live="polite">
+              <p className="squad-quiet-empty__title">
+                {profile.visibility.hideProfile
+                  ? copy.presence.hiddenTitle
+                  : copy.presence.pausedTitle}
               </p>
-              {profile.favoriteArtists.length ? (
-                <p className="squad-you-stop__artists">
-                  {profile.favoriteArtists.slice(0, 3).join(' · ')}
+              <p className="squad-quiet-empty__lead">
+                {profile.visibility.hideProfile
+                  ? copy.presence.hiddenLead
+                  : copy.presence.pausedLead}
+              </p>
+            </section>
+          ) : (
+            <>
+              <section className="squad-chapter" aria-labelledby="squad-summary-title">
+                <p className="squad-chapter__kicker">{copy.summary.chapterKicker}</p>
+                <h2 id="squad-summary-title" className="squad-summary__title">
+                  {justJoined ? copy.summary.joinedTitle : copy.summary.title}
+                </h2>
+                <p className="squad-chapter__lead">
+                  {justJoined ? copy.summary.joinedLead : copy.summary.chapterLead}
                 </p>
-              ) : null}
-            </article>
+                <p className="squad-chapter__presence">{copy.summary.presence}</p>
+              </section>
 
-            {!travelers.length ? (
-              <div className="squad-quiet-empty">
-                <p className="squad-quiet-empty__title">{copy.empty.noTravelersTitle}</p>
-                <p className="squad-quiet-empty__lead">{copy.empty.noTravelersLead}</p>
-              </div>
-            ) : !filtered.length ? (
-              <div className="squad-quiet-empty">
-                <p className="squad-quiet-empty__title">{copy.empty.noMatchesTitle}</p>
-                <p className="squad-quiet-empty__lead">{copy.empty.noMatchesLead}</p>
-                <button
-                  type="button"
-                  className="squad-text-action"
-                  onClick={() => setFilters(DEFAULT_SQUAD_FILTERS)}
-                >
-                  {copy.empty.noMatchesCta}
-                </button>
-              </div>
-            ) : (
-              <ol className="squad-path__stops">
-                {featuredMatch ? (
-                  <li className="squad-path__stop squad-path__stop--featured">
-                    <TravelerMatchCard
-                      match={featuredMatch}
-                      locale={locale}
-                      copy={copy}
-                      featured
-                      open={selectedMatch?.profile.id === featuredMatch.profile.id}
-                      onToggle={() => {
-                        const open = selectedMatch?.profile.id === featuredMatch.profile.id;
-                        setSelectedMatchId(open ? null : featuredMatch.profile.id);
-                        if (!open) {
-                          track('squad_match_viewed', {
-                            event: String(eventId),
-                            locale,
-                            matchId: featuredMatch.profile.id,
-                          });
-                        }
-                      }}
+              <SquadFilterBar
+                copy={copy}
+                filters={filters}
+                onChange={(next) => {
+                  setFilters(next);
+                  setSelectedMatchId(null);
+                  track('squad_filter_applied', { event: String(eventId), locale });
+                }}
+              />
+
+              <section ref={pathRef} className="squad-path" aria-labelledby="squad-matches-title">
+                <h2 id="squad-matches-title" className="visually-hidden">
+                  {copy.summary.title}
+                </h2>
+                <div className="squad-path__rail" aria-hidden />
+
+                <article className="squad-you-stop">
+                  <p className="squad-you-stop__kicker">{copy.summary.youOnPath}</p>
+                  <h3 className="squad-you-stop__name">{profile.displayName}</h3>
+                  <p className="squad-you-stop__path">
+                    {yourPathLine ||
+                      [
+                        originLabel(profile),
+                        copy.card.arriving.replace(
+                          '{date}',
+                          formatSquadDate(profile.arrivalDate, locale),
+                        ),
+                        copy.card.staying.replace('{place}', stayLabel(profile, copy)),
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                  </p>
+                  {profile.favoriteArtists.length ? (
+                    <p className="squad-you-stop__artists">
+                      {profile.favoriteArtists.slice(0, 3).join(' · ')}
+                    </p>
+                  ) : null}
+                </article>
+
+                {!travelers.length ? (
+                  <div className="squad-quiet-empty">
+                    <p className="squad-quiet-empty__title">{copy.empty.noTravelersTitle}</p>
+                    <p className="squad-quiet-empty__lead">{copy.empty.noTravelersLead}</p>
+                  </div>
+                ) : !filtered.length ? (
+                  <div className="squad-quiet-empty">
+                    <p className="squad-quiet-empty__title">{copy.empty.noMatchesTitle}</p>
+                    <p className="squad-quiet-empty__lead">{copy.empty.noMatchesLead}</p>
+                    <button
+                      type="button"
+                      className="squad-text-action"
+                      onClick={() => setFilters(DEFAULT_SQUAD_FILTERS)}
                     >
-                      {selectedMatch?.profile.id === featuredMatch.profile.id ? (
-                        <MatchDetailPanel
-                          key={`${featuredMatch.profile.id}-${connectionTick}`}
+                      {copy.empty.noMatchesCta}
+                    </button>
+                  </div>
+                ) : (
+                  <ol className="squad-path__stops">
+                    {featuredMatch ? (
+                      <li className="squad-path__stop squad-path__stop--featured">
+                        <TravelerMatchCard
                           match={featuredMatch}
-                          viewer={profile}
                           locale={locale}
                           copy={copy}
-                          eventTitle={eventTitle}
-                          authUserId={auth.user?.id ?? null}
-                          signedIn={auth.signedIn}
-                          canSendConnectionRequest={
-                            auth.capabilities?.canSendConnectionRequest === true
-                          }
-                          autoCompose={resumeComposeMatchId === featuredMatch.profile.id}
-                          onAutoComposeConsumed={() => setResumeComposeMatchId(null)}
-                          onRequireAuth={() => requireAuth('send_connection_request')}
-                          onConnectionChange={() => setConnectionTick((n) => n + 1)}
-                        />
-                      ) : null}
-                    </TravelerMatchCard>
-                  </li>
-                ) : null}
+                          featured
+                          open={selectedMatch?.profile.id === featuredMatch.profile.id}
+                          onToggle={() => {
+                            const open = selectedMatch?.profile.id === featuredMatch.profile.id;
+                            setSelectedMatchId(open ? null : featuredMatch.profile.id);
+                            if (!open) {
+                              track('squad_match_viewed', {
+                                event: String(eventId),
+                                locale,
+                                matchId: featuredMatch.profile.id,
+                              });
+                            }
+                          }}
+                        >
+                          {selectedMatch?.profile.id === featuredMatch.profile.id ? (
+                            <MatchDetailPanel
+                              key={`${featuredMatch.profile.id}-${connectionTick}`}
+                              match={featuredMatch}
+                              viewer={profile}
+                              locale={locale}
+                              copy={copy}
+                              eventTitle={eventTitle}
+                              authUserId={auth.user?.id ?? null}
+                              signedIn={auth.signedIn}
+                              canSendConnectionRequest={
+                                auth.capabilities?.canSendConnectionRequest === true
+                              }
+                              autoCompose={resumeComposeMatchId === featuredMatch.profile.id}
+                              onAutoComposeConsumed={() => setResumeComposeMatchId(null)}
+                              onRequireAuth={() => requireAuth('send_connection_request')}
+                              onConnectionChange={() => setConnectionTick((n) => n + 1)}
+                            />
+                          ) : null}
+                        </TravelerMatchCard>
+                      </li>
+                    ) : null}
 
-                {echoMatches.map((match) => {
-                  const open = selectedMatch?.profile.id === match.profile.id;
-                  return (
-                    <li key={match.profile.id} className="squad-path__stop squad-path__stop--echo">
-                      <TravelerMatchCard
-                        match={match}
-                        locale={locale}
-                        copy={copy}
-                        echo
-                        open={open}
-                        onToggle={() => {
-                          setSelectedMatchId(open ? null : match.profile.id);
-                          if (!open) {
-                            track('squad_match_viewed', {
-                              event: String(eventId),
-                              locale,
-                              matchId: match.profile.id,
-                            });
-                          }
-                        }}
-                      >
-                        {open ? (
-                          <MatchDetailPanel
-                            key={`${match.profile.id}-${connectionTick}`}
+                    {echoMatches.map((match) => {
+                      const open = selectedMatch?.profile.id === match.profile.id;
+                      return (
+                        <li
+                          key={match.profile.id}
+                          className="squad-path__stop squad-path__stop--echo"
+                        >
+                          <TravelerMatchCard
                             match={match}
-                            viewer={profile}
                             locale={locale}
                             copy={copy}
-                            eventTitle={eventTitle}
-                            authUserId={auth.user?.id ?? null}
-                            signedIn={auth.signedIn}
-                            canSendConnectionRequest={
-                              auth.capabilities?.canSendConnectionRequest === true
-                            }
-                            autoCompose={resumeComposeMatchId === match.profile.id}
-                            onAutoComposeConsumed={() => setResumeComposeMatchId(null)}
-                            onRequireAuth={() => requireAuth('send_connection_request')}
-                            onConnectionChange={() => setConnectionTick((n) => n + 1)}
-                          />
-                        ) : null}
-                      </TravelerMatchCard>
-                    </li>
-                  );
-                })}
-              </ol>
-            )}
-
-            {filtered.length > 1 + ECHO_VISIBLE ? (
-              <p className="squad-path__more">
-                {copy.summary.moreOnPath.replace(
-                  '{count}',
-                  String(filtered.length - 1 - ECHO_VISIBLE),
+                            echo
+                            open={open}
+                            onToggle={() => {
+                              setSelectedMatchId(open ? null : match.profile.id);
+                              if (!open) {
+                                track('squad_match_viewed', {
+                                  event: String(eventId),
+                                  locale,
+                                  matchId: match.profile.id,
+                                });
+                              }
+                            }}
+                          >
+                            {open ? (
+                              <MatchDetailPanel
+                                key={`${match.profile.id}-${connectionTick}`}
+                                match={match}
+                                viewer={profile}
+                                locale={locale}
+                                copy={copy}
+                                eventTitle={eventTitle}
+                                authUserId={auth.user?.id ?? null}
+                                signedIn={auth.signedIn}
+                                canSendConnectionRequest={
+                                  auth.capabilities?.canSendConnectionRequest === true
+                                }
+                                autoCompose={resumeComposeMatchId === match.profile.id}
+                                onAutoComposeConsumed={() => setResumeComposeMatchId(null)}
+                                onRequireAuth={() => requireAuth('send_connection_request')}
+                                onConnectionChange={() => setConnectionTick((n) => n + 1)}
+                              />
+                            ) : null}
+                          </TravelerMatchCard>
+                        </li>
+                      );
+                    })}
+                  </ol>
                 )}
-              </p>
-            ) : null}
-          </section>
+
+                {filtered.length > 1 + ECHO_VISIBLE ? (
+                  <p className="squad-path__more">
+                    {copy.summary.moreOnPath.replace(
+                      '{count}',
+                      String(filtered.length - 1 - ECHO_VISIBLE),
+                    )}
+                  </p>
+                ) : null}
+              </section>
+              <SquadRequestInbox
+                eventId={eventId}
+                eventTitle={eventTitle}
+                locale={locale}
+                copy={copy}
+                refreshTick={connectionTick}
+              />
+            </>
+          )}
         </>
       ) : null}
 
-      {!profileOpen ? (
-        <>
-          <SquadSafetyNotice copy={copy} lookingFor={profile?.lookingFor} />
-          <aside className="squad-locked">
-            <TrackedLink
-              className="squad-text-action squad-locked__link"
-              href={`${localizedPath(locale, '/waitlist')}?event=${encodeURIComponent(eventTitle)}`}
-              eventName="festival_squad_waitlist_click"
-              eventProperties={{ event: String(eventId), locale }}
-            >
-              {copy.locked.cta}
-            </TrackedLink>
-          </aside>
-        </>
-      ) : null}
+      {!profileOpen ? <SquadSafetyNotice copy={copy} lookingFor={profile?.lookingFor} /> : null}
     </div>
   );
 }

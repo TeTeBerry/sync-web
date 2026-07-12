@@ -1078,11 +1078,7 @@
 }
 
 
-/* ── Plan page shell: hide demo when journey is live ── */
-.plan-page-shell__landing.is-collapsed {
-  display: none;
-}
-
+/* ── Plan page shell: immersive journey stage ── */
 .section--plan-immersive {
   padding: 0;
   border-top: none;

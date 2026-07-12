@@ -1,6 +1,6 @@
 import { parseActivityEndYmd, parseActivityStartYmd } from '../activity-date';
 import type { PlannerPreferences, StayPreference, TravelStyle, JourneyType, PersonalPriority } from '../planner-plan';
-import { lineupSelectionStorageKey } from '../lineup-selection';
+import { lineupSelectionStorageKey, readLineupSelection } from '../lineup-selection';
 import type {
   AccommodationStatus,
   AccommodationType,
@@ -245,7 +245,7 @@ export type StoredConnection = {
   eventId: number;
   intent: LookingForIntent;
   message: string;
-  status: 'sent' | 'accepted' | 'declined' | 'cancelled' | 'error';
+  status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'error';
   createdAt: string;
   updatedAt: string;
 };
@@ -523,4 +523,16 @@ export function readLineupArtistNames(
   } catch {
     return [];
   }
+}
+
+/** Stable catalog ids only. Unknown/B2B lineup entries are explicit unresolved data, never names. */
+export function readLineupArtistIds(eventId: number, nameById: Map<string, string> | Record<string, string>): { ids: string[]; unresolved: Array<{ lineupEntryId: string; status: 'unresolved' }> } {
+  const lookup = nameById instanceof Map ? nameById : new Map(Object.entries(nameById));
+  const ids = new Set<string>(); const unresolved: Array<{ lineupEntryId: string; status: 'unresolved' }> = [];
+  for (const raw of readLineupSelection(eventId)) {
+    const artistId = raw.includes('@') ? raw.slice(0, raw.indexOf('@')) : raw;
+    if (lookup.has(artistId)) ids.add(artistId);
+    else if (artistId) unresolved.push({ lineupEntryId: artistId, status: 'unresolved' });
+  }
+  return { ids: [...ids], unresolved: [...new Map(unresolved.map((item) => [item.lineupEntryId, item])).values()] };
 }

@@ -15,26 +15,19 @@ export type {
   SquadMatch,
 } from './types';
 
-export {
-  DEFAULT_SQUAD_FILTERS,
-  DEFAULT_VISIBILITY,
-} from './types';
+export { DEFAULT_SQUAD_FILTERS, DEFAULT_VISIBILITY } from './types';
 
 export {
   chineseMatchReasonCopy,
   englishMatchReasonCopy,
+  localizeMatchReasonCodes,
   matchReasonCopyFromMessages,
   rankSquadMatches,
   scoreSquadMatch,
 } from './matching';
 
 export { applySquadFilters, summarizeMatches } from './filters';
-export {
-  DEFAULT_MOCK_STATS,
-  addDaysYmd,
-  getMockSquadStats,
-  getMockTravelers,
-} from './mock-data';
+export { DEFAULT_MOCK_STATS, addDaysYmd, getMockSquadStats, getMockTravelers } from './mock-data';
 export type { MockFestivalDateRange } from './mock-data';
 export {
   buildPrefillSquadProfile,
@@ -47,6 +40,7 @@ export {
   normalizeSquadProfile,
   readConnections,
   readLineupArtistNames,
+  readLineupArtistIds,
   readPlannerPreferences,
   readSquadProfile,
   resolveFestivalEndYmd,
@@ -57,4 +51,14 @@ export {
 } from './repository';
 export { useFocusTrap } from './use-focus-trap';
 export { useBodyScrollLock } from './use-body-scroll-lock';
-
+export {
+  createConnectionRequest,
+  deleteSquadProfile,
+  getConnectionRequests,
+  getSquadMatches,
+  getSquadProfile,
+  getSquadStats,
+  respondToConnectionRequest,
+  saveSquadProfile,
+  updateSquadProfileSettings,
+} from './api';

@@ -314,3 +314,71 @@ export function chineseMatchReasonCopy(): MatchReasonCopy {
     budgetMismatch: '预算档位差距较大',
   });
 }
+
+/** Map Nest matcher reason codes to localized display strings. */
+export function localizeMatchReasonCodes(
+  codes: string[],
+  copy: {
+    sameFestival?: string;
+    sameArrivalDay: string;
+    arrivalWithinOneDay: string;
+    sameAccommodation: string;
+    sameAccommodationType: string;
+    similarBudget: string;
+    sameOriginCity: string;
+    sameOriginCountry: string;
+    sharedArtistsOne: string;
+    sharedArtistsMany: string;
+    sharedGenresOne: string;
+    sharedGenresMany: string;
+    sameLookingFor: string;
+    bothFirstTime: string;
+    compatibleGroupSize: string;
+    arrivalMismatch: string;
+    budgetMismatch: string;
+  },
+  counts?: { artists?: number; genres?: number },
+): string[] {
+  const artists = counts?.artists ?? 0;
+  const genres = counts?.genres ?? 0;
+  return codes.map((code) => {
+    switch (code) {
+      case 'sameFestival':
+        return copy.sameFestival ?? copy.sameLookingFor;
+      case 'sameArrivalDay':
+        return copy.sameArrivalDay;
+      case 'arrivalWithinOneDay':
+        return copy.arrivalWithinOneDay;
+      case 'sameAccommodation':
+        return copy.sameAccommodation;
+      case 'sameAccommodationType':
+        return copy.sameAccommodationType;
+      case 'similarBudget':
+        return copy.similarBudget;
+      case 'sameOriginCity':
+        return copy.sameOriginCity;
+      case 'sameOriginCountry':
+        return copy.sameOriginCountry;
+      case 'sharedArtistsOne':
+        return copy.sharedArtistsOne;
+      case 'sharedArtistsMany':
+        return copy.sharedArtistsMany.replace('{count}', String(artists));
+      case 'sharedGenresOne':
+        return copy.sharedGenresOne;
+      case 'sharedGenresMany':
+        return copy.sharedGenresMany.replace('{count}', String(genres));
+      case 'sameLookingFor':
+        return copy.sameLookingFor;
+      case 'bothFirstTime':
+        return copy.bothFirstTime;
+      case 'compatibleGroupSize':
+        return copy.compatibleGroupSize;
+      case 'arrivalMismatch':
+        return copy.arrivalMismatch;
+      case 'budgetMismatch':
+        return copy.budgetMismatch;
+      default:
+        return code;
+    }
+  });
+}

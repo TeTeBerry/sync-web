@@ -45,6 +45,8 @@ export type FestivalSquadProfile = {
   firstTimeAttendee?: boolean;
   shortNote?: string;
   visibility: ProfileVisibility;
+  /** Removes this profile from new-match discovery without deleting it. */
+  matchingPaused?: boolean;
   roommatePreferences?: RoommatePreferences;
   createdAt: string;
   updatedAt: string;
@@ -56,7 +58,7 @@ export type FestivalSquadProfile = {
 export type ConnectionRequestStatus =
   | 'not_sent'
   | 'sending'
-  | 'sent'
+  | 'pending'
   | 'accepted'
   | 'declined'
   | 'cancelled'
@@ -72,14 +74,12 @@ export type SquadConnectionRequest = {
   status: ConnectionRequestStatus;
   createdAt: string;
   updatedAt: string;
+  counterpart?: FestivalSquadProfile;
+  sharedArtistIds?: string[];
+  reasons?: string[];
 };
 
-export type MatchCompatibilityLabel =
-  | 'excellent'
-  | 'strong'
-  | 'good'
-  | 'some_shared'
-  | 'sparse';
+export type MatchCompatibilityLabel = 'excellent' | 'strong' | 'good' | 'some_shared' | 'sparse';
 
 export type SquadMatch = {
   profile: FestivalSquadProfile;

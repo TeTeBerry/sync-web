@@ -3,8 +3,8 @@
 import { useEffect, useId, useState } from 'react';
 import { track } from '@vercel/analytics';
 import {
-  getConnectionTo,
-  upsertConnection,
+  createConnectionRequest,
+  getConnectionRequests,
   type FestivalSquadProfile,
   type SquadMatch,
 } from '../../lib/festival-squad';
@@ -57,7 +57,7 @@ export function MatchDetailPanel({
 }: MatchDetailPanelProps) {
   const titleId = useId();
   const p = match.profile;
-  const existing = getConnectionTo(viewer.eventId, viewer.id, p.id);
+  const [existing, setExisting] = useState<import('../../lib/festival-squad').SquadConnectionRequest | null>(null);
   const acceptsRequests = p.visibility.allowConnectionRequests !== false;
   const intent =
     p.lookingFor.find((item) => viewer.lookingFor.includes(item)) ??
@@ -76,6 +76,13 @@ export function MatchDetailPanel({
     'idle',
   );
   const [viewBlocked, setViewBlocked] = useState(false);
+
+  useEffect(() => {
+    if (!signedIn) return;
+    void getConnectionRequests().then(({ sent }) => {
+      setExisting(sent.find((item) => item.senderProfileId === viewer.id && item.receiverProfileId === p.id) ?? null);
+    }).catch(() => setExisting(null));
+  }, [signedIn, viewer.id, p.id]);
 
   useEffect(() => {
     setComposing(false);
@@ -136,21 +143,13 @@ export function MatchDetailPanel({
         return;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 350));
-      upsertConnection({
-        id:
-          typeof crypto !== 'undefined' && 'randomUUID' in crypto
-            ? crypto.randomUUID()
-            : `req-${Date.now()}`,
-        senderProfileId: viewer.id,
+      const created = await createConnectionRequest({
         receiverProfileId: p.id,
         eventId: viewer.eventId,
         intent,
         message: message.trim().slice(0, REQUEST_MESSAGE_MAX),
-        status: 'sent',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       });
+      setExisting(created);
       track('squad_connection_requested', {
         event: String(viewer.eventId),
         locale,
@@ -222,22 +221,6 @@ export function MatchDetailPanel({
                 ? copy.request.declined
                 : copy.request.sent}
           </p>
-          {existing.status === 'sent' ? (
-            <button
-              type="button"
-              className="squad-text-action"
-              onClick={() => {
-                upsertConnection({
-                  ...existing,
-                  status: 'cancelled',
-                  updatedAt: new Date().toISOString(),
-                });
-                onConnectionChange();
-              }}
-            >
-              {copy.request.cancel}
-            </button>
-          ) : null}
         </div>
       ) : composing ? (
         <div className="squad-hello">

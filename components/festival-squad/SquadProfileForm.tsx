@@ -5,6 +5,7 @@ import {
   type AccommodationStatus,
   type AccommodationType,
   type BudgetLevel,
+  DEFAULT_VISIBILITY,
   type FestivalSquadProfile,
   type LookingForIntent,
 } from '../../lib/festival-squad';
@@ -16,8 +17,9 @@ type SquadProfileFormProps = {
   locale: Locale;
   existing: FestivalSquadProfile | null;
   prefill: Partial<FestivalSquadProfile>;
+  errorMessage?: string;
   onClose: () => void;
-  onSave: (draft: Partial<FestivalSquadProfile>) => void;
+  onSave: (draft: Partial<FestivalSquadProfile>) => void | Promise<void>;
 };
 
 /** Two beats: who you are on this journey, then optional details. */
@@ -26,12 +28,14 @@ export function SquadProfileForm({
   locale,
   existing,
   prefill,
+  errorMessage,
   onClose,
   onSave,
 }: SquadProfileFormProps) {
   const titleId = useId();
   const sceneRef = useRef<HTMLDivElement>(null);
   const seed = existing ?? prefill;
+  const visibility = seed.visibility ?? DEFAULT_VISIBILITY;
 
   const [displayName, setDisplayName] = useState(seed.displayName ?? '');
   const [originCity, setOriginCity] = useState(seed.originCity ?? '');
@@ -49,7 +53,7 @@ export function SquadProfileForm({
   );
   const [accommodationName, setAccommodationName] = useState(seed.accommodationName ?? '');
   const [budgetLevel, setBudgetLevel] = useState<BudgetLevel>(seed.budgetLevel ?? 'comfort');
-  const [favoriteArtists, setFavoriteArtists] = useState((seed.favoriteArtists ?? []).join(', '));
+  const [favoriteArtists] = useState((seed.favoriteArtists ?? []).join(', '));
   const [shortNote, setShortNote] = useState(seed.shortNote ?? '');
   const [allowRequests, setAllowRequests] = useState(
     seed.visibility?.allowConnectionRequests !== false,
@@ -72,12 +76,8 @@ export function SquadProfileForm({
             .map((item) => item.trim())
             .filter(Boolean),
           visibility: {
-            showExactCity: true,
-            showCountryOnly: false,
-            showAccommodationName: Boolean(accommodationName),
-            showAccommodationTypeOnly: !accommodationName,
+            ...visibility,
             allowConnectionRequests: allowRequests,
-            hideProfile: false,
           },
         },
         locale,
@@ -93,6 +93,7 @@ export function SquadProfileForm({
       budgetLevel,
       favoriteArtists,
       allowRequests,
+      visibility,
       locale,
       copy,
     ],
@@ -100,7 +101,7 @@ export function SquadProfileForm({
 
   const hasPrefillJourney = Boolean(
     !existing &&
-      (prefill.originCity || prefill.arrivalDate || (prefill.favoriteArtists?.length ?? 0) > 0),
+    (prefill.originCity || prefill.arrivalDate || (prefill.favoriteArtists?.length ?? 0) > 0),
   );
 
   const needsOrigin = !originCity.trim();
@@ -151,36 +152,36 @@ export function SquadProfileForm({
         aria-labelledby={titleId}
         onSubmit={(event) => {
           event.preventDefault();
-          if (!canSave) return;
+          if (!canSave || saving) return;
           setSaving(true);
-          onSave({
-            displayName: displayName.trim(),
-            originCity: originCity.trim(),
-            originCountry: originCountry.trim() || undefined,
-            arrivalDate,
-            departureDate,
-            lookingFor,
-            accommodationStatus,
-            accommodationType,
-            accommodationName: accommodationName.trim() || undefined,
-            budgetLevel,
-            favoriteArtists: favoriteArtists
-              .split(',')
-              .map((item) => item.trim())
-              .filter(Boolean),
-            favoriteGenres: seed.favoriteGenres ?? [],
-            firstTimeAttendee: Boolean(seed.firstTimeAttendee),
-            shortNote: shortNote.trim() || undefined,
-            groupSize: seed.groupSize ?? 1,
-            visibility: {
-              showExactCity: true,
-              showCountryOnly: false,
-              showAccommodationName: Boolean(accommodationName.trim()),
-              showAccommodationTypeOnly: !accommodationName.trim(),
-              allowConnectionRequests: allowRequests,
-              hideProfile: false,
-            },
-          });
+          void Promise.resolve(
+            onSave({
+              displayName: displayName.trim(),
+              originCity: originCity.trim(),
+              originCountry: originCountry.trim() || undefined,
+              arrivalDate,
+              departureDate,
+              lookingFor,
+              accommodationStatus,
+              accommodationType,
+              accommodationName: accommodationName.trim() || undefined,
+              budgetLevel,
+              favoriteArtists: favoriteArtists
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean),
+              favoriteGenres: seed.favoriteGenres ?? [],
+              firstTimeAttendee: Boolean(seed.firstTimeAttendee),
+              shortNote: shortNote.trim() || undefined,
+              groupSize: seed.groupSize ?? 1,
+              visibility: {
+                ...visibility,
+                allowConnectionRequests: allowRequests,
+              },
+            }),
+          )
+            .catch(() => undefined)
+            .finally(() => setSaving(false));
         }}
       >
         {journeyPreview ? (
@@ -218,15 +219,20 @@ export function SquadProfileForm({
           </div>
         </fieldset>
 
-        <label className="squad-form__label">
-          {copy.profile.favoriteArtists}
-          <input
-            className="squad-form__input"
-            value={favoriteArtists}
-            onChange={(event) => setFavoriteArtists(event.target.value)}
-            placeholder={copy.profile.artistsHint}
-          />
-        </label>
+        <div className="squad-profile-artists">
+          <p className="squad-profile-artists__label">{copy.profile.favoriteArtists}</p>
+          {favoriteArtists ? (
+            <p className="squad-profile-artists__names">
+              {favoriteArtists
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          ) : (
+            <p className="squad-profile-artists__empty">{copy.profile.artistsEmpty}</p>
+          )}
+        </div>
 
         <details className="squad-form__disclosure" open={needsOrigin || needsDates}>
           <summary>{copy.profile.adjustJourney}</summary>
@@ -328,6 +334,11 @@ export function SquadProfileForm({
             {saving ? copy.profile.saving : copy.profile.save}
           </button>
         </footer>
+        {errorMessage ? (
+          <p className="squad-form__error" role="alert">
+            {errorMessage}
+          </p>
+        ) : null}
       </form>
     </div>
   );

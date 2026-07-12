@@ -16,9 +16,7 @@ export function normalizeLocale(value?: string): Locale {
 }
 
 /** loading.tsx does not receive route params — resolve locale from params, proxy header, or default. */
-export async function resolveLoadingLocale(
-  params?: Promise<{ locale?: string }>,
-): Promise<Locale> {
+export async function resolveLoadingLocale(params?: Promise<{ locale?: string }>): Promise<Locale> {
   if (params) {
     const resolved = await params;
     if (resolved?.locale && isLocale(resolved.locale)) {
@@ -104,12 +102,27 @@ export const messages = {
           { id: 'calendar' as const, label: '日历' },
         ],
         trip: {
-          flight: { label: '抵达', route: '曼谷 → 普吉 · 12/11', detail: 'AirAsia · 07:40 出发' },
-          hotel: { label: '住近现场', name: 'Rhythm Park 附近', detail: '2 晚 · 含接驳' },
-          shuttle: { label: '回程', route: '酒店 ↔ 电音节场地', detail: '每日 16:00 / 02:30' },
+          flight: {
+            label: '抵达',
+            route: '曼谷 → 普吉 · 12/11',
+            detail: 'AirAsia · 07:40 出发',
+          },
+          hotel: {
+            label: '住近现场',
+            name: 'Rhythm Park 附近',
+            detail: '2 晚 · 含接驳',
+          },
+          shuttle: {
+            label: '回程',
+            route: '酒店 ↔ 电音节场地',
+            detail: '每日 16:00 / 02:30',
+          },
           days: [
             { label: 'Day 1', summary: '主舞台黄金时段 · 场地接驳 · 夜场收尾' },
-            { label: 'Day 2', summary: 'Deep House 分区 · 朋友会合 · 凌晨返程' },
+            {
+              label: 'Day 2',
+              summary: 'Deep House 分区 · 朋友会合 · 凌晨返程',
+            },
             { label: 'Day 3', summary: '轻松离场 · 曼谷返程 · 缓冲日' },
           ],
         },
@@ -129,15 +142,29 @@ export const messages = {
             {
               label: '12/12 · Day 1',
               sets: [
-                { time: '18:30', artist: 'Charlotte de Witte', stage: 'Main Stage', highlight: true },
+                {
+                  time: '18:30',
+                  artist: 'Charlotte de Witte',
+                  stage: 'Main Stage',
+                  highlight: true,
+                },
                 { time: '21:00', artist: 'Amelie Lens', stage: 'Main Stage' },
-                { time: '23:30', artist: 'I Hate Models', stage: 'Freedom Stage' },
+                {
+                  time: '23:30',
+                  artist: 'I Hate Models',
+                  stage: 'Freedom Stage',
+                },
               ],
             },
             {
               label: '12/13 · Day 2',
               sets: [
-                { time: '19:00', artist: 'FISHER', stage: 'Main Stage', highlight: true },
+                {
+                  time: '19:00',
+                  artist: 'FISHER',
+                  stage: 'Main Stage',
+                  highlight: true,
+                },
                 { time: '22:00', artist: 'Dixon', stage: 'Deep House Garden' },
                 { time: '01:00', artist: 'Mochakk', stage: 'Freedom Stage' },
               ],
@@ -148,8 +175,14 @@ export const messages = {
           progress: '8 / 12',
           progressLabel: '行李已备好',
           groups: [
-            { name: '必备', items: ['护照 / 身份证件', '电子票 QR 码', '防水手机袋', '充电宝'] },
-            { name: '现场', items: ['舒适运动鞋', '轻薄雨衣', '耳塞', '现金与交通卡'] },
+            {
+              name: '必备',
+              items: ['护照 / 身份证件', '电子票 QR 码', '防水手机袋', '充电宝'],
+            },
+            {
+              name: '现场',
+              items: ['舒适运动鞋', '轻薄雨衣', '耳塞', '现金与交通卡'],
+            },
           ],
         },
         calendar: {
@@ -184,12 +217,10 @@ export const messages = {
         ],
         budget: { label: '人均', value: '¥4,200' },
         chips: ['3 天', '曼谷接驳', '3 人', '¥4.2k'],
-        ariaLabel:
-          'Raven AI 示例：根据用户描述生成 3 天 Tomorrowland 泰国行程，含每日安排与预算',
+        ariaLabel: 'Raven AI 示例：根据用户描述生成 3 天 Tomorrowland 泰国行程，含每日安排与预算',
       },
       heroFlow: {
-        ariaLabel:
-          'Raven 产品流程演示：发现电音节、挑选 DJ、生成计划、查看行程报告、同步到日历',
+        ariaLabel: 'Raven 产品流程演示：发现电音节、挑选 DJ、生成计划、查看行程报告、同步到日历',
         steps: [
           { label: '发现电音节' },
           { label: '挑选 DJ' },
@@ -200,7 +231,12 @@ export const messages = {
         discovery: {
           title: '电音节',
           festivals: [
-            { name: 'EDC Thailand 2026', date: '12/18–20', location: '普吉', tag: '户外' },
+            {
+              name: 'EDC Thailand 2026',
+              date: '12/18–20',
+              location: '普吉',
+              tag: '户外',
+            },
             {
               name: 'Tomorrowland Thailand',
               date: '12/12–14',
@@ -208,7 +244,12 @@ export const messages = {
               tag: '热门',
               featured: true,
             },
-            { name: 'Ultra Korea', date: '2026/06', location: '首尔', tag: '海外' },
+            {
+              name: 'Ultra Korea',
+              date: '2026/06',
+              location: '首尔',
+              tag: '海外',
+            },
           ],
         },
         lineup: {
@@ -231,7 +272,12 @@ export const messages = {
           meta: 'Tomorrowland Thailand · 12/12–14 · 3 人',
           rows: [
             { icon: '✈', label: '航班', value: '曼谷 → 普吉' },
-            { icon: '🎵', label: '电音节时间线', value: '12 场已标记', highlight: true },
+            {
+              icon: '🎵',
+              label: '电音节时间线',
+              value: '12 场已标记',
+              highlight: true,
+            },
             { icon: '💰', label: '预算', value: '人均 ¥4,200' },
           ],
         },
@@ -279,7 +325,12 @@ export const messages = {
         sections: [
           { icon: '✈', label: '航班', value: '曼谷 → 普吉 · 12/11' },
           { icon: '🏨', label: '酒店', value: 'Rhythm Park 附近 · 2 晚' },
-          { icon: '🎵', label: '电音节时间线', value: '12 场 Set 已标记', highlight: true },
+          {
+            icon: '🎵',
+            label: '电音节时间线',
+            value: '12 场 Set 已标记',
+            highlight: true,
+          },
           { icon: '💰', label: '预算', value: '人均 ¥4,200' },
           { icon: '🎒', label: '行李清单', value: '8 项已备好' },
           { icon: '⚠', label: '本地贴士', value: '5 条注意事项' },
@@ -298,7 +349,11 @@ export const messages = {
             items: [
               { time: '14:00', label: '机场接驳', kind: 'logistics' as const },
               { time: '17:00', label: 'Hotel', kind: 'logistics' as const },
-              { time: '18:30', label: 'Martin Garrix', kind: 'artist' as const },
+              {
+                time: '18:30',
+                label: 'Martin Garrix',
+                kind: 'artist' as const,
+              },
               { time: '20:30', label: 'KSHMR', kind: 'artist' as const },
               { time: '22:00', label: 'Maddix', kind: 'artist' as const },
             ],
@@ -307,9 +362,17 @@ export const messages = {
             label: '周六',
             items: [
               { time: '16:00', label: '场地接驳', kind: 'logistics' as const },
-              { time: '19:00', label: 'Charlotte de Witte', kind: 'artist' as const },
+              {
+                time: '19:00',
+                label: 'Charlotte de Witte',
+                kind: 'artist' as const,
+              },
               { time: '21:00', label: 'Amelie Lens', kind: 'artist' as const },
-              { time: '23:30', label: 'I Hate Models', kind: 'artist' as const },
+              {
+                time: '23:30',
+                label: 'I Hate Models',
+                kind: 'artist' as const,
+              },
               { time: '01:00', label: '返程大巴', kind: 'logistics' as const },
             ],
           },
@@ -469,8 +532,7 @@ export const messages = {
     waitlist: {
       title: '等候名单',
       seoTitle: '留下位置 | Raven',
-      description:
-        '进入 Raven 的电音节旅程。在大门打开之前，为你心中的旅程留下一个安静的位置。',
+      description: '进入 Raven 的电音节旅程。在大门打开之前，为你心中的旅程留下一个安静的位置。',
       headingLine1: '你的下一段旅程，',
       headingLine2: '从这里进入',
       headingFestivalLine1: '这段旅程，',
@@ -945,8 +1007,14 @@ export const messages = {
           question: '什么对你最重要？',
           lead: '可多选 — Raven 会据此调整你的体验。',
           options: {
-            artists: { title: '看到最爱的艺人', description: '优先安排 Must-see Set' },
-            discover: { title: '发现新艺人', description: '探索未知风格与舞台' },
+            artists: {
+              title: '看到最爱的艺人',
+              description: '优先安排 Must-see Set',
+            },
+            discover: {
+              title: '发现新艺人',
+              description: '探索未知风格与舞台',
+            },
             party: { title: '彻夜狂欢', description: '从日落跳到日出' },
             city: { title: '探索城市', description: '电音节之外的城市体验' },
             people: { title: '认识新朋友', description: '社交与结识同好' },
@@ -965,12 +1033,7 @@ export const messages = {
         title: 'Raven 正在创建你的电音节体验',
         lead: '基于你的艺人、偏好和这场电音节的数据。',
         festivalContext: '{festival} 的旅程',
-        steps: [
-          '准备你的旅程数据',
-          '挑选合适入住地',
-          '寻找合适航班路线',
-          '组装你的 festival 旅程',
-        ],
+        steps: ['准备你的旅程数据', '挑选合适入住地', '寻找合适航班路线', '组装你的 festival 旅程'],
         error: {
           eyebrow: '旅程暂时停靠',
           title: '再试一次，继续向现场靠近',
@@ -1035,7 +1098,7 @@ export const messages = {
         livePriceUnavailable: '实时价格暂不可用',
         moreStayOptions: '其他住宿选择',
         moreFlightOptions: '其他航班选择',
-        moreMusicDetail: '阵容细节',
+        moreMusicDetail: '行程细节',
         timelineKicker: '日程',
         timelineTitle: '这几天怎么走',
         budgetKicker: '心里有数',
@@ -1222,6 +1285,13 @@ export const messages = {
         editProfile: '调整旅程',
         createProfile: '分享你的旅程',
       },
+      prelude: {
+        kicker: '同一个周末',
+        title: '音乐正在把你们带到同一个地方。',
+        lead: '在 {festival}，抵达、舞台与同行的人，正在汇成同一段旅程。',
+        musicLabel: '已经在空气里的名字',
+        musicFallback: '阵容的第一声回响即将到来',
+      },
       arrival: {
         presence: '旅人已在路上，朝同一场节汇聚。',
         title: '先感受这场旅程的同行节奏',
@@ -1245,6 +1315,7 @@ export const messages = {
       },
       filters: {
         title: '按旅程收窄',
+        pathKicker: '让路径更清楚',
         whisper: '此刻你想遇见怎样的同行？',
         open: '再细一点',
         openActive: '已收窄 {count} 项',
@@ -1308,6 +1379,7 @@ export const messages = {
         sparse: '部分偏好相近',
       },
       matchReasons: {
+        sameFestival: '同一场音乐节',
         sameArrivalDay: '同一天抵达',
         arrivalWithinOneDay: '抵达日相差一天内',
         sameAccommodation: '住宿相同',
@@ -1354,8 +1426,7 @@ export const messages = {
         messageLabel: '招呼',
         templates: '推荐开场',
         intro: '你好，我也准备去 {festival}，从 {city} 出发，预计 {date} 抵达。',
-        templateRoommate:
-          '你好，我也在找这场活动的室友。我们的旅行日期和住宿偏好看起来很接近。',
+        templateRoommate: '你好，我也在找这场活动的室友。我们的旅行日期和住宿偏好看起来很接近。',
         templateBuddy: '你好，我们好像有几位共同喜欢的艺人。现场要不要一起看看？',
         templateRide: '你好，我们抵达时间差不多。要不要一起安排去现场的交通？',
         templateGroup: '你好，我也在找一小队一起走完这场旅程。看看我们的计划合不合拍？',
@@ -1391,6 +1462,7 @@ export const messages = {
         budgetLevel: '预算档位',
         favoriteArtists: '这场节你想听谁',
         artistsHint: '用逗号分开，例如 Hardwell, Maddix',
+        artistsEmpty: '先去阵容里标记想看的艺人，Raven 会把它们带进这段旅程。',
         favoriteGenres: '喜欢的曲风（可选）',
         firstTime: '首次参加这场活动',
         shortNote: '简短备注（可选）',
@@ -1437,6 +1509,73 @@ export const messages = {
         open: '了解安全建议',
         roommateHint: '找室友时，先保持对话在 Raven 内，确认住宿与费用前先当面或视频核实。',
       },
+      presence: {
+        kicker: '你的存在方式',
+        title: '让这条路径保持刚刚好',
+        open: '调整',
+        visibilityTitle: '在路上留下什么',
+        visibilityLead: '只分享让同行相遇所需要的线索。',
+        city: '显示出发城市',
+        country: '只显示国家 / 地区',
+        journeyOnly: '只保留旅程信息',
+        stayTitle: '显示住宿名称',
+        stayLead: '否则只显示住宿类型。',
+        hellosTitle: '接收新的招呼',
+        hellosLead: '关闭后，新的同行不能向你发起连接。',
+        pauseTitle: '暂停匹配',
+        pauseLead: '暂时离开新的匹配；你的旅程仍会保留。',
+        hideTitle: '隐藏这段旅程',
+        hideLead: '不再出现在其他人的新匹配中。',
+        deleteTitle: '删除这段旅程',
+        deleteConfirm: '删除后，这场节的资料与新的匹配会一起离开。',
+        deleteConfirmCta: '确认删除',
+        saved: '这条路径已更新。',
+        error: '这次没有更新成功，请再试一次。',
+        pausedTitle: '你的旅程暂时离开了匹配路径',
+        pausedLead: '随时回来继续寻找同行；资料会留在这里。',
+        hiddenTitle: '这段旅程已隐藏',
+        hiddenLead: '其他旅人暂时不会在新的匹配里看见它。',
+      },
+      inbox: {
+        kicker: '路上的回声',
+        title: '有人正向你的旅程靠近',
+        lead: '招呼、回应与已经相连的旅程，都留在这场节的路径上。',
+        loading: '正在听这条路上的回声…',
+        errorTitle: '这条路暂时安静了',
+        errorLead: '连接没有加载出来。再听一次就好。',
+        retry: '再听一次',
+        pendingCount: '{count} 个新招呼',
+        connectedTitle: '已经相连',
+        connectedEyebrow: '你们的路径相遇了',
+        connectedWith: '你和 {name} 已经相连',
+        receivedTitle: '向你走来的招呼',
+        sentTitle: '你送出的招呼',
+        receivedEmpty: '还没有人走近。你的旅程仍在被看见。',
+        sentEmpty: '你还没有送出招呼。先听听离你最近的旅程。',
+        travelerFallback: '一位同行旅人',
+        originPrivate: '出发地未公开',
+        accept: '让旅程相连',
+        decline: '轻轻婉拒',
+        cancel: '收回招呼',
+        actionFailed: '这次没有完成，请再试一次。',
+        feedback: {
+          accepted: '你们的旅程已经相连。',
+          declined: '招呼已婉拒。',
+          cancelled: '招呼已收回。',
+        },
+        status: {
+          not_sent: '尚未送出',
+          sending: '正在送出',
+          pending: '等待回应',
+          accepted: '已经相连',
+          declined: '已婉拒',
+          cancelled: '已收回',
+          error: '未送达',
+        },
+        messagingUnavailable: '对话将在未来的更新中到来。',
+        safety:
+          '先把沟通留在 Raven 内；独立核实预订，第一次在公共场合见面，确认对方身份前不要转账。',
+      },
       page: {
         seoTitle: '节伴小队 | {festival}',
         seoDescription: '为 {festival} 找到旅程相近的同行者——室友、伙伴与拼车。',
@@ -1455,10 +1594,8 @@ export const messages = {
       success: '你已登录。',
       unavailable: '邮箱登录暂时不可用，请稍后再试。',
       invalidEmail: '请输入有效的邮箱地址。',
-      footer:
-        '当前早期体验版使用仅邮箱登录。正式上线消息与预订功能前，会加入邮箱验证。',
-      unverifiedNotice:
-        '你已登录。邮箱尚未验证——开通消息与预订功能前，需要完成验证。',
+      footer: '当前早期体验版使用仅邮箱登录。正式上线消息与预订功能前，会加入邮箱验证。',
+      unverifiedNotice: '你已登录。邮箱尚未验证——开通消息与预订功能前，需要完成验证。',
       errors: {
         invalid_email: '请输入有效的邮箱地址。',
         rate_limited: '尝试次数过多，请稍后再试。',
@@ -1541,7 +1678,8 @@ export const messages = {
       exploreCta: 'Browse festivals',
       promiseLead: 'Not a feature list. A path from first spark to final set.',
       plannerTitle: 'The whole journey starts to glow',
-      plannerLead: 'Tomorrowland Thailand. Arrival, stay, must-see sets — a journey you can already picture.',
+      plannerLead:
+        'Tomorrowland Thailand. Arrival, stay, must-see sets — a journey you can already picture.',
       worldsEyebrow: 'Another world',
       worldsExplore: 'Explore more journeys',
       dashboard: {
@@ -1558,13 +1696,34 @@ export const messages = {
           { id: 'calendar' as const, label: 'Calendar' },
         ],
         trip: {
-          flight: { label: 'Arrival', route: 'BKK → HKT · Dec 11', detail: 'AirAsia · departs 07:40' },
-          hotel: { label: 'Stay close', name: 'Near Rhythm Park', detail: '2 nights · shuttle included' },
-          shuttle: { label: 'Way home', route: 'Hotel ↔ festival site', detail: 'Daily 16:00 / 02:30' },
+          flight: {
+            label: 'Arrival',
+            route: 'BKK → HKT · Dec 11',
+            detail: 'AirAsia · departs 07:40',
+          },
+          hotel: {
+            label: 'Stay close',
+            name: 'Near Rhythm Park',
+            detail: '2 nights · shuttle included',
+          },
+          shuttle: {
+            label: 'Way home',
+            route: 'Hotel ↔ festival site',
+            detail: 'Daily 16:00 / 02:30',
+          },
           days: [
-            { label: 'Day 1', summary: 'Main stage prime time · venue shuttle · late sets' },
-            { label: 'Day 2', summary: 'Deep house stages · crew meetup · after-hours' },
-            { label: 'Day 3', summary: 'Easy exit · return to Bangkok · buffer day' },
+            {
+              label: 'Day 1',
+              summary: 'Main stage prime time · venue shuttle · late sets',
+            },
+            {
+              label: 'Day 2',
+              summary: 'Deep house stages · crew meetup · after-hours',
+            },
+            {
+              label: 'Day 3',
+              summary: 'Easy exit · return to Bangkok · buffer day',
+            },
           ],
         },
         budget: {
@@ -1583,16 +1742,34 @@ export const messages = {
             {
               label: 'Dec 12 · Day 1',
               sets: [
-                { time: '6:30 PM', artist: 'Charlotte de Witte', stage: 'Main Stage', highlight: true },
+                {
+                  time: '6:30 PM',
+                  artist: 'Charlotte de Witte',
+                  stage: 'Main Stage',
+                  highlight: true,
+                },
                 { time: '9:00 PM', artist: 'Amelie Lens', stage: 'Main Stage' },
-                { time: '11:30 PM', artist: 'I Hate Models', stage: 'Freedom Stage' },
+                {
+                  time: '11:30 PM',
+                  artist: 'I Hate Models',
+                  stage: 'Freedom Stage',
+                },
               ],
             },
             {
               label: 'Dec 13 · Day 2',
               sets: [
-                { time: '7:00 PM', artist: 'FISHER', stage: 'Main Stage', highlight: true },
-                { time: '10:00 PM', artist: 'Dixon', stage: 'Deep House Garden' },
+                {
+                  time: '7:00 PM',
+                  artist: 'FISHER',
+                  stage: 'Main Stage',
+                  highlight: true,
+                },
+                {
+                  time: '10:00 PM',
+                  artist: 'Dixon',
+                  stage: 'Deep House Garden',
+                },
                 { time: '1:00 AM', artist: 'Mochakk', stage: 'Freedom Stage' },
               ],
             },
@@ -1602,8 +1779,19 @@ export const messages = {
           progress: '8 / 12',
           progressLabel: 'items packed',
           groups: [
-            { name: 'Essentials', items: ['Passport / ID', 'Ticket QR codes', 'Waterproof phone pouch', 'Power bank'] },
-            { name: 'Festival', items: ['Comfortable sneakers', 'Light rain shell', 'Earplugs', 'Cash & transit card'] },
+            {
+              name: 'Essentials',
+              items: ['Passport / ID', 'Ticket QR codes', 'Waterproof phone pouch', 'Power bank'],
+            },
+            {
+              name: 'Festival',
+              items: [
+                'Comfortable sneakers',
+                'Light rain shell',
+                'Earplugs',
+                'Cash & transit card',
+              ],
+            },
           ],
         },
         calendar: {
@@ -1612,7 +1800,11 @@ export const messages = {
             { date: 'Dec 11', title: 'Fly to Phuket', kind: 'Travel' },
             { date: 'Dec 12', title: 'Festival Day 1', kind: 'Festival' },
             { date: 'Dec 13', title: 'Festival Day 2', kind: 'Festival' },
-            { date: 'Dec 14', title: 'Festival Day 3 · return', kind: 'Festival' },
+            {
+              date: 'Dec 14',
+              title: 'Festival Day 3 · return',
+              kind: 'Festival',
+            },
             { date: 'Dec 15', title: 'Bangkok buffer day', kind: 'Rest' },
           ],
         },
@@ -1654,7 +1846,12 @@ export const messages = {
         discovery: {
           title: 'Festivals',
           festivals: [
-            { name: 'EDC Thailand 2026', date: 'Dec 18–20', location: 'Phuket', tag: 'Outdoor' },
+            {
+              name: 'EDC Thailand 2026',
+              date: 'Dec 18–20',
+              location: 'Phuket',
+              tag: 'Outdoor',
+            },
             {
               name: 'Tomorrowland Thailand',
               date: 'Dec 12–14',
@@ -1662,7 +1859,12 @@ export const messages = {
               tag: 'Hot',
               featured: true,
             },
-            { name: 'Ultra Korea', date: 'Jun 2026', location: 'Seoul', tag: 'Overseas' },
+            {
+              name: 'Ultra Korea',
+              date: 'Jun 2026',
+              location: 'Seoul',
+              tag: 'Overseas',
+            },
           ],
         },
         lineup: {
@@ -1685,7 +1887,12 @@ export const messages = {
           meta: 'Tomorrowland Thailand · Dec 12–14 · Squad of 3',
           rows: [
             { icon: '✈', label: 'Flight', value: 'BKK → HKT' },
-            { icon: '🎵', label: 'Festival timeline', value: '12 sets marked', highlight: true },
+            {
+              icon: '🎵',
+              label: 'Festival timeline',
+              value: '12 sets marked',
+              highlight: true,
+            },
             { icon: '💰', label: 'Budget', value: '$580 / person' },
           ],
         },
@@ -1701,7 +1908,11 @@ export const messages = {
           ],
           agenda: [
             { time: '6:30 PM', title: 'Martin Garrix', meta: 'Fri Dec 12' },
-            { time: '9:00 PM', title: 'Charlotte de Witte', meta: 'Sat Dec 13' },
+            {
+              time: '9:00 PM',
+              title: 'Charlotte de Witte',
+              meta: 'Sat Dec 13',
+            },
           ],
         },
       },
@@ -1723,7 +1934,8 @@ export const messages = {
         {
           index: '03',
           title: 'Leave with a plan',
-          imageAlt: 'Raven AI plan report: flights, hotel, festival timeline, and budget in one view',
+          imageAlt:
+            'Raven AI plan report: flights, hotel, festival timeline, and budget in one view',
         },
       ],
       planReport: {
@@ -1733,7 +1945,12 @@ export const messages = {
         sections: [
           { icon: '✈', label: 'Flight', value: 'BKK → HKT · Dec 11' },
           { icon: '🏨', label: 'Hotel', value: 'Near Rhythm Park · 2 nights' },
-          { icon: '🎵', label: 'Festival Timeline', value: '12 sets marked', highlight: true },
+          {
+            icon: '🎵',
+            label: 'Festival Timeline',
+            value: '12 sets marked',
+            highlight: true,
+          },
           { icon: '💰', label: 'Budget', value: '$580 / person' },
           { icon: '🎒', label: 'Packing', value: '8 items ready' },
           { icon: '⚠', label: 'Local Tips', value: '5 notes saved' },
@@ -1750,9 +1967,17 @@ export const messages = {
           {
             label: 'Friday',
             items: [
-              { time: '2:00 PM', label: 'Airport transfer', kind: 'logistics' as const },
+              {
+                time: '2:00 PM',
+                label: 'Airport transfer',
+                kind: 'logistics' as const,
+              },
               { time: '5:00 PM', label: 'Hotel', kind: 'logistics' as const },
-              { time: '6:30 PM', label: 'Martin Garrix', kind: 'artist' as const },
+              {
+                time: '6:30 PM',
+                label: 'Martin Garrix',
+                kind: 'artist' as const,
+              },
               { time: '8:30 PM', label: 'KSHMR', kind: 'artist' as const },
               { time: '10:00 PM', label: 'Maddix', kind: 'artist' as const },
             ],
@@ -1760,33 +1985,65 @@ export const messages = {
           {
             label: 'Saturday',
             items: [
-              { time: '4:00 PM', label: 'Venue shuttle', kind: 'logistics' as const },
-              { time: '7:00 PM', label: 'Charlotte de Witte', kind: 'artist' as const },
-              { time: '9:00 PM', label: 'Amelie Lens', kind: 'artist' as const },
-              { time: '11:30 PM', label: 'I Hate Models', kind: 'artist' as const },
-              { time: '1:00 AM', label: 'Return shuttle', kind: 'logistics' as const },
+              {
+                time: '4:00 PM',
+                label: 'Venue shuttle',
+                kind: 'logistics' as const,
+              },
+              {
+                time: '7:00 PM',
+                label: 'Charlotte de Witte',
+                kind: 'artist' as const,
+              },
+              {
+                time: '9:00 PM',
+                label: 'Amelie Lens',
+                kind: 'artist' as const,
+              },
+              {
+                time: '11:30 PM',
+                label: 'I Hate Models',
+                kind: 'artist' as const,
+              },
+              {
+                time: '1:00 AM',
+                label: 'Return shuttle',
+                kind: 'logistics' as const,
+              },
             ],
           },
           {
             label: 'Sunday',
             items: [
-              { time: '12:00 PM', label: 'Check-out', kind: 'logistics' as const },
+              {
+                time: '12:00 PM',
+                label: 'Check-out',
+                kind: 'logistics' as const,
+              },
               { time: '3:00 PM', label: 'Tale Of Us', kind: 'artist' as const },
               { time: '5:30 PM', label: 'FISHER', kind: 'artist' as const },
               { time: '8:00 PM', label: 'Dixon', kind: 'artist' as const },
-              { time: '10:30 PM', label: 'Flight to Bangkok', kind: 'logistics' as const },
+              {
+                time: '10:30 PM',
+                label: 'Flight to Bangkok',
+                kind: 'logistics' as const,
+              },
             ],
           },
         ],
       },
       featuresTitle: 'Every important moment finds its place.',
-      featuresLead: 'Music, budget, packing, local details, and calendar stop feeling like a checklist and start feeling like the journey ahead.',
+      featuresLead:
+        'Music, budget, packing, local details, and calendar stop feeling like a checklist and start feeling like the journey ahead.',
       features: [
         { id: 'timeline' as const, title: 'Every set has a place' },
         { id: 'budget' as const, title: 'The budget feels possible' },
         { id: 'packing' as const, title: 'The bag is ready before the gates' },
         { id: 'tips' as const, title: 'The local details are covered' },
-        { id: 'calendar' as const, title: 'The journey lands in your calendar' },
+        {
+          id: 'calendar' as const,
+          title: 'The journey lands in your calendar',
+        },
       ],
       featuresWaitlistNudge: 'Join waitlist',
       popularBridge: 'Found your festival? Let Raven connect the journey',
@@ -1854,7 +2111,8 @@ export const messages = {
       pathSoonestLeadFeatured: 'The nearest journey — if you want to leave soon.',
       pathLineupLeadFeatured: 'The artists are already named. Hear the journey first.',
       pathNearbyLeadFeatured: 'Journeys in the same city — string them into one trip.',
-      moodChapterLead: 'Start with the stage, the lineup, or the journey that is closest to calling.',
+      moodChapterLead:
+        'Start with the stage, the lineup, or the journey that is closest to calling.',
       continueByMood: 'Or start with a feeling',
       continueExploring: 'More journeys below',
       seasonNowLabel: 'Nearest by timing',
@@ -1898,14 +2156,16 @@ export const messages = {
       emptySearchLead: 'Try a different keyword, or browse everything.',
       emptySearchAction: 'View all',
       emptyCatalogTitle: 'Catalog still growing',
-      emptyCatalogLead: 'We are adding festivals. Join the waitlist — we will tell you when they go live.',
+      emptyCatalogLead:
+        'We are adding festivals. Join the waitlist — we will tell you when they go live.',
       emptyErrorTitle: 'Could not load',
       emptyErrorLead: 'Might be a network issue. Try again — your filters stay put.',
       emptyErrorRetry: 'Try again',
       emptyWaitlistCta: 'Join waitlist',
       searchSuccessTitle: '{count} festivals on this path',
       searchSuccessTitleWithQuery: '{count} near “{query}”',
-      searchSuccessLead: 'Keep scrolling, or try another path. Mood is the world; Find is last resort.',
+      searchSuccessLead:
+        'Keep scrolling, or try another path. Mood is the world; Find is last resort.',
       searchSuccessExplore: 'See results',
       searchSuccessPlan: 'Plan the trip',
       searchSuccessClear: 'Back to all',
@@ -1938,7 +2198,8 @@ export const messages = {
       momentsTitleWish: 'The journey on your mind is taking shape',
       momentsLabel: 'This journey',
       momentPlaceTitle: 'Arrive in {place}',
-      momentPlaceLine: 'The air of the city, the distance to the grounds — the journey starts to take shape.',
+      momentPlaceLine:
+        'The air of the city, the distance to the grounds — the journey starts to take shape.',
       momentPlaceTitleFallback: 'Find the place that pulls you in',
       momentPlaceLineFallback: 'City, atmosphere, journey — let the destination come into focus.',
       momentSoundTitle: 'Enter the sound of the night',
@@ -1967,7 +2228,8 @@ export const messages = {
       homeCta: 'Back to home',
       doneEyebrow: 'Welcome',
       doneTitle: 'Your place is held',
-      doneLead: 'When the journey opens, we will find you. Until then, the world is still waiting to be explored.',
+      doneLead:
+        'When the journey opens, we will find you. Until then, the world is still waiting to be explored.',
       doneNextLabel: 'Meanwhile',
       doneNext: ['Keep discovering festivals that pull you in'],
       errorFallback: 'Did not go through — try again',
@@ -1993,7 +2255,8 @@ export const messages = {
       },
       alreadyEyebrow: 'Already in',
       alreadyTitle: 'You are already in',
-      alreadyLead: 'No need to leave another signal. When the journey opens, we will find you in order.',
+      alreadyLead:
+        'No need to leave another signal. When the journey opens, we will find you in order.',
       alreadyNextLabel: 'Meanwhile',
       alreadyNext: ['Keep discovering festivals that pull you in'],
       alreadyBrowse: 'Keep discovering festivals',
@@ -2042,11 +2305,11 @@ export const messages = {
       lineupPickCount: '{count} marked',
       lineupPickClear: 'Clear',
       lineupEmptyTitle: 'Lineup not out yet',
-      lineupEmptyLead: 'Organizers are still confirming artists. Subscribe — we will ping you when it drops.',
+      lineupEmptyLead:
+        'Organizers are still confirming artists. Subscribe — we will ping you when it drops.',
       lineupEmptyAction: 'Get lineup alerts',
       lineupEmptyBrowse: 'Browse other festivals',
-      aboutEmpty:
-        'Details are still coming. Subscribe for the full brief and lineup alerts.',
+      aboutEmpty: 'Details are still coming. Subscribe for the full brief and lineup alerts.',
       relatedEmptyTitle: 'More festivals coming soon',
       relatedEmptyLead:
         'We are adding festivals in this region. Join the waitlist to hear about the next one first.',
@@ -2078,8 +2341,7 @@ export const messages = {
         planCta: 'Plan Your Trip',
         grounded: 'Generated from Raven lineup and venue data.',
         mustSeeEmptyTitle: 'Recommendations coming up',
-        mustSeeEmptyLead:
-          'Once the lineup drops, Raven will highlight the sets worth catching.',
+        mustSeeEmptyLead: 'Once the lineup drops, Raven will highlight the sets worth catching.',
         mustSeeEmptyAction: 'Get lineup alerts',
       },
       ctaTitle: 'Plan this trip with Raven',
@@ -2285,7 +2547,8 @@ export const messages = {
         ctaButton: 'Create My Plan',
         plannerSection: 'Personalize your journey',
         plannerCustomize: 'Tune it to your pace',
-        plannerLead: 'Origin, stay, and priorities — a few steps turn the journey above into yours.',
+        plannerLead:
+          'Origin, stay, and priorities — a few steps turn the journey above into yours.',
         linksAria: 'Related pages',
         linkFestival: 'Festival detail',
         linkLineup: 'Lineup',
@@ -2296,10 +2559,12 @@ export const messages = {
       },
       journey: {
         entryLineup: {
-          heroSubtitle: 'Start with the music — mark artists, lock must-see sets, shape your journey.',
+          heroSubtitle:
+            'Start with the music — mark artists, lock must-see sets, shape your journey.',
         },
         entryEvent: {
-          heroSubtitle: 'Start with the festival — arrival, stay, transit, and budget into your plan.',
+          heroSubtitle:
+            'Start with the festival — arrival, stay, transit, and budget into your plan.',
         },
         scenes: {
           stayTitle: 'Where to stay',
@@ -2409,12 +2674,30 @@ export const messages = {
           question: 'What matters most?',
           lead: 'Select all that apply — Raven will tune your experience.',
           options: {
-            artists: { title: 'See favorite artists', description: 'Prioritize must-see sets' },
-            discover: { title: 'Discover new artists', description: 'Explore unknown stages and sounds' },
-            party: { title: 'Party all night', description: 'From sunset to sunrise' },
-            city: { title: 'Explore the city', description: 'Experiences beyond the festival' },
-            people: { title: 'Meet new people', description: 'Social moments and new connections' },
-            budget: { title: 'Save budget', description: 'Spend smart without sacrificing the vibe' },
+            artists: {
+              title: 'See favorite artists',
+              description: 'Prioritize must-see sets',
+            },
+            discover: {
+              title: 'Discover new artists',
+              description: 'Explore unknown stages and sounds',
+            },
+            party: {
+              title: 'Party all night',
+              description: 'From sunset to sunrise',
+            },
+            city: {
+              title: 'Explore the city',
+              description: 'Experiences beyond the festival',
+            },
+            people: {
+              title: 'Meet new people',
+              description: 'Social moments and new connections',
+            },
+            budget: {
+              title: 'Save budget',
+              description: 'Spend smart without sacrificing the vibe',
+            },
           },
         },
       },
@@ -2427,7 +2710,7 @@ export const messages = {
       },
       generation: {
         title: 'Raven is creating your festival experience',
-        lead: 'Based on your artists, preferences, and this festival\'s data.',
+        lead: "Based on your artists, preferences, and this festival's data.",
         festivalContext: 'Your {festival} journey',
         steps: [
           'Preparing your journey data',
@@ -2451,7 +2734,8 @@ export const messages = {
         vibeLabel: 'Your coordinates',
         experienceLabel: 'Moments to make your own',
         artistTitle: 'Follow your sound',
-        artistTimelineEmpty: 'Your personalized set timeline will appear here once the lineup is published.',
+        artistTimelineEmpty:
+          'Your personalized set timeline will appear here once the lineup is published.',
         travelTitle: 'Make it to the gates',
         travelStay: 'Recommended stay areas',
         travelFlight: 'Flight strategy',
@@ -2496,11 +2780,12 @@ export const messages = {
         ravenPicks: 'More picks',
         potentialConflicts: 'Possible conflicts',
         dailyFlow: 'Night chapters',
-        setTimesUnavailable: 'Set times are not out yet — lock the artists first, refine when the timetable drops.',
+        setTimesUnavailable:
+          'Set times are not out yet — lock the artists first, refine when the timetable drops.',
         livePriceUnavailable: 'Live price unavailable',
         moreStayOptions: 'Other stay options',
         moreFlightOptions: 'Other flight options',
-        moreMusicDetail: 'Lineup details',
+        moreMusicDetail: 'Itinerary details',
         timelineKicker: 'Days',
         timelineTitle: 'How the days unfold',
         budgetKicker: 'Confidence',
@@ -2582,7 +2867,7 @@ export const messages = {
           extras: 'Food & extras',
         },
         strategy: {
-          artists: 'Arrive 30 min early for main stage — don\'t miss back-to-back favorites',
+          artists: "Arrive 30 min early for main stage — don't miss back-to-back favorites",
           discover: 'Explore side stages by day, return for main stage highlights',
           party: 'Start at warm-up stages, shift to underground after midnight',
           default: 'Priority-ordered schedule with 15-min transfer buffers',
@@ -2688,6 +2973,13 @@ export const messages = {
         editProfile: 'Adjust journey',
         createProfile: 'Share your journey',
       },
+      prelude: {
+        kicker: 'One shared weekend',
+        title: 'The music is pulling you toward the same place.',
+        lead: 'At {festival}, arrivals, stages, and the people beside you are becoming one journey.',
+        musicLabel: 'Names already in the air',
+        musicFallback: 'The first lineup echoes are still gathering',
+      },
       arrival: {
         presence: 'Travelers are already finding their way here.',
         title: 'Feel the rhythm of people arriving with you',
@@ -2711,6 +3003,7 @@ export const messages = {
       },
       filters: {
         title: 'Narrow by journey',
+        pathKicker: 'Bring the path into focus',
         whisper: 'What kind of company do you want right now?',
         open: 'Refine',
         openActive: '{count} refinements',
@@ -2774,6 +3067,7 @@ export const messages = {
         sparse: 'Based on shared preferences',
       },
       matchReasons: {
+        sameFestival: 'Going to the same festival',
         sameArrivalDay: 'Same arrival day',
         arrivalWithinOneDay: 'Arriving within one day',
         sameAccommodation: 'Same accommodation',
@@ -2819,16 +3113,14 @@ export const messages = {
         lead: 'One line is enough. Conversation comes later, if they answer.',
         messageLabel: 'Hello',
         templates: 'Suggested openings',
-        intro:
-          'Hi, I’m also traveling to {festival} from {city} and arriving on {date}.',
+        intro: 'Hi, I’m also traveling to {festival} from {city} and arriving on {date}.',
         templateRoommate:
           'Hi, I’m also looking for a roommate for this festival. Our travel dates and accommodation preferences look similar.',
         templateBuddy:
           'Hi, it looks like we share several favorite artists. Would you like to meet at the festival?',
         templateRide:
           'Hi, we are arriving around the same time. Would you be interested in sharing transport to the festival?',
-        templateGroup:
-          'Hi, I’m looking for a small crew for this journey. Want to compare plans?',
+        templateGroup: 'Hi, I’m looking for a small crew for this journey. Want to compare plans?',
         send: 'Send hello',
         sending: 'Sending…',
         sent: 'Hello sent',
@@ -2862,6 +3154,7 @@ export const messages = {
         budgetLevel: 'Budget level',
         favoriteArtists: 'Who you want to hear',
         artistsHint: 'Comma-separated, e.g. Hardwell, Maddix',
+        artistsEmpty: 'Mark artists in the lineup first. Raven will carry them into this journey.',
         favoriteGenres: 'Favorite genres (optional)',
         firstTime: 'First time at this festival',
         shortNote: 'Short note (optional)',
@@ -2908,6 +3201,74 @@ export const messages = {
         open: 'Safety guidance',
         roommateHint:
           'For roommates, keep talk in Raven first. Meet in public or on video before confirming stays or money.',
+      },
+      presence: {
+        kicker: 'How you appear',
+        title: 'Keep this path exactly where it feels right',
+        open: 'Adjust',
+        visibilityTitle: 'What stays on the path',
+        visibilityLead: 'Share only the signals another traveler needs to find their way to you.',
+        city: 'Show my origin city',
+        country: 'Show country / region only',
+        journeyOnly: 'Show journey signals only',
+        stayTitle: 'Show stay name',
+        stayLead: 'Otherwise, only the stay type is visible.',
+        hellosTitle: 'Receive new hellos',
+        hellosLead: 'When this is off, new travelers cannot reach out.',
+        pauseTitle: 'Pause matching',
+        pauseLead: 'Step away from new matches for now. Your journey stays here.',
+        hideTitle: 'Hide this journey',
+        hideLead: 'It will no longer appear in anyone else’s new matches.',
+        deleteTitle: 'Delete this journey',
+        deleteConfirm: 'This removes this festival profile and its new matching presence.',
+        deleteConfirmCta: 'Delete journey',
+        saved: 'This path has been updated.',
+        error: 'That update did not land. Try again.',
+        pausedTitle: 'Your journey has stepped off the matching path',
+        pausedLead:
+          'Come back whenever you want to meet fellow travelers. Your profile stays here.',
+        hiddenTitle: 'This journey is hidden',
+        hiddenLead: 'Other travelers will not see it in new matches for now.',
+      },
+      inbox: {
+        kicker: 'Echoes on the path',
+        title: 'Someone is moving closer to your journey',
+        lead: 'Hellos, answers, and connected journeys stay on the path of this festival.',
+        loading: 'Listening for echoes on this path…',
+        errorTitle: 'The path went quiet for a moment',
+        errorLead: 'Connections did not arrive. Listen once more.',
+        retry: 'Listen again',
+        pendingCount: '{count} new hello',
+        connectedTitle: 'Now connected',
+        connectedEyebrow: 'Your paths have met',
+        connectedWith: 'You and {name} are connected',
+        receivedTitle: 'Hellos moving toward you',
+        sentTitle: 'Hellos you sent',
+        receivedEmpty: 'No one has stepped closer yet. Your journey is still visible.',
+        sentEmpty: 'You have not sent a hello yet. Listen to the nearest journeys first.',
+        travelerFallback: 'A fellow traveler',
+        originPrivate: 'Origin kept private',
+        accept: 'Let the journeys meet',
+        decline: 'Quietly decline',
+        cancel: 'Take back hello',
+        actionFailed: 'That moment did not complete. Try again.',
+        feedback: {
+          accepted: 'Your journeys are now connected.',
+          declined: 'The hello was quietly declined.',
+          cancelled: 'The hello was taken back.',
+        },
+        status: {
+          not_sent: 'Not sent',
+          sending: 'Sending',
+          pending: 'Waiting for an answer',
+          accepted: 'Connected',
+          declined: 'Declined',
+          cancelled: 'Taken back',
+          error: 'Not delivered',
+        },
+        messagingUnavailable: 'Messaging will arrive in a future update.',
+        safety:
+          'Keep early conversations in Raven. Confirm bookings independently, meet in public first, and never send money before verifying the other traveler.',
       },
       page: {
         seoTitle: 'Festival Squad | {festival}',
@@ -2980,15 +3341,15 @@ export function getMessages(locale: Locale): Messages {
   return messages[locale];
 }
 
-export function getActivityTypeLabel(locale: Locale, value?: ActivityCatalogType): string | undefined {
+export function getActivityTypeLabel(
+  locale: Locale,
+  value?: ActivityCatalogType,
+): string | undefined {
   if (!value) return undefined;
   return messages[locale].eventCard.activityTypes[value] ?? value;
 }
 
-export function getContinentLabel(
-  locale: Locale,
-  value?: ActivityContinent,
-): string | undefined {
+export function getContinentLabel(locale: Locale, value?: ActivityContinent): string | undefined {
   if (!value) return undefined;
   return messages[locale].eventCard.continents[value] ?? value;
 }
@@ -3002,7 +3363,8 @@ const EN_ACTIVITY_CONTENT: Record<number, ActivityLocaleContent> = {
     location: 'Pattaya, Wisdom Valley',
     city: 'Pattaya',
     area: 'Thailand',
-    description: 'Tomorrowland brings its multi-day outdoor experience to Thailand for the first time.',
+    description:
+      'Tomorrowland brings its multi-day outdoor experience to Thailand for the first time.',
     infoSource: 'Tomorrowland official website',
   },
   2: {
@@ -3023,7 +3385,7 @@ const EN_ACTIVITY_CONTENT: Record<number, ActivityLocaleContent> = {
     location: 'Shenzhen World Exhibition & Convention Center',
     city: 'Shenzhen',
     area: 'China',
-    description: 'One of China\'s largest electronic music festivals, returning to Shenzhen.',
+    description: "One of China's largest electronic music festivals, returning to Shenzhen.",
     infoSource: 'STORM Festival official announcement',
   },
   5: {
@@ -3107,7 +3469,7 @@ const EN_ACTIVITY_CONTENT: Record<number, ActivityLocaleContent> = {
     location: 'BITEC Bangna, Bangkok, Thailand',
     city: 'Bangkok',
     area: 'Thailand',
-    description: 'Thailand\'s flagship EDM festival returns to Bangkok for two days.',
+    description: "Thailand's flagship EDM festival returns to Bangkok for two days.",
     infoSource: '808 Festival official website',
   },
   18: {
@@ -3125,7 +3487,8 @@ const EN_ACTIVITY_CONTENT: Record<number, ActivityLocaleContent> = {
     location: 'Legend Valley, Thornville, Ohio',
     city: 'Thornville',
     area: 'United States',
-    description: 'Excision\'s bass and dubstep festival — 100+ artists across 5 stages at Legend Valley.',
+    description:
+      "Excision's bass and dubstep festival — 100+ artists across 5 stages at Legend Valley.",
     infoSource: 'Lost Lands official website',
   },
   21: {
@@ -3134,8 +3497,7 @@ const EN_ACTIVITY_CONTENT: Record<number, ActivityLocaleContent> = {
     location: 'Dajia Riverside Park, Taipei',
     city: 'Taipei',
     area: 'Taiwan',
-    description:
-      'Ultra Taiwan returns for its sixth edition at Dajia Riverside Park in Taipei.',
+    description: 'Ultra Taiwan returns for its sixth edition at Dajia Riverside Park in Taipei.',
     infoSource: 'Ultra Taiwan official website',
   },
 };

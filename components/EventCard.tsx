@@ -47,6 +47,14 @@ export function EventCard({
   const continent = getActivityContinent(localizedActivity);
   const continentLabel = getContinentLabel(locale, continent);
   const isComparison = variant === 'list';
+  const imageSizes =
+    variant === 'poster'
+      ? '(max-width: 760px) 80vw, 326px'
+      : variant === 'list'
+        ? '(max-width: 760px) 100vw, 28vw'
+        : featured
+          ? '(max-width: 760px) 100vw, 66vw'
+          : '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw';
 
   return (
     <Link
@@ -63,6 +71,7 @@ export function EventCard({
             alt={title}
             className="event-card__photo"
             priority={priorityImage}
+            sizes={imageSizes}
           />
         ) : null}
         {datePart ? <span className="event-card__date">{datePart}</span> : null}
