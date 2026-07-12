@@ -3,22 +3,41 @@
 import { FormEvent, useState } from 'react';
 import { isValidEmail } from '../../lib/auth/email';
 import { isTempEmailOnlyAuthEnabled } from '../../lib/auth/config';
+import { getMessages, type Locale, type Messages } from '../../lib/i18n';
 
 type EmailLoginFormProps = {
+  locale: Locale;
   onSubmit: (email: string) => Promise<void>;
   disabled?: boolean;
   unavailable?: boolean;
 };
+
+type AuthErrorCode = keyof Messages['auth']['errors'];
+
+function resolveAuthErrorMessage(err: unknown, copy: Messages['auth']): string {
+  const code =
+    typeof err === 'object' && err != null && 'code' in err
+      ? String((err as { code?: string }).code)
+      : undefined;
+
+  if (code && code in copy.errors) {
+    return copy.errors[code as AuthErrorCode];
+  }
+
+  return copy.errors.failed;
+}
 
 /**
  * Temporary email-only sign-in form.
  * Does not claim email ownership / verification.
  */
 export function EmailLoginForm({
+  locale,
   onSubmit,
   disabled = false,
   unavailable = !isTempEmailOnlyAuthEnabled(),
 }: EmailLoginFormProps) {
+  const copy = getMessages(locale).auth;
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -30,21 +49,21 @@ export function EmailLoginForm({
     setSuccess(null);
 
     if (unavailable) {
-      setError('Email sign-in is temporarily unavailable. Please try again later.');
+      setError(copy.unavailable);
       return;
     }
 
     if (!isValidEmail(email)) {
-      setError('Enter a valid email address.');
+      setError(copy.invalidEmail);
       return;
     }
 
     setSubmitting(true);
     try {
       await onSubmit(email.trim());
-      setSuccess("You're signed in.");
+      setSuccess(copy.success);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign-in failed. Please try again.');
+      setError(resolveAuthErrorMessage(err, copy));
     } finally {
       setSubmitting(false);
     }
@@ -53,9 +72,7 @@ export function EmailLoginForm({
   if (unavailable) {
     return (
       <div className="auth-email-form auth-email-form--unavailable" role="status">
-        <p className="auth-email-form__notice">
-          Email sign-in is temporarily unavailable. Please try again later.
-        </p>
+        <p className="auth-email-form__notice">{copy.unavailable}</p>
       </div>
     );
   }
@@ -63,7 +80,7 @@ export function EmailLoginForm({
   return (
     <form className="auth-email-form" onSubmit={handleSubmit} noValidate>
       <label className="auth-email-form__label" htmlFor="raven-email-login">
-        Email
+        {copy.emailLabel}
       </label>
       <input
         id="raven-email-login"
@@ -72,7 +89,7 @@ export function EmailLoginForm({
         name="email"
         autoComplete="email"
         inputMode="email"
-        placeholder="you@example.com"
+        placeholder={copy.emailPlaceholder}
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         disabled={disabled || submitting}
@@ -95,13 +112,10 @@ export function EmailLoginForm({
         className="button auth-email-form__submit"
         disabled={disabled || submitting}
       >
-        {submitting ? 'Continuing…' : 'Continue'}
+        {submitting ? copy.submitting : copy.submit}
       </button>
 
-      <p className="auth-email-form__footer">
-        For this early access version, Raven uses email-only sign-in. Email verification
-        will be added before public messaging and booking features.
-      </p>
+      <p className="auth-email-form__footer">{copy.footer}</p>
     </form>
   );
 }

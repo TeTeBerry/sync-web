@@ -729,7 +729,7 @@ export function buildRavenJourneyView(input: {
           : `${favoriteArtists.length} 位已锁定艺人`
         : en
           ? "Your festival nights"
-          : "你的音乐节之夜",
+          : "你的电音节之夜",
     detail: mustSee
       ? en
         ? `Anchor night around ${mustSee}`
@@ -755,7 +755,7 @@ export function buildRavenJourneyView(input: {
           ? `Wake near the festival rhythm — ${glanceStay.reason}`
           : `Wake near ${glanceStay.headline}`
         : glanceStay.reason
-          ? `贴近音乐节节奏醒来 — ${glanceStay.reason}`
+          ? `贴近电音节节奏醒来 — ${glanceStay.reason}`
           : `住在 ${glanceStay.headline}`
       : null,
     glanceFestival.detail ||

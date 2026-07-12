@@ -3,8 +3,10 @@
 import type { ReactNode } from 'react';
 import type { AuthCapabilities, AuthIntendedAction } from '../../lib/auth/types';
 import type { CapabilityKey } from '../../lib/auth/capabilities';
+import { getMessages, type Locale } from '../../lib/i18n';
 
 type AuthRequiredGateProps = {
+  locale: Locale;
   signedIn: boolean;
   loading?: boolean;
   capabilities?: AuthCapabilities | null;
@@ -22,6 +24,7 @@ type AuthRequiredGateProps = {
  * the temporary email-only method. Swap the onRequireAuth opener later for OTP.
  */
 export function AuthRequiredGate({
+  locale,
   signedIn,
   loading = false,
   capabilities,
@@ -31,6 +34,8 @@ export function AuthRequiredGate({
   deniedFallback = null,
   children,
 }: AuthRequiredGateProps) {
+  const copy = getMessages(locale).auth;
+
   if (loading) return null;
 
   if (!signedIn) {
@@ -40,7 +45,7 @@ export function AuthRequiredGate({
         className="button"
         onClick={() => onRequireAuth(intendedAction)}
       >
-        Continue with email
+        {copy.continueWithEmail}
       </button>
     );
   }

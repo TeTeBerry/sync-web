@@ -1,6 +1,9 @@
 'use client';
 
+import { getMessages, type Locale } from '../../lib/i18n';
+
 type UnverifiedEmailNoticeProps = {
+  locale: Locale;
   signedIn: boolean;
   emailVerified: boolean;
   className?: string;
@@ -11,19 +14,21 @@ type UnverifiedEmailNoticeProps = {
  * Never use "verified traveler" / "trusted member" language here.
  */
 export function UnverifiedEmailNotice({
+  locale,
   signedIn,
   emailVerified,
   className,
 }: UnverifiedEmailNoticeProps) {
   if (!signedIn || emailVerified) return null;
 
+  const copy = getMessages(locale).auth;
+
   return (
     <p
       className={`auth-unverified-notice${className ? ` ${className}` : ''}`}
       role="status"
     >
-      You’re signed in. Your email isn’t verified yet — verification will be required
-      before messaging and booking features.
+      {copy.unverifiedNotice}
     </p>
   );
 }

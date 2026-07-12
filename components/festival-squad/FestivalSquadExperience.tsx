@@ -361,12 +361,14 @@ export function FestivalSquadExperience({
       {actions}
 
       <UnverifiedEmailNotice
+        locale={locale}
         signedIn={auth.signedIn}
         emailVerified={auth.user?.emailVerified === true}
         className="squad-auth-notice"
       />
 
       <EmailLoginDialog
+        locale={locale}
         open={loginOpen}
         onClose={() => {
           setLoginOpen(false);

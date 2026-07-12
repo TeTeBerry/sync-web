@@ -15113,3 +15113,10 @@ h3 {
 .auth-email-dialog__panel {
   max-width: 420px;
 }
+
+/* Keep page scrollable under the dimmer, but still allow click-outside close. */
+.auth-email-dialog.squad-dialog--bg-scroll .squad-dialog__backdrop {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
