@@ -16,7 +16,6 @@ import {
   eventPath,
   eventPlanPath,
   eventSlugMatches,
-  eventTravelPath,
   parseEventLegacyId,
 } from "../../../../../lib/event-slug";
 import { getFestivalAtmosphere } from "../../../../../lib/festival-atmosphere";
@@ -111,7 +110,6 @@ export default async function AiPlannerPage({
   const metaLocation = metaLocationParts.join(" · ");
   const detailPath = eventPath(locale, activity);
   const lineupHref = eventLineupPath(locale, activity);
-  const travelHref = eventTravelPath(locale, activity);
   const waitlistHref = `${localizedPath(locale, "/waitlist")}?event=${encodeURIComponent(eventTitle)}`;
   const landing = buildPlannerLandingData(activity, djs, performances, locale);
   const atmosphere = getFestivalAtmosphere(
@@ -167,6 +165,7 @@ export default async function AiPlannerPage({
         landing={
           <PlannerLandingContent
             locale={locale}
+            activity={activity}
             eventTitle={eventTitle}
             metaDate={metaDate ?? ""}
             metaLocation={metaLocation}
@@ -174,7 +173,6 @@ export default async function AiPlannerPage({
             landing={landing}
             detailHref={detailPath}
             lineupHref={lineupHref}
-            travelHref={travelHref}
             legacyId={activity.legacyId}
             entryFrom={entryFrom}
             djs={djs}

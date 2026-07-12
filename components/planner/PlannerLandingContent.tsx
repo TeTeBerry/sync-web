@@ -5,11 +5,14 @@ import type { ScheduleDj, SchedulePerformance } from '../../lib/api';
 import type { PlannerLandingData } from '../../lib/planner-landing';
 import type { JourneyEntryFrom } from '../../lib/planner-journey';
 import { getMessages, localizedPath, type Locale } from '../../lib/i18n';
+import { eventSquadPath } from '../../lib/event-slug';
+import type { Activity } from '../../lib/types';
 import { PlannerJourneyScenes } from './PlannerJourneyScenes';
 import { PlannerSeoContent } from './PlannerSeoContent';
 
 type PlannerLandingContentProps = {
   locale: Locale;
+  activity: Activity;
   eventTitle: string;
   metaDate: string;
   metaLocation: string;
@@ -17,7 +20,6 @@ type PlannerLandingContentProps = {
   landing: PlannerLandingData;
   detailHref: string;
   lineupHref: string;
-  travelHref: string;
   legacyId: number;
   entryFrom?: JourneyEntryFrom;
   djs: ScheduleDj[];
@@ -26,6 +28,7 @@ type PlannerLandingContentProps = {
 
 export function PlannerLandingContent({
   locale,
+  activity,
   eventTitle,
   metaDate,
   metaLocation,
@@ -33,7 +36,6 @@ export function PlannerLandingContent({
   landing,
   detailHref,
   lineupHref,
-  travelHref,
   legacyId,
   entryFrom,
   djs,
@@ -54,6 +56,7 @@ export function PlannerLandingContent({
     locale,
     sourcePath: 'plan-journey',
   };
+  const squadHref = eventSquadPath(locale, activity);
 
   const heroTitle = copy.heroTitle.replace('{festival}', eventTitle);
   const metaBits = [metaLocation, metaDate].filter(Boolean);
@@ -141,12 +144,12 @@ export function PlannerLandingContent({
               {copy.linkLineup}
             </TrackedLink>
             <TrackedLink
-              href={travelHref}
+              href={squadHref}
               className="plan-journey__link"
-              eventName="planner_travel_link_click"
+              eventName="planner_squad_link_click"
               eventProperties={subscribeEventProperties}
             >
-              {copy.linkTravel}
+              {copy.linkSquad}
             </TrackedLink>
           </nav>
         </footer>

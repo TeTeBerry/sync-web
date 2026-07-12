@@ -55,8 +55,7 @@ import { BrandLogo } from "../BrandLogo";
 import { EventImage } from "../EventImage";
 import { RavenJourneyResult } from "./RavenJourneyResult";
 import { JourneyReveal } from "./JourneyReveal";
-import { eventLineupPath, eventPlanPath } from "../../lib/event-slug";
-import { getSiteUrl } from "../../lib/site";
+import { eventLineupPath, eventSquadPath } from "../../lib/event-slug";
 import {
   formatEstimateMoney,
   type HomepageEstimateContext,
@@ -1166,11 +1165,11 @@ export function AiPlannerFlow({
           image={image}
           showLanguageCaveat={showLanguageCaveat}
           persistenceNotice={!initialGuideId}
-          shareUrl={
-            activeGuideId
-              ? `${typeof window !== "undefined" ? window.location.origin : getSiteUrl()}${eventPlanPath(locale, activity)}?guideId=${encodeURIComponent(activeGuideId)}`
-              : undefined
-          }
+          guideId={activeGuideId ?? undefined}
+          preferences={preferences}
+          favoriteArtists={favoriteArtists}
+          squadHref={eventSquadPath(locale, activity)}
+          eventLegacyId={activity.legacyId}
           onSave={() => {
             window.location.href = waitlistHref;
           }}

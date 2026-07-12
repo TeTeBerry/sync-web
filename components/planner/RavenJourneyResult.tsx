@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Link2 } from 'lucide-react';
+import { useMemo } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { EventImage } from '../EventImage';
+import { FestivalSquadJourneyCta } from '../festival-squad/FestivalSquadJourneyCta';
+import { JourneyShareSection } from '../journey-share';
 import {
   isBudgetTotalLabel,
   type PriceSource,
@@ -10,6 +12,8 @@ import {
   type RavenJourneyStayOption,
   type RavenJourneyView,
 } from '../../lib/raven-journey';
+import { buildJourneyShareFromView } from '../../lib/journey-share';
+import type { PlannerPreferences } from '../../lib/planner-plan';
 import { getMessages, type Locale } from '../../lib/i18n';
 
 const TIMELINE_LINES_VISIBLE = 1;
@@ -22,7 +26,11 @@ type RavenJourneyResultProps = {
   image?: string;
   showLanguageCaveat?: boolean;
   persistenceNotice?: boolean;
-  shareUrl?: string;
+  guideId?: string;
+  preferences?: PlannerPreferences | null;
+  favoriteArtists?: string[];
+  squadHref?: string;
+  eventLegacyId?: number;
   onSave: () => void;
   onEditPreferences: () => void;
   onRebuild: () => void;
@@ -102,7 +110,11 @@ export function RavenJourneyResult({
   image,
   showLanguageCaveat = false,
   persistenceNotice = true,
-  shareUrl,
+  guideId,
+  preferences,
+  favoriteArtists,
+  squadHref,
+  eventLegacyId,
   onSave,
   onEditPreferences,
   onRebuild,
@@ -111,17 +123,7 @@ export function RavenJourneyResult({
 }: RavenJourneyResultProps) {
   const t = getMessages(locale);
   const copy = t.aiPlanner.journeyResult;
-  const [shareState, setShareState] = useState<'idle' | 'copied' | 'failed'>('idle');
-  const shareResetTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (shareResetTimerRef.current != null) {
-        window.clearTimeout(shareResetTimerRef.current);
-      }
-    };
-  }, []);
-
+  const shareCopy = t.aiPlanner.journeyShare;
   const metaBits = useMemo(
     () =>
       [
@@ -135,28 +137,6 @@ export function RavenJourneyResult({
       ].filter(Boolean) as string[],
     [copy, journey],
   );
-
-  const handleShare = async () => {
-    if (!shareUrl) return;
-    if (shareResetTimerRef.current != null) {
-      window.clearTimeout(shareResetTimerRef.current);
-    }
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setShareState('copied');
-      shareResetTimerRef.current = window.setTimeout(() => setShareState('idle'), 2000);
-    } catch {
-      setShareState('failed');
-      shareResetTimerRef.current = window.setTimeout(() => setShareState('idle'), 2500);
-    }
-  };
-
-  const shareJourneyLabel =
-    shareState === 'copied'
-      ? copy.shareCopied
-      : shareState === 'failed'
-        ? copy.shareFailed
-        : copy.shareJourney;
 
   const showTravel =
     Boolean(journey.stayStrategy.areaHeadline) ||
@@ -186,6 +166,18 @@ export function RavenJourneyResult({
   const hiddenMusicDays = journey.festivalExperience.dailyFlow.slice(FESTIVAL_DAYS_VISIBLE);
   const showMetaQuietly = metaBits.length > 0 && breathLines.length === 0;
   const confidenceLine = budgetConfidenceCopy(journey.budget.confidence, copy);
+
+  const journeyShareData = useMemo(() => {
+    if (!guideId) return null;
+    return buildJourneyShareFromView({
+      id: guideId,
+      locale,
+      journey,
+      preferences,
+      favoriteArtists,
+      heroImage: image,
+    });
+  }, [favoriteArtists, guideId, image, journey, locale, preferences]);
 
   // Festival-first chapter: Music before Stay (aligned with design bible).
   return (
@@ -548,6 +540,48 @@ export function RavenJourneyResult({
           </section>
         ) : null}
 
+        {squadHref ? (
+          <div className="raven-journey__section raven-journey__section--squad" data-journey-reveal>
+            <FestivalSquadJourneyCta
+              squadHref={squadHref}
+              labels={t.festivalSquad.journeyCta}
+              journeySignals={[
+                journey.origin && journey.origin !== '—'
+                  ? t.festivalSquad.journeyCta.fromOrigin.replace('{origin}', journey.origin)
+                  : '',
+                journey.glance.stay.headline,
+                journey.glance.budget.headline,
+                ...journey.festivalExperience.ravenPicks.slice(0, 2),
+              ].filter(Boolean)}
+              eventProperties={{
+                event: eventLegacyId != null ? String(eventLegacyId) : journey.festivalName,
+                locale,
+                source: 'journey-result',
+              }}
+            />
+          </div>
+        ) : null}
+
+        {journeyShareData ? (
+          <JourneyShareSection
+            data={journeyShareData}
+            copy={{
+              kicker: shareCopy.kicker,
+              title: shareCopy.title,
+              description: shareCopy.description,
+              primaryCta: shareCopy.primaryCta,
+              secondaryCta: shareCopy.secondaryCta,
+              previewTitle: shareCopy.previewTitle,
+              aspectLabel: shareCopy.aspectLabel,
+              closePreview: shareCopy.closePreview,
+              card: shareCopy.card,
+              actions: shareCopy.actions,
+            }}
+            eventLegacyId={eventLegacyId}
+            locale={locale}
+          />
+        ) : null}
+
         <footer className="raven-journey__finale" data-journey-reveal>
           <p className="raven-journey__finale-lead">{copy.finaleLead}</p>
           <p className="raven-journey__finale-festival">{journey.festivalName}</p>
@@ -558,17 +592,6 @@ export function RavenJourneyResult({
             </button>
           </div>
           {copy.saveHint ? <p className="raven-journey__save-hint">{copy.saveHint}</p> : null}
-          <div className="raven-journey__finale-secondary">
-            <button
-              type="button"
-              className="raven-journey__text-action"
-              onClick={handleShare}
-              disabled={!shareUrl}
-            >
-              <Link2 size={14} strokeWidth={2.25} aria-hidden />
-              {shareJourneyLabel}
-            </button>
-          </div>
           <details className="raven-journey__disclosure raven-journey__disclosure--quiet raven-journey__finale-tools">
             <summary>{copy.changeJourney}</summary>
             <div className="raven-journey__finale-tool-actions">

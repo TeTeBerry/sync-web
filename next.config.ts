@@ -8,6 +8,15 @@ const nextConfig: NextConfig = {
       { protocol: 'http', hostname: '**' },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/:locale/events/:slug/travel',
+        destination: '/:locale/events/:slug/plan?from=event',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

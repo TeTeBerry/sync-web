@@ -62,13 +62,13 @@ export function eventLineupPath(locale: Locale, activity: Activity): string {
   return `${eventPath(locale, activity)}/lineup`;
 }
 
-export function eventTravelPath(locale: Locale, activity: Activity): string {
-  return `${eventPath(locale, activity)}/travel`;
+export function eventSquadPath(locale: Locale, activity: Activity): string {
+  return `${eventPath(locale, activity)}/squad`;
 }
 
 function eventSubpageAlternateLanguages(
   activity: Activity,
-  suffix: '/lineup' | '/travel',
+  suffix: '/lineup' | '/squad',
   zhActivity?: Activity,
   enActivity?: Activity,
 ): Record<string, string> {
@@ -93,12 +93,12 @@ export function eventLineupAlternateLanguages(
   return eventSubpageAlternateLanguages(activity, '/lineup', zhActivity, enActivity);
 }
 
-export function eventTravelAlternateLanguages(
+export function eventSquadAlternateLanguages(
   activity: Activity,
   zhActivity?: Activity,
   enActivity?: Activity,
 ): Record<string, string> {
-  return eventSubpageAlternateLanguages(activity, '/travel', zhActivity, enActivity);
+  return eventSubpageAlternateLanguages(activity, '/squad', zhActivity, enActivity);
 }
 
 export function parseEventLegacyId(slugParam: string): number | null {

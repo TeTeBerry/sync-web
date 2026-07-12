@@ -8,8 +8,8 @@ import {
   eventPath,
   eventPlanAlternateLanguages,
   eventPlanPath,
-  eventTravelAlternateLanguages,
-  eventTravelPath,
+  eventSquadAlternateLanguages,
+  eventSquadPath,
 } from '../lib/event-slug';
 import { cityAlternateLanguages, cityPath, listCityGroups } from '../lib/seo-cities';
 import { getSiteUrl } from '../lib/site';
@@ -160,12 +160,12 @@ function buildSitemapEntries(siteUrl: string, activities: Activity[]): MetadataR
           },
         },
         {
-          url: `${siteUrl}${eventTravelPath(locale, activity)}`,
+          url: `${siteUrl}${eventSquadPath(locale, activity)}`,
           lastModified: activityLastModified,
           changeFrequency: 'weekly' as const,
-          priority: 0.72,
+          priority: 0.7,
           alternates: {
-            languages: absoluteLanguages(siteUrl, eventTravelAlternateLanguages(activity)),
+            languages: absoluteLanguages(siteUrl, eventSquadAlternateLanguages(activity)),
           },
         },
       ];

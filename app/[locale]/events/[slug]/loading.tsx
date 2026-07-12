@@ -54,9 +54,12 @@ export function EventDetailLoading({ locale }: EventDetailLoadingProps) {
         </div>
       </section>
 
-      <section className="detail-plan-cta page-loading__section" style={{ animationDelay: '0.16s' }}>
+      <section className="detail-travel detail-plan-entry page-loading__section" style={{ animationDelay: '0.12s' }}>
         <div className="container">
-          <Skeleton className="planner-promo-skeleton" delay={2} rounded="lg" />
+          <Skeleton style={{ width: 80, height: 12, marginBottom: 12 }} />
+          <Skeleton style={{ width: 'min(100%, 320px)', height: 36, marginBottom: 16 }} delay={1} />
+          <Skeleton style={{ width: 'min(100%, 480px)', height: 20, marginBottom: 20 }} delay={1} />
+          <Skeleton style={{ width: 160, height: 44 }} delay={2} rounded="md" />
         </div>
       </section>
 

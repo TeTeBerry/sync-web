@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '../../../../components/Breadcrumbs';
-import { EventPlannerPromo } from '../../../../components/event-detail/EventPlannerPromo';
+import { FestivalSquadPreview } from '../../../../components/festival-squad/FestivalSquadPreview';
 import { EventLoadError } from '../../../../components/states/EventLoadError';
 import { EventUnavailableState } from '../../../../components/states/EventUnavailableState';
 import { EmptyState } from '../../../../components/states/EmptyState';
@@ -28,7 +28,7 @@ import {
   eventLineupPath,
   eventPath,
   eventPlanPath,
-  eventTravelPath,
+  eventSquadPath,
   parseEventLegacyId,
 } from '../../../../lib/event-slug';
 import { getSiteUrl } from '../../../../lib/site';
@@ -100,7 +100,7 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
   };
   const planHref = eventPlanPath(locale, activity, { from: 'event' });
   const lineupHref = eventLineupPath(locale, activity);
-  const travelHref = eventTravelPath(locale, activity);
+  const squadHref = eventSquadPath(locale, activity);
   const breadcrumbItems = [
     { name: t.breadcrumbs.home, url: `${siteUrl}${localizedPath(locale)}` },
     { name: t.breadcrumbs.events, url: `${siteUrl}${localizedPath(locale, '/events')}` },
@@ -240,20 +240,22 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
         </div>
       </section>
 
-      {/* ── Travel arrival — land → settle → gate ───────────────────────────── */}
+      {/* ── Plan chapter — arrival confidence into journey ─────────────────── */}
       <section
-        className="detail-travel"
-        aria-labelledby="travel-confidence-heading"
+        className="detail-travel detail-plan-entry"
+        aria-labelledby="plan-confidence-heading"
         data-reveal
         style={{ '--reveal-delay': '0.12s' } as CSSProperties}
       >
         <div className="container">
           <div className="detail-travel__inner">
-            <h2 id="travel-confidence-heading" className="detail-travel__title">
+            <p className="detail-plan-entry__kicker">{t.eventDetail.experience.planKicker}</p>
+            <h2 id="plan-confidence-heading" className="detail-travel__title">
               {t.eventDetail.experience.travelTitle}
             </h2>
 
             <p className="detail-travel__story">{aiSummary.travel}</p>
+            <p className="detail-plan-entry__invite">{t.eventDetail.experience.planInvite}</p>
 
             <ol className="detail-travel__arrival">
               <li>
@@ -280,10 +282,10 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
 
             <div className="detail-travel__actions">
               <TrackedLink
-                className="detail-section__cta"
-                href={travelHref}
-                eventName="event_travel_explore_click"
-                eventProperties={subscribeEventProperties}
+                className="button"
+                href={planHref}
+                eventName="event_plan_click"
+                eventProperties={{ ...subscribeEventProperties, source: 'plan-entry' }}
               >
                 <span>{t.eventDetail.travelPreview.exploreCta}</span>
                 <ArrowRight size={16} strokeWidth={2.25} aria-hidden />
@@ -293,17 +295,17 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
         </div>
       </section>
 
-      {/* ── Generate Plan ───────────────────────────────────────────────────── */}
+      {/* ── Festival Squad ──────────────────────────────────────────────────── */}
       <section
-        className="detail-plan-cta"
+        className="detail-squad"
         data-reveal
-        style={{ '--reveal-delay': '0.16s' } as CSSProperties}
+        style={{ '--reveal-delay': '0.18s' } as CSSProperties}
       >
         <div className="container">
-          <EventPlannerPromo
-            planHref={planHref}
-            labels={t.eventDetail.plannerPromo}
-            subscribeEventProperties={subscribeEventProperties}
+          <FestivalSquadPreview
+            squadHref={squadHref}
+            labels={t.festivalSquad.preview}
+            eventProperties={subscribeEventProperties}
           />
         </div>
       </section>

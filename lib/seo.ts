@@ -15,8 +15,6 @@ import {
   eventPath,
   eventPlanAlternateLanguages,
   eventPlanPath,
-  eventTravelAlternateLanguages,
-  eventTravelPath,
 } from './event-slug';
 import type { TravelFaqItem } from './event-travel';
 import { getSiteUrl } from './site';
@@ -470,20 +468,6 @@ export function lineupMetaDescription(activity: Activity, locale: Locale): strin
   return getMessages(locale).eventDetail.lineupPage.metaDescription.replace('{festival}', name);
 }
 
-export function travelPageTitle(activity: Activity, locale: Locale): string {
-  const name = getActivityTitle(localizeActivity(activity, locale));
-  const t = getMessages(locale);
-  return `${name} — ${t.eventDetail.travel.pageTitle}`;
-}
-
-export function travelMetaDescription(activity: Activity, locale: Locale): string {
-  const name = getActivityTitle(localizeActivity(activity, locale));
-  if (locale === 'zh') {
-    return `${name} 出行指南：住宿、交通、预算与必备清单。官方信息告诉你有什么，Raven 告诉你怎么选。`;
-  }
-  return `${name} travel guide: stay, flights, transit, budget, and essentials. Official info tells you what exists; Raven tells you what to choose.`;
-}
-
 function buildEventSubpageJsonLd(input: {
   activity: Activity;
   djs: ScheduleDj[];
@@ -596,25 +580,6 @@ export function buildLineupJsonLd(
   });
 }
 
-export function buildTravelJsonLd(
-  activity: Activity,
-  djs: ScheduleDj[],
-  locale: Locale,
-  breadcrumbItems: BreadcrumbItem[],
-  faq: TravelFaqItem[],
-) {
-  return buildEventSubpageJsonLd({
-    activity,
-    djs,
-    locale,
-    pageUrl: `${siteUrl}${eventTravelPath(locale, activity)}`,
-    pageTitle: travelPageTitle(activity, locale),
-    pageDescription: travelMetaDescription(activity, locale),
-    breadcrumbItems,
-    faq,
-  });
-}
-
 export function buildLineupMetadata(
   activity: Activity,
   locale: Locale,
@@ -632,45 +597,6 @@ export function buildLineupMetadata(
   const languages = Object.fromEntries(
     Object.entries(
       eventLineupAlternateLanguages(activity, options?.zhActivity, options?.enActivity),
-    ).map(([language, href]) => [language, `${siteUrl}${href}`]),
-  );
-
-  return {
-    title: {
-      absolute: `${title} | Raven`,
-    },
-    description,
-    alternates: {
-      canonical: url,
-      languages,
-    },
-    ...buildSocialMetadata({
-      title,
-      description,
-      url,
-      locale,
-      image: image ? { url: image, alt: getActivityTitle(localized) } : undefined,
-    }),
-  };
-}
-
-export function buildTravelMetadata(
-  activity: Activity,
-  locale: Locale,
-  options?: {
-    zhActivity?: Activity;
-    enActivity?: Activity;
-  },
-): Metadata {
-  const localized = localizeActivity(activity, locale);
-  const title = travelPageTitle(localized, locale);
-  const description = travelMetaDescription(localized, locale);
-  const path = eventTravelPath(locale, activity);
-  const url = `${siteUrl}${path}`;
-  const image = absoluteAssetUrl(getActivityImage(localized));
-  const languages = Object.fromEntries(
-    Object.entries(
-      eventTravelAlternateLanguages(activity, options?.zhActivity, options?.enActivity),
     ).map(([language, href]) => [language, `${siteUrl}${href}`]),
   );
 
