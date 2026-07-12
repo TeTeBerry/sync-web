@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { BrandLogo } from '../BrandLogo';
 import { EventImage } from '../EventImage';
 import type { Locale } from '../../lib/i18n';
+import { getPlanGenerationCopy } from '../../lib/plan-generation/copy';
 
 type JourneyRevealProps = {
   active: boolean;
@@ -16,31 +17,12 @@ type JourneyRevealProps = {
   onComplete: (shouldAnimateResult?: boolean) => void;
 };
 
-const COPY = {
-  en: {
-    statuses: [
-      'Finding the best flights...',
-      'Selecting the best stay...',
-      'Matching your favorite artists...',
-      'Balancing your budget...',
-      'Building your festival journey...',
-    ],
-    title: 'Your Festival Journey',
-    skip: 'Skip',
-    origin: 'Origin',
-    destination: 'Destination',
-    festival: 'Festival',
-  },
-  zh: {
-    statuses: ['寻找合适航班...', '挑选适合入住的地方...', '匹配你喜欢的艺人...', '平衡旅程预算...', '组装你的电音节旅程...'],
-    title: '你的电音节旅程',
-    skip: '跳过',
-    origin: '出发地',
-    destination: '目的地',
-    festival: '电音节',
-  },
-} as const;
+const EASE = [0.22, 1, 0.36, 1] as const;
 
+/**
+ * Short completion → plan reveal. Generation narrative already ran during polling;
+ * this only settles the world and opens the finished journey.
+ */
 export function JourneyReveal({
   active,
   locale,
@@ -51,9 +33,11 @@ export function JourneyReveal({
   onComplete,
 }: JourneyRevealProps) {
   const reducedMotion = useReducedMotion();
-  const [statusIndex, setStatusIndex] = useState(0);
   const [canSkip, setCanSkip] = useState(false);
-  const copy = COPY[locale];
+  const copy = getPlanGenerationCopy(locale);
+  const title = copy.completed.title;
+  const lead = copy.completed.lead.replace('{festivalName}', festivalName);
+  const skipLabel = locale === 'zh' ? '进入旅程' : 'Enter journey';
 
   useEffect(() => {
     if (!active) return;
@@ -62,117 +46,103 @@ export function JourneyReveal({
       return;
     }
 
-    setStatusIndex(0);
     setCanSkip(false);
-    let statusTimer: number | null = null;
-    const statusStartTimer = window.setTimeout(() => {
-      statusTimer = window.setInterval(() => {
-        setStatusIndex((current) => (current + 1) % copy.statuses.length);
-      }, 650);
-    }, 1000);
-    const skipTimer = window.setTimeout(() => setCanSkip(true), 2000);
-    const completeTimer = window.setTimeout(onComplete, 5000);
+    const skipTimer = window.setTimeout(() => setCanSkip(true), 420);
+    const completeTimer = window.setTimeout(() => onComplete(true), 780);
 
     return () => {
-      window.clearTimeout(statusStartTimer);
-      if (statusTimer != null) window.clearInterval(statusTimer);
       window.clearTimeout(skipTimer);
       window.clearTimeout(completeTimer);
     };
-  }, [active, copy.statuses.length, onComplete, reducedMotion]);
-
-  const route = [
-    { label: copy.origin, value: origin || '...' },
-    { label: copy.destination, value: destination || '...' },
-    { label: copy.festival, value: festivalName },
-  ];
+  }, [active, onComplete, reducedMotion]);
 
   return (
     <AnimatePresence>
       {active ? (
         <motion.section
-          className="journey-reveal"
+          className="journey-reveal journey-reveal--ready"
           aria-live="polite"
-          aria-label={copy.title}
+          aria-label={title}
           initial={{ opacity: 1 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.55, ease: EASE }}
         >
-          {image ? <EventImage src={image} alt="" className="journey-reveal__image" sizes="100vw" priority /> : null}
+          {image ? (
+            <EventImage src={image} alt="" className="journey-reveal__image" sizes="100vw" priority />
+          ) : null}
           <div className="journey-reveal__scrim" aria-hidden />
           <div className="journey-reveal__glow" aria-hidden />
 
           <div className="journey-reveal__content">
             <motion.div
               className="journey-reveal__brand"
-              initial={{ opacity: 0, y: 8, filter: 'blur(6px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              transition={{ delay: 0.3, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: EASE }}
             >
               <BrandLogo height={24} />
             </motion.div>
 
-            <motion.div
-              className="journey-reveal__status"
-              aria-atomic="true"
+            <motion.p
+              className="journey-reveal__eyebrow"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1, duration: 0.3 }}
+              transition={{ delay: 0.08, duration: 0.3 }}
             >
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={statusIndex}
-                  initial={{ opacity: 0, y: 5, filter: 'blur(4px)' }}
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, y: -5, filter: 'blur(4px)' }}
-                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  {copy.statuses[statusIndex]}
-                </motion.p>
-              </AnimatePresence>
-            </motion.div>
-
-            <motion.ol
-              className="journey-reveal__route"
-              initial="hidden"
-              animate="visible"
-              variants={{
-                hidden: {},
-                visible: { transition: { delayChildren: 2.5, staggerChildren: 0.22 } },
-              }}
-            >
-              {route.map((stop, index) => (
-                <motion.li
-                  key={stop.label}
-                  variants={{
-                    hidden: { opacity: 0, y: 8, filter: 'blur(5px)' },
-                    visible: { opacity: 1, y: 0, filter: 'blur(0px)' },
-                  }}
-                  transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  {index < route.length - 1 ? (
-                    <span className="journey-reveal__route-line" aria-hidden />
-                  ) : null}
-                  <span className="journey-reveal__route-label">{stop.label}</span>
-                  <span className="journey-reveal__route-value">{stop.value}</span>
-                </motion.li>
-              ))}
-            </motion.ol>
+              {copy.completed.eyebrow}
+            </motion.p>
 
             <motion.h2
               className="journey-reveal__title"
-              initial={{ opacity: 0, y: 12, filter: 'blur(8px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              transition={{ delay: 3.5, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.12, duration: 0.45, ease: EASE }}
             >
-              {copy.title}
+              {title}
             </motion.h2>
+
+            <motion.p
+              className="journey-reveal__lead"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.4, ease: EASE }}
+            >
+              {lead}
+            </motion.p>
+
+            <motion.ol
+              className="journey-reveal__route"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.28, duration: 0.35 }}
+            >
+              <li>
+                <span className="journey-reveal__route-label">
+                  {locale === 'zh' ? '出发' : 'Origin'}
+                </span>
+                <span className="journey-reveal__route-value">{origin || '—'}</span>
+              </li>
+              <li>
+                <span className="journey-reveal__route-line" aria-hidden />
+                <span className="journey-reveal__route-label">
+                  {locale === 'zh' ? '目的地' : 'Destination'}
+                </span>
+                <span className="journey-reveal__route-value">{destination || '—'}</span>
+              </li>
+              <li>
+                <span className="journey-reveal__route-line" aria-hidden />
+                <span className="journey-reveal__route-label">
+                  {locale === 'zh' ? '电音节' : 'Festival'}
+                </span>
+                <span className="journey-reveal__route-value">{festivalName}</span>
+              </li>
+            </motion.ol>
           </div>
 
           {canSkip ? (
             <button type="button" className="journey-reveal__skip" onClick={() => onComplete()}>
-              {copy.skip}
+              {skipLabel}
             </button>
           ) : null}
         </motion.section>

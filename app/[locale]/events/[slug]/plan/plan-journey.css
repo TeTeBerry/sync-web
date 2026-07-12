@@ -1114,6 +1114,555 @@
   padding: clamp(64px, 10vw, 120px) clamp(20px, 4vw, 48px);
 }
 
+.plan-page-shell[data-journey-phase='generating'] .plan-gen {
+  min-height: min(100dvh, 920px);
+  width: 100%;
+}
+
+/* Cinematic plan generation — Raven journey, not a SaaS progress checklist */
+.plan-gen {
+  --gen-primary: #7c6cff;
+  --gen-secondary: #2a1f5c;
+  --gen-accent: #a78bfa;
+  --gen-bg: #07070b;
+  --gen-glow: rgba(124, 108, 255, 0.28);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  min-height: min(100dvh, 920px);
+  padding:
+    max(72px, env(safe-area-inset-top))
+    clamp(20px, 4vw, 48px)
+    max(48px, env(safe-area-inset-bottom));
+  overflow: hidden;
+  background: var(--gen-bg);
+  color: rgba(245, 245, 247, 0.94);
+  text-align: center;
+}
+
+.plan-gen__bg,
+.plan-gen__image,
+.plan-gen__scrim,
+.plan-gen__glow,
+.plan-gen__motif,
+.plan-gen__particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.plan-gen__bg {
+  z-index: 0;
+}
+
+.plan-gen__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.28;
+  filter: saturate(0.78) contrast(1.08) blur(10px);
+  transform: scale(1.08);
+}
+
+.plan-gen__scrim {
+  background:
+    linear-gradient(180deg, rgba(5, 5, 9, 0.55) 0%, rgba(5, 5, 9, 0.88) 48%, var(--festival-deep, rgba(5, 5, 9, 0.96)) 100%),
+    radial-gradient(ellipse 70% 50% at 50% 18%, var(--gen-glow), transparent 68%);
+}
+
+.plan-gen__glow {
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.7;
+}
+
+.plan-gen__glow--a {
+  inset: -18% 18% auto;
+  height: 42%;
+  background: radial-gradient(circle, var(--gen-glow), transparent 70%);
+  animation: plan-gen-glow-drift 12s ease-in-out infinite alternate;
+}
+
+.plan-gen__glow--b {
+  inset: auto 8% -24%;
+  height: 46%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--gen-accent) 40%, transparent), transparent 72%);
+  animation: plan-gen-glow-drift 16s ease-in-out infinite alternate-reverse;
+}
+
+.plan-gen__motif {
+  inset: 12% 10% 28%;
+  opacity: 0.22;
+  background:
+    radial-gradient(circle at 50% 40%, transparent 0 34%, color-mix(in srgb, var(--gen-primary) 28%, transparent) 35% 36%, transparent 38%),
+    radial-gradient(circle at 50% 40%, transparent 0 52%, color-mix(in srgb, var(--gen-accent) 18%, transparent) 53% 54%, transparent 56%);
+}
+
+.plan-gen[data-motif='rings'] .plan-gen__motif {
+  background:
+    radial-gradient(circle at 50% 42%, transparent 0 28%, color-mix(in srgb, var(--gen-primary) 40%, transparent) 29% 30%, transparent 32%),
+    radial-gradient(circle at 50% 42%, transparent 0 44%, color-mix(in srgb, var(--gen-accent) 28%, transparent) 45% 46%, transparent 48%),
+    radial-gradient(circle at 50% 42%, transparent 0 60%, color-mix(in srgb, var(--gen-primary) 18%, transparent) 61% 62%, transparent 64%);
+}
+
+.plan-gen[data-motif='horizon'] .plan-gen__motif {
+  inset: auto 0 28%;
+  height: 28%;
+  opacity: 0.35;
+  background:
+    linear-gradient(180deg, transparent, color-mix(in srgb, var(--gen-primary) 24%, transparent) 48%, transparent),
+    repeating-linear-gradient(90deg, transparent 0 48px, color-mix(in srgb, var(--gen-accent) 12%, transparent) 48px 49px);
+}
+
+.plan-gen[data-motif='pulse'] .plan-gen__motif {
+  background:
+    linear-gradient(120deg, transparent 40%, color-mix(in srgb, var(--gen-primary) 22%, transparent) 50%, transparent 60%),
+    linear-gradient(300deg, transparent 42%, color-mix(in srgb, var(--gen-accent) 16%, transparent) 52%, transparent 62%);
+}
+
+.plan-gen[data-motif='field'] .plan-gen__motif {
+  inset: 30% 0 18%;
+  opacity: 0.28;
+  background:
+    radial-gradient(ellipse 90% 40% at 50% 80%, color-mix(in srgb, var(--gen-primary) 30%, transparent), transparent 70%),
+    linear-gradient(180deg, transparent, color-mix(in srgb, var(--gen-accent) 12%, transparent));
+}
+
+.plan-gen[data-motif='tower'] .plan-gen__motif {
+  background:
+    linear-gradient(90deg, transparent 46%, color-mix(in srgb, var(--gen-primary) 22%, transparent) 49.5% 50.5%, transparent 54%),
+    linear-gradient(180deg, transparent 20%, color-mix(in srgb, var(--gen-accent) 12%, transparent) 70%, transparent);
+}
+
+.plan-gen__particles {
+  background-image:
+    radial-gradient(1.5px 1.5px at 18% 28%, rgba(255, 255, 255, 0.35), transparent),
+    radial-gradient(1.5px 1.5px at 72% 22%, color-mix(in srgb, var(--gen-primary) 70%, white), transparent),
+    radial-gradient(1px 1px at 42% 68%, rgba(255, 255, 255, 0.28), transparent),
+    radial-gradient(1.5px 1.5px at 84% 58%, color-mix(in srgb, var(--gen-accent) 65%, white), transparent),
+    radial-gradient(1px 1px at 30% 82%, rgba(255, 255, 255, 0.2), transparent);
+  animation: plan-gen-particles 18s linear infinite;
+  opacity: 0.55;
+}
+
+.plan-gen__brand,
+.plan-gen__content {
+  position: relative;
+  z-index: 1;
+}
+
+.plan-gen__brand {
+  margin-bottom: clamp(28px, 5vh, 48px);
+  color: rgba(245, 245, 247, 0.9);
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.35));
+}
+
+.plan-gen__content {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: min(100%, 640px);
+}
+
+.plan-gen__festival {
+  margin: 0;
+  max-width: 28ch;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3vw, 30px);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--festival-title-tracking, -0.03em);
+  line-height: 1.15;
+}
+
+.plan-gen__meta {
+  margin: 0;
+  color: rgba(245, 245, 247, 0.55);
+  font-size: var(--type-small);
+}
+
+.plan-gen__scene {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 220px;
+  margin-top: 8px;
+}
+
+.plan-gen__eyebrow {
+  margin: 0;
+  color: color-mix(in srgb, var(--gen-primary) 85%, white);
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.plan-gen__title {
+  margin: 0;
+  max-width: 18ch;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 5vw, 44px);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+}
+
+.plan-gen__lead {
+  margin: 0;
+  max-width: 36ch;
+  color: rgba(245, 245, 247, 0.68);
+  font-size: clamp(15px, 2vw, 17px);
+  line-height: 1.55;
+  min-height: 1.55em;
+}
+
+.plan-gen__markers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 14px;
+  width: min(100%, 520px);
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-gen__marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(245, 245, 247, 0.34);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: color 0.35s var(--ease-out, ease);
+}
+
+.plan-gen__marker.is-done,
+.plan-gen__marker.is-active {
+  color: rgba(245, 245, 247, 0.78);
+}
+
+.plan-gen__marker-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 0 0 0 transparent;
+}
+
+.plan-gen__marker.is-active .plan-gen__marker-dot {
+  background: var(--gen-primary);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--gen-primary) 55%, transparent);
+}
+
+.plan-gen__marker.is-done .plan-gen__marker-dot {
+  background: color-mix(in srgb, var(--gen-primary) 70%, white);
+}
+
+.plan-gen__mission-pulse {
+  width: 72px;
+  height: 72px;
+  margin-top: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--gen-primary) 45%, transparent), transparent 70%);
+  animation: plan-gen-pulse 1.8s ease-in-out infinite;
+}
+
+.plan-gen__portal {
+  width: min(72vw, 280px);
+  height: 120px;
+  margin-top: 20px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--gen-primary) 35%, transparent);
+  background:
+    radial-gradient(ellipse at center, color-mix(in srgb, var(--gen-primary) 28%, transparent), transparent 68%);
+  box-shadow: inset 0 0 40px color-mix(in srgb, var(--gen-glow) 50%, transparent);
+  animation: plan-gen-portal 4.5s ease-in-out infinite;
+}
+
+.plan-gen__constellation {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  width: min(100%, 420px);
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-gen__constellation--empty {
+  width: min(70%, 240px);
+  height: 64px;
+  margin-top: 20px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gen-primary) 18%, transparent), transparent);
+}
+
+.plan-gen__artist-node {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--gen-primary) 28%, transparent);
+  background: color-mix(in srgb, var(--gen-secondary) 55%, transparent);
+  color: rgba(245, 245, 247, 0.88);
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  animation: plan-gen-node-float 4.8s ease-in-out infinite;
+  animation-delay: calc(var(--node-i, 0) * 0.28s);
+}
+
+.plan-gen__route {
+  width: min(100%, 360px);
+  margin-top: 18px;
+}
+
+.plan-gen__route-svg {
+  width: 100%;
+  height: auto;
+}
+
+.plan-gen__route-path {
+  stroke: color-mix(in srgb, var(--gen-primary) 55%, white);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 8;
+  opacity: 0.7;
+}
+
+.plan-gen__route-node {
+  fill: color-mix(in srgb, var(--gen-primary) 70%, white);
+}
+
+.plan-gen__route-node.is-end {
+  fill: var(--gen-accent);
+}
+
+.plan-gen__route-traveler {
+  fill: white;
+  filter: drop-shadow(0 0 6px var(--gen-primary));
+}
+
+.plan-gen__route-labels {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+  color: rgba(245, 245, 247, 0.62);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.plan-gen__route-labels span:last-child {
+  color: color-mix(in srgb, var(--gen-accent) 70%, white);
+}
+
+.plan-gen__assembly {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 280px);
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-gen__assembly-layer {
+  --layer-shift: calc((var(--layer-i, 0) - 2) * 4px);
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--gen-primary) 18%, transparent);
+  background: color-mix(in srgb, var(--gen-secondary) 36%, transparent);
+  color: rgba(245, 245, 247, 0.42);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transform: translateX(var(--layer-shift));
+  box-shadow: none;
+  /* One card lights at a time: duration ≈ count × step, delay = index × step. */
+  animation: plan-gen-layer-lit calc(var(--layer-count, 5) * 0.85s) ease-in-out infinite;
+  animation-delay: calc(var(--layer-i, 0) * 0.85s);
+}
+
+.plan-gen__assembly[data-reduced='true'] .plan-gen__assembly-layer {
+  animation: none;
+  color: rgba(245, 245, 247, 0.78);
+  border-color: color-mix(in srgb, var(--gen-primary) 28%, transparent);
+  background: color-mix(in srgb, var(--gen-secondary) 48%, transparent);
+}
+
+.plan-gen__guide {
+  position: relative;
+  width: min(100%, 260px);
+  margin-top: 22px;
+}
+
+.plan-gen__guide-page {
+  display: grid;
+  gap: 10px;
+  padding: 18px 16px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--gen-primary) 24%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gen-secondary) 55%, transparent), rgba(0, 0, 0, 0.28));
+}
+
+.plan-gen__guide-page span {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gen-primary) 22%, rgba(255, 255, 255, 0.12));
+  transform-origin: left center;
+  animation: plan-gen-guide-line 4.2s ease-in-out infinite;
+}
+
+.plan-gen__guide-page span:nth-child(1) { width: 72%; animation-delay: 0s; }
+.plan-gen__guide-page span:nth-child(2) { width: 92%; animation-delay: 0.25s; }
+.plan-gen__guide-page span:nth-child(3) { width: 64%; animation-delay: 0.5s; }
+.plan-gen__guide-page span:nth-child(4) { width: 84%; animation-delay: 0.75s; }
+.plan-gen__guide-page span:nth-child(5) { width: 48%; animation-delay: 1s; }
+
+.plan-gen__guide-cursor {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--gen-accent) 80%, white);
+  animation: plan-gen-cursor 1.2s steps(2, end) infinite;
+}
+
+@keyframes plan-gen-glow-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(18px, 14px, 0) scale(1.08); }
+}
+
+@keyframes plan-gen-particles {
+  from { transform: translate3d(0, 8px, 0); }
+  to { transform: translate3d(0, -18px, 0); }
+}
+
+@keyframes plan-gen-pulse {
+  0%, 100% { transform: scale(0.92); opacity: 0.55; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+@keyframes plan-gen-portal {
+  0%, 100% { transform: scaleX(1); opacity: 0.7; }
+  50% { transform: scaleX(1.06); opacity: 1; }
+}
+
+@keyframes plan-gen-node-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes plan-gen-layer-lit {
+  /* Lit window ≈ one step of the stagger so cards hand off cleanly. */
+  0%,
+  14% {
+    color: rgba(245, 245, 247, 0.96);
+    border-color: color-mix(in srgb, var(--gen-primary) 72%, white);
+    background: color-mix(in srgb, var(--gen-primary) 28%, rgba(8, 8, 12, 0.72));
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--gen-primary) 24%, transparent),
+      0 0 22px color-mix(in srgb, var(--gen-glow) 70%, transparent);
+    transform: translateX(var(--layer-shift)) scale(1.03);
+  }
+
+  22%,
+  100% {
+    color: rgba(245, 245, 247, 0.42);
+    border-color: color-mix(in srgb, var(--gen-primary) 18%, transparent);
+    background: color-mix(in srgb, var(--gen-secondary) 36%, transparent);
+    box-shadow: none;
+    transform: translateX(var(--layer-shift)) scale(1);
+  }
+}
+
+@keyframes plan-gen-guide-line {
+  0%, 100% { transform: scaleX(0.82); opacity: 0.55; }
+  50% { transform: scaleX(1); opacity: 1; }
+}
+
+@keyframes plan-gen-cursor {
+  from { opacity: 0.2; }
+  to { opacity: 1; }
+}
+
+.journey-reveal--ready .journey-reveal__eyebrow {
+  margin: 28px 0 0;
+  color: color-mix(in srgb, rgba(var(--festival-accent-rgb, var(--primary-rgb)), 1) 80%, white);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.journey-reveal--ready .journey-reveal__lead {
+  margin: 10px 0 0;
+  max-width: 32ch;
+  color: rgba(244, 241, 234, 0.68);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.journey-reveal--ready .journey-reveal__route {
+  margin-top: 28px;
+}
+
+.journey-reveal--ready .journey-reveal__title {
+  margin-top: 10px;
+}
+
+@media (max-width: 720px) {
+  .plan-gen__title {
+    max-width: 16ch;
+    font-size: clamp(26px, 8vw, 34px);
+  }
+
+  .plan-gen__markers {
+    gap: 8px 10px;
+  }
+
+  .plan-gen__marker-label {
+    display: none;
+  }
+
+  .plan-gen__marker.is-active .plan-gen__marker-label {
+    display: inline;
+  }
+
+  .plan-gen__artist-node:nth-child(n + 4) {
+    display: none;
+  }
+
+  .plan-gen__glow--b,
+  .plan-gen__particles {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-gen__glow,
+  .plan-gen__particles,
+  .plan-gen__mission-pulse,
+  .plan-gen__portal,
+  .plan-gen__artist-node,
+  .plan-gen__assembly-layer,
+  .plan-gen__guide-page span,
+  .plan-gen__guide-cursor {
+    animation: none !important;
+  }
+
+  .plan-gen__image {
+    filter: saturate(0.78) contrast(1.08);
+    transform: none;
+  }
+}
+
 /* First-time journey assembly: the plan is already mounted beneath this overlay. */
 .journey-reveal {
   position: fixed;
@@ -1630,6 +2179,15 @@ body:has(.plan-page-shell[data-journey-phase='error']) .site-header {
   background: rgba(8, 8, 12, 0.42);
   border-bottom-color: rgba(255, 255, 255, 0.03);
   box-shadow: none;
+}
+
+body:has(.plan-page-shell[data-journey-phase='generating']) .site-footer,
+body:has(.plan-page-shell[data-journey-phase='error']) .site-footer {
+  display: none;
+}
+
+body:has(.plan-page-shell[data-journey-phase='generating']) .plan-gen {
+  min-height: calc(100dvh - 72px);
 }
 
 .raven-journey__section-head {

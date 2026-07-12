@@ -16011,6 +16011,9 @@ h3 {
 }
 
 .squad-dialog__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -16362,10 +16365,4 @@ h3 {
 
 .auth-email-dialog__panel {
   max-width: 420px;
-}
-
-/* Keep page scrollable under the dimmer, but still allow click-outside close. */
-.auth-email-dialog.squad-dialog--bg-scroll .squad-dialog__backdrop {
-  pointer-events: auto;
-  cursor: pointer;
 }

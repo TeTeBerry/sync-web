@@ -49,12 +49,15 @@ import {
   type PlannerOriginListItem,
 } from "../../lib/planner-origin";
 import { buildRavenJourneyView } from "../../lib/raven-journey";
-import { resolveGenerationStep } from "../../lib/planner-generation-progress";
+import { resolvePlanGenerationStage } from "../../lib/planner-generation-progress";
+import { resolveFestivalGenerationTheme } from "../../lib/plan-generation/theme";
+import { getPlanGenerationCopy } from "../../lib/plan-generation/copy";
+import type { PlanGenerationStage } from "../../lib/plan-generation/types";
 import { TrackedLink } from "../TrackedLink";
-import { BrandLogo } from "../BrandLogo";
 import { EventImage } from "../EventImage";
 import { RavenJourneyResult } from "./RavenJourneyResult";
 import { JourneyReveal } from "./JourneyReveal";
+import { PlanGenerationExperience } from "./plan-generation/PlanGenerationExperience";
 import { eventLineupPath, eventSquadPath } from "../../lib/event-slug";
 import {
   formatEstimateMoney,
@@ -247,7 +250,8 @@ export function AiPlannerFlow({
   const [originSuggestionsLoading, setOriginSuggestionsLoading] =
     useState(false);
   const [favoriteArtists, setFavoriteArtists] = useState<string[]>([]);
-  const [generationStep, setGenerationStep] = useState(0);
+  const [generationStage, setGenerationStage] =
+    useState<PlanGenerationStage>("mission");
   const [plan, setPlan] = useState<PlannerPlan | null>(() => {
     if (!initialRemotePlan) return null;
     // Sync-seed so ?guideId= does not flash an empty result before effects run.
@@ -494,7 +498,7 @@ export function AiPlannerFlow({
     setShowJourneyReveal(false);
     setHasJourneyRevealed(false);
     setPhase("generating");
-    setGenerationStep(0);
+    setGenerationStage("mission");
     const guideId = createGuideId();
     setActiveGuideId(guideId);
     setGenerationRequest({
@@ -579,9 +583,7 @@ export function AiPlannerFlow({
             throw error;
           }
           if (cancelled) return;
-          setGenerationStep(
-            resolveGenerationStep(job, copy.generation.steps.length),
-          );
+          setGenerationStage(resolvePlanGenerationStage(job));
           if (job.status === "completed" && job.plan) {
             const resolved = resolveResultPlan(
               job.plan,
@@ -620,7 +622,6 @@ export function AiPlannerFlow({
     };
   }, [
     activity.legacyId,
-    copy.generation.steps.length,
     generationRequest,
     locale,
     phase,
@@ -653,7 +654,7 @@ export function AiPlannerFlow({
     setShowLanguageCaveat(false);
     setShowJourneyReveal(false);
     setHasJourneyRevealed(false);
-    setGenerationStep(0);
+    setGenerationStage("mission");
     setPhase("generating");
   };
 
@@ -678,6 +679,16 @@ export function AiPlannerFlow({
     .replace("{current}", String(stepIndex + 1))
     .replace("{total}", String(SETUP_STEPS.length));
   const resultMeta = [metaLocation, metaDate].filter(Boolean).join(" · ");
+  const generationTheme = useMemo(
+    () => resolveFestivalGenerationTheme(activity, eventTitle),
+    [activity, eventTitle],
+  );
+  const generationCopy = useMemo(
+    () => getPlanGenerationCopy(locale),
+    [locale],
+  );
+  const destinationCity =
+    metaLocation || activity.city || activity.location || "";
 
   // Setup chrome only — never sit above generating / result / error chapters.
   const showSetupChrome = phase === "setup";
@@ -1038,54 +1049,18 @@ export function AiPlannerFlow({
       ) : null}
 
       {phase === "generating" ? (
-        <section className="plan-generation" aria-live="polite">
-          {image ? (
-            <>
-              <EventImage
-                src={image}
-                alt=""
-                className="plan-generation__image"
-                sizes="(max-width: 960px) 100vw, 80vw"
-              />
-              <div className="plan-generation__scrim" aria-hidden />
-            </>
-          ) : null}
-          <div className="plan-generation__glow" aria-hidden />
-          <div className="plan-generation__brand" aria-hidden>
-            <BrandLogo height={28} />
-          </div>
-          <p className="plan-generation__festival">
-            {copy.generation.festivalContext.replace("{festival}", eventTitle)}
-          </p>
-          {resultMeta ? (
-            <p className="plan-generation__meta">{resultMeta}</p>
-          ) : null}
-          <h2 className="plan-generation__title">{copy.generation.title}</h2>
-          <p className="plan-generation__lead">{copy.generation.lead}</p>
-          <ol className="plan-generation__steps">
-            {copy.generation.steps.map((label, index) => {
-              const active = generationStep > index;
-              const current = generationStep === index;
-              return (
-                <li
-                  key={label}
-                  className={[
-                    "plan-generation__step",
-                    active ? "is-complete" : "",
-                    current ? "is-active" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  <span className="plan-generation__step-indicator" aria-hidden>
-                    {active ? <Check size={12} strokeWidth={2.5} /> : index + 1}
-                  </span>
-                  <span>{label}</span>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
+        <PlanGenerationExperience
+          active
+          locale={locale}
+          festivalName={eventTitle}
+          originCity={preferences.origin}
+          destinationCity={destinationCity}
+          meta={resultMeta}
+          image={image}
+          artists={favoriteArtists}
+          theme={generationTheme}
+          backendStage={generationStage}
+        />
       ) : null}
 
       {phase === "error" ? (
@@ -1112,19 +1087,17 @@ export function AiPlannerFlow({
           >
             <RotateCcw size={22} strokeWidth={2} />
           </div>
-          <p className="plan-generation__festival">
-            {copy.generation.festivalContext.replace("{festival}", eventTitle)}
-          </p>
+          <p className="plan-generation__festival">{eventTitle}</p>
           {resultMeta ? (
             <p className="plan-generation__meta">{resultMeta}</p>
           ) : null}
           <p className="plan-generation__eyebrow">
-            {copy.generation.error.eyebrow}
+            {generationCopy.failed.eyebrow}
           </p>
           <h2 className="plan-generation__title">
-            {copy.generation.error.title}
+            {generationCopy.failed.title}
           </h2>
-          <p className="plan-generation__lead">{copy.generation.error.lead}</p>
+          <p className="plan-generation__lead">{generationCopy.failed.lead}</p>
           <div className="plan-generation__actions">
             <button
               type="button"
@@ -1132,7 +1105,7 @@ export function AiPlannerFlow({
               onClick={retryGeneration}
             >
               <RotateCcw size={15} strokeWidth={2.25} aria-hidden />
-              {copy.generation.error.retry}
+              {generationCopy.retry}
             </button>
             <button
               type="button"
@@ -1140,7 +1113,7 @@ export function AiPlannerFlow({
               onClick={returnToPreferences}
             >
               <ArrowLeft size={15} strokeWidth={2.25} aria-hidden />
-              {copy.generation.error.adjust}
+              {generationCopy.adjust}
             </button>
           </div>
         </section>
