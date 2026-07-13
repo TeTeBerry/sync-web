@@ -199,6 +199,18 @@ function englishSafeText(
   return looksLikeChineseCopy(localized) ? fallback : localized;
 }
 
+/** System route copy must never mix Chinese place labels into an English plan. */
+function englishSystemPlace(
+  value: string,
+  locale: Locale,
+  airportCode?: string,
+): string {
+  if (locale !== "en") return value;
+  const normalized = value.trim();
+  if (!looksLikeChineseCopy(normalized)) return normalized;
+  return airportCode ? `${airportCode.toUpperCase()} Airport` : "Festival destination";
+}
+
 function localizeHotelCopy(
   value: string | undefined,
   locale: Locale,
@@ -430,6 +442,7 @@ export function buildRavenJourneyView(input: {
   const travelers = remote?.headcount ?? travelersFallback;
   const tripNights = remote?.accommodationNights ?? 0;
   const origin = remote?.departure?.trim() || "—";
+  const displayDestination = englishSystemPlace(destination, locale);
 
   const tipItems = remote?.tips.items?.filter(Boolean) ?? local.experiences;
   const summary =
@@ -489,8 +502,8 @@ export function buildRavenJourneyView(input: {
   const localFlightSafe =
     englishSafeText(local.travel.flight, locale) ||
     (en
-      ? destination
-        ? `Flights toward ${destination.split(",")[0]!.trim()}`
+      ? displayDestination
+        ? `Flights toward ${displayDestination.split(",")[0]!.trim()}`
         : `Flights for ${festivalName}`
       : "");
   const flightOptions: RavenJourneyFlightOption[] =
@@ -543,6 +556,16 @@ export function buildRavenJourneyView(input: {
           : [];
 
   const primaryFlightOption = flightOptions[0];
+  const systemOrigin = englishSystemPlace(
+    origin,
+    locale,
+    flightOffers[0]?.outbound.depAirport,
+  );
+  const systemDestination = englishSystemPlace(
+    destination,
+    locale,
+    flightOffers[0]?.outbound.arrAirport,
+  );
   const flightRecommendation =
     primaryFlightOption?.route ||
     transportLinesSafe[0] ||
@@ -789,11 +812,13 @@ export function buildRavenJourneyView(input: {
   return {
     festivalName: remote?.activityName || festivalName,
     // Prefer page/city destination over venue name (e.g. "Antwerp, Belgium" vs "De Schorre").
-    destination: destination || remote?.venue || "",
+    destination:
+      systemDestination ||
+      englishSystemPlace(remote?.venue || "", locale),
     festivalDates: remote?.eventDates || festivalDates,
     tripNights,
     travelers,
-    origin,
+    origin: systemOrigin,
     summary,
     breath,
     glance: {

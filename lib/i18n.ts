@@ -3341,6 +3341,254 @@ export function getMessages(locale: Locale): Messages {
   return messages[locale];
 }
 
+/** Copy for the web-only Lineup discovery journey. No personality-test language. */
+export const lineupDiscoveryCopy = {
+  zh: {
+    hero: {
+      chapter: '阵容章节',
+      title: '探索你的音乐节',
+      lead: '走进这张阵容里的声音、时刻与决定。',
+      support: '先感受这场，再把名字带进今晚的路线。',
+      emptyLead: '开始探索这场的声音。',
+      emptySupport: '你的下一个最爱 Set，也许已经在这张阵容里。',
+      pickedCount: '{count} 位为你挑选',
+      discoveryCount: '{count} 个新发现',
+      wildcardCount: '{count} 个惊喜选择',
+      signalAria: '基于你已标记艺人的发现信号',
+    },
+    ai: {
+      eyebrow: '声音路径',
+      title: '先听这些',
+      leadSignals: '根据你已标记的艺人与这场阵容，画出此刻最该先走进的路。',
+      leadFresh: '先从这场的主导声音走进去——标记名字后，路径会更贴近你。',
+      loading: '正在展开发现…',
+      empty: '阵容还在聚集。稍后再来，会有更多路径。',
+      picked: '为你挑选',
+      discoveries: '新发现',
+      wildcard: '意外一路',
+      add: '带进今晚',
+      remove: '移出路线',
+      cardAria: '艺人推荐：{name}',
+      dnaAria: '这场的声音气质',
+    },
+    dna: {
+      eyebrow: '声音身份',
+      title: '这场的 Festival DNA',
+    },
+    mood: {
+      eyebrow: '今晚',
+      title: '你想从哪扇门走进？',
+      lead: '心情只改变今晚的入口，不会改写你长久的偏好。',
+      moreAria: '更多心情入口',
+      echo: '这条门廊下更近的名字：',
+      labels: {
+        euphoric: '欢愉',
+        dreamy: '梦幻',
+        heavy: '重拍',
+        dark: '暗黑',
+        groovy: '律动',
+        emotional: '情感',
+        peak: '高光能量',
+        underground: '地下',
+      },
+    },
+    constellation: {
+      eyebrow: '声音宇宙',
+      title: '你在这张阵容里的位置',
+      lead: '从最贴近你的名字，走向邻近声音与一条意外的路。',
+      invite: '点开一个名字，走进下一块宇宙。',
+      you: 'YOU',
+      closest: '最近的声音：',
+      listFallback: '以列表浏览关系',
+      add: '带进今晚',
+      remove: '移出路线',
+      reset: '回到中心',
+      zoomIn: '放大',
+      zoomOut: '缩小',
+      categoryLabels: {
+        perfect: '为你挑选',
+        adjacent: '新发现',
+        wildcard: '意外一路',
+        neutral: '阵容支流',
+      },
+    },
+    journey: {
+      eyebrow: '今晚动线',
+      title: '今日旅程',
+      lead: '高点与一条可走的路——把标记过的名字带进今晚。',
+      cta: '把旅程收成可能',
+      continueEyebrow: '出发之前',
+      continueTitle: '这趟旅程已经说得通',
+      continueLead: '今晚已经有了样子。接下来，让抵达也说得通。',
+    },
+    full: {
+      eyebrow: '全部名字',
+      title: '完整阵容',
+      lead: '需要时再展开。发现只是灯光，不会藏起任何人。',
+    },
+  },
+  en: {
+    hero: {
+      chapter: 'Lineup chapter',
+      title: 'Explore Your Festival',
+      lead: 'Step into the artists, sounds, and choices waiting in this lineup.',
+      support: 'Feel the festival first — then carry names into tonight’s route.',
+      emptyLead: 'Start exploring this festival’s sound.',
+      emptySupport: 'Your next favorite set may already be in this lineup.',
+      pickedCount: '{count} artists picked for you',
+      discoveryCount: '{count} new discoveries',
+      wildcardCount: '{count} wildcard',
+      signalAria: 'Discovery signals from artists you saved',
+    },
+    ai: {
+      eyebrow: 'Sound paths',
+      title: 'Start here',
+      leadSignals: 'Drawn from artists you saved and the sound of this festival.',
+      leadFresh:
+        'Enter through this festival’s leading currents — save names and the path grows closer.',
+      loading: 'Opening discovery…',
+      empty: 'This lineup is still gathering. More paths will appear soon.',
+      picked: 'Closest to you',
+      discoveries: 'Worth discovering',
+      wildcard: 'One unexpected path',
+      add: 'Bring into tonight',
+      remove: 'Remove from route',
+      cardAria: 'Artist recommendation: {name}',
+      dnaAria: 'This festival’s sound currents',
+    },
+    dna: {
+      eyebrow: 'Sound identity',
+      title: 'Festival DNA',
+    },
+    mood: {
+      eyebrow: 'Tonight',
+      title: 'Which door do you want tonight?',
+      lead: 'Mood changes tonight’s doorway — not your long-term taste.',
+      moreAria: 'More doorways',
+      echo: 'Closer through this door:',
+      labels: {
+        euphoric: 'Euphoric',
+        dreamy: 'Dreamy',
+        heavy: 'Heavy',
+        dark: 'Dark',
+        groovy: 'Groovy',
+        emotional: 'Emotional',
+        peak: 'Peak Energy',
+        underground: 'Underground',
+      },
+    },
+    constellation: {
+      eyebrow: 'Sound universe',
+      title: 'Your place in the lineup',
+      lead: 'Move from the artists closest to you toward adjacent sounds and one unexpected path.',
+      invite: 'Open a name to enter the next room of this universe.',
+      you: 'YOU',
+      closest: 'Closest sounds:',
+      listFallback: 'Browse relationships as a list',
+      add: 'Bring into tonight',
+      remove: 'Remove from route',
+      reset: 'Return to center',
+      zoomIn: 'Zoom in',
+      zoomOut: 'Zoom out',
+      categoryLabels: {
+        perfect: 'Closest to you',
+        adjacent: 'Worth discovering',
+        wildcard: 'Unexpected path',
+        neutral: 'Another current',
+      },
+    },
+    journey: {
+      eyebrow: 'Tonight’s route',
+      title: 'Today’s Journey',
+      lead: 'Peaks and a path you can walk — bring marked names into the night.',
+      cta: 'Make the trip feel possible',
+      continueEyebrow: 'Before you go',
+      continueTitle: 'This trip already holds together',
+      continueLead: 'Tonight already has a shape. Now let arrival make sense.',
+    },
+    full: {
+      eyebrow: 'Every name',
+      title: 'Full Lineup',
+      lead: 'Open when you need every name. Discovery is light — never a filter that hides.',
+    },
+  },
+} as const;
+
+export function getLineupDiscoveryCopy(locale: Locale) {
+  return lineupDiscoveryCopy[locale];
+}
+
+/** @deprecated Prefer getLineupDiscoveryCopy — kept for legacy personality-test page copy access during transition. */
+export function getLineupPersonalizationCopy(locale: Locale) {
+  return {
+    test: {
+      zh: {
+        eyebrow: '音乐节人格',
+        chapterReturn: '回到{festival}',
+        title: '找到你在这场音乐里的位置。',
+        description: '几道直觉选择。Raven 会带你回到这张阵容里最该先听见的名字。',
+        progress: '测试进度',
+        loading: '正在调音…',
+        loadError: '测试暂时无法开始，请稍后重试。',
+        submitError: '结果暂时无法生成，请重试。',
+        mapping: '正在听见你的声音…',
+        reveal: '揭晓我的人格',
+        next: '继续',
+        audioLabel: '播放这段声音',
+        audioLoading: '正在加载声音…',
+        audioUnavailable: '这段声音暂时无法播放。',
+      },
+      en: {
+        eyebrow: 'Festival personality',
+        chapterReturn: 'Back to {festival}',
+        title: 'Find your place in this festival’s sound.',
+        description: 'A few instinctive choices. Raven will bring you back to the artists worth hearing first.',
+        progress: 'Test progress',
+        loading: 'Tuning into your sound…',
+        loadError: 'The test is unavailable right now. Please try again.',
+        submitError: 'We could not create your result. Please try again.',
+        mapping: 'Listening for your sound…',
+        reveal: 'Reveal my personality',
+        next: 'Continue',
+        audioLabel: 'Play this sound',
+        audioLoading: 'Loading the sound…',
+        audioUnavailable: 'This sound is unavailable right now.',
+      },
+    }[locale],
+  };
+}
+
+/** The personality API keeps one scoring catalog; this supplies the Web English presentation without changing answer IDs. */
+export function localizePersonalityQuestion<T extends { id: string; prompt: string; options: Array<{ id: string; label: string; weights?: Record<string, number> }> }>(
+  question: T,
+  locale: Locale,
+): T {
+  if (locale === 'zh') return question;
+  const promptByPrefix: Array<[string, string]> = [
+    ['audio-drop', 'When the drop lands, what is your instinct?'],
+    ['track-unknown', 'When you hear an unknown track, what do you do first?'],
+    ['track-', 'How do you enter a DJ set?'],
+    ['stage-', 'Which visual world pulls you in?'],
+    ['set-priority', 'What matters most when choosing a set?'],
+    ['peak-', 'Which festival moment feels most like you?'],
+    ['buddy-', 'How do you move through a festival with friends?'],
+    ['after-', 'When the main stage fades, where does your night go?'],
+    ['memory-', 'What do you want to carry home from the festival?'],
+  ];
+  const prompt = promptByPrefix.find(([prefix]) => question.id.startsWith(prefix))?.[1] ?? 'What feels most like you at a festival?';
+  const optionLabels: Record<string, string> = {
+    rager: 'Chase the peak', connoisseur: 'Listen for the craft', vibe_curator: 'Follow the atmosphere', documentarian: 'Capture the moment', zen_raver: 'Stay with the feeling',
+  };
+  return {
+    ...question,
+    prompt,
+    options: question.options.map((option) => {
+      const dominant = Object.entries(option.weights ?? {}).sort(([, a], [, b]) => b - a)[0]?.[0];
+      return { ...option, label: optionLabels[dominant ?? ''] ?? 'Follow your instinct' };
+    }),
+  };
+}
+
 export function getActivityTypeLabel(
   locale: Locale,
   value?: ActivityCatalogType,

@@ -1,11 +1,14 @@
-import type { CSSProperties } from 'react';
-import { Breadcrumbs } from '../Breadcrumbs';
-import { EventImage } from '../EventImage';
+"use client";
+
+import type { CSSProperties } from "react";
+import Link from "next/link";
+import { Breadcrumbs } from "../Breadcrumbs";
+import { EventImage } from "../EventImage";
+import type { FestivalAtmosphere } from "../../lib/festival-atmosphere";
+import type { Locale } from "../../lib/i18n";
+import { getLineupDiscoveryCopy } from "../../lib/i18n";
 
 export type LineupHeroLabels = {
-  eyebrow: string;
-  headlineFallback: string;
-  lead: string;
   artistsUnit: string;
   stagesUnit: string;
   genresUnit: string;
@@ -17,7 +20,9 @@ type BreadcrumbItem = {
 };
 
 type LineupHeroSceneProps = {
+  locale: Locale;
   eventTitle: string;
+  atmosphere: FestivalAtmosphere;
   invite?: string;
   image?: string;
   artistCount: number;
@@ -25,34 +30,40 @@ type LineupHeroSceneProps = {
   genreCount: number;
   breadcrumbsAriaLabel: string;
   breadcrumbs: BreadcrumbItem[];
+  weekendContext?: {
+    label: string;
+    story: string;
+    switchHref: string;
+    switchLabel: string;
+  };
   labels: LineupHeroLabels;
 };
 
 /**
- * Desire-first hero — festival identity only.
- * Plan CTA lives at the chapter close (60/40 Event Detail balance).
+ * Festival-first hero — name and atmosphere only.
+ * The page is the night; no redundant enter CTA.
  */
 export function LineupHeroScene({
+  locale,
   eventTitle,
+  atmosphere,
   invite,
   image,
   artistCount,
-  stageCount,
-  genreCount,
   breadcrumbsAriaLabel,
   breadcrumbs,
+  weekendContext,
   labels,
 }: LineupHeroSceneProps) {
-  const whisper = [
-    artistCount > 0 ? `${artistCount} ${labels.artistsUnit}` : null,
-    stageCount > 0 ? `${stageCount} ${labels.stagesUnit}` : null,
-    genreCount > 0 ? `${genreCount} ${labels.genresUnit}` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  const copy = getLineupDiscoveryCopy(locale).hero;
 
   return (
-    <section className="lineup-hero" aria-labelledby="lineup-hero-heading" data-reveal>
+    <section
+      className="lineup-hero"
+      aria-labelledby="lineup-hero-heading"
+      data-reveal
+      data-atmosphere={atmosphere}
+    >
       <div className="lineup-hero__stage">
         {image ? (
           <EventImage
@@ -73,15 +84,30 @@ export function LineupHeroScene({
 
           <div
             className="lineup-hero__body"
-            style={{ '--reveal-delay': '0.08s' } as CSSProperties}
+            style={{ "--reveal-delay": "0.08s" } as CSSProperties}
           >
-            <p className="lineup-hero__eyebrow">{labels.eyebrow}</p>
             <h1 id="lineup-hero-heading" className="lineup-hero__title">
               {eventTitle}
             </h1>
-            <p className="lineup-hero__invite">{invite || labels.headlineFallback}</p>
-            <p className="lineup-hero__lead">{labels.lead}</p>
-            {whisper ? <p className="lineup-hero__whisper">{whisper}</p> : null}
+            <p className="lineup-hero__invite">{invite?.trim() || copy.lead}</p>
+            {artistCount > 0 ? (
+              <p className="lineup-hero__whisper">
+                {artistCount} {labels.artistsUnit}
+              </p>
+            ) : null}
+            {weekendContext ? (
+              <>
+                <p className="lineup-hero__weekend">
+                  <span>{weekendContext.label}</span>
+                  <Link href={weekendContext.switchHref}>
+                    {weekendContext.switchLabel}
+                  </Link>
+                </p>
+                <p className="lineup-hero__weekend-story">
+                  {weekendContext.story}
+                </p>
+              </>
+            ) : null}
           </div>
         </div>
       </div>

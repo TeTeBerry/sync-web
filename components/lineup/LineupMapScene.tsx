@@ -8,9 +8,18 @@ import { resolveLineupStageLabel } from '../../lib/lineup-display';
 import type { LineupGenreGroup } from './lineup-types';
 import { SelectableArtistName } from './SelectableArtistName';
 import { useLineupSelection } from './LineupSelectionContext';
+import { useLineupDiscovery } from './LineupDiscoveryContext';
 import { timetableSlotSelectionId } from '../../lib/lineup-selection';
 import { MISSING_GENRE_LABEL } from '../../lib/lineup-genre';
 import { formatLineupTimeRange } from '../../lib/lineup-timetable';
+import { isGenrePlaceholder } from '../../lib/lineup-display';
+import {
+  artistDiscoveryLabel,
+  discoveryLabelText,
+} from '../../lib/lineup-discovery';
+import { trackLineupDiscovery } from '../../lib/lineup-analytics';
+import { getLineupClashCopy } from '../../lib/lineup-clash-copy';
+import { LineupScheduleBadge } from './LineupScheduleBadge';
 
 export type LineupMapLabels = {
   flowEyebrow: string;
@@ -48,6 +57,11 @@ type LineupMapSceneProps = {
     discoveryLead?: string;
   };
   labels: LineupMapLabels;
+  headingId?: string;
+  showDiscoveryLabels?: boolean;
+  scheduleAware?: boolean;
+  /** Full lineup starts quiet — open the archive on demand. */
+  progressive?: boolean;
 };
 
 function discoveryStageMeta(
@@ -100,7 +114,7 @@ function FlowStopRow({
       <span className="lineup-flow__place">
         {[
           stop.stageLabel,
-          stop.genreLabel && stop.genreLabel !== MISSING_GENRE_LABEL
+          stop.genreLabel && stop.genreLabel !== MISSING_GENRE_LABEL && !isGenrePlaceholder(stop.genreLabel)
             ? stop.genreLabel
             : null,
         ]
@@ -124,6 +138,8 @@ function DiscoveryChapter({
   locale,
   stagesPublished,
   labels,
+  showDiscoveryLabels,
+  scheduleFilter,
 }: {
   genreLabel: string;
   color: string;
@@ -131,11 +147,30 @@ function DiscoveryChapter({
   locale: Locale;
   stagesPublished: boolean;
   labels: LineupMapLabels;
+  showDiscoveryLabels?: boolean;
+  scheduleFilter: 'all' | 'fits' | 'conflicts' | 'pending';
 }) {
   const [open, setOpen] = useState(false);
-  const preview = djs.slice(0, DISCOVERY_PREVIEW);
-  const rest = djs.slice(DISCOVERY_PREVIEW);
-  const visible = open ? djs : preview;
+  const { bundle } = useLineupDiscovery();
+  const { scheduleStatusFor } = useLineupSelection();
+
+  const filtered = djs.filter((dj) => {
+    if (scheduleFilter === 'all') return true;
+    const status = scheduleStatusFor(dj.id);
+    if (scheduleFilter === 'fits') return status === 'fits-route';
+    if (scheduleFilter === 'pending') return status === 'schedule-pending';
+    return (
+      status === 'hard-clash' ||
+      status === 'partial-clash' ||
+      status === 'tight-transfer'
+    );
+  });
+
+  const preview = filtered.slice(0, DISCOVERY_PREVIEW);
+  const rest = filtered.slice(DISCOVERY_PREVIEW);
+  const visible = open ? filtered : preview;
+
+  if (!filtered.length) return null;
 
   return (
     <div
@@ -144,16 +179,36 @@ function DiscoveryChapter({
     >
       <h3 className="lineup-map__cast-title">{genreLabel}</h3>
       <ul className="lineup-map__cast-names">
-        {visible.map((dj) => (
-          <li key={dj.id}>
-            <SelectableArtistName
-              id={dj.id}
-              name={dj.name}
-              accent={color}
-              meta={discoveryStageMeta(locale, dj, stagesPublished)}
-            />
-          </li>
-        ))}
+        {visible.map((dj) => {
+          const discovery = showDiscoveryLabels
+            ? artistDiscoveryLabel(dj.id, bundle)
+            : null;
+          const status = scheduleStatusFor(dj.id);
+          return (
+            <li key={dj.id} id={`lineup-artist-${dj.id}`}>
+              <SelectableArtistName
+                id={dj.id}
+                name={dj.name}
+                accent={color}
+                meta={discoveryStageMeta(locale, dj, stagesPublished)}
+              />
+              <LineupScheduleBadge locale={locale} status={status} />
+              {discovery ? (
+                <span
+                  className="lineup-map__discovery-tag"
+                  onClick={() =>
+                    trackLineupDiscovery('full_lineup_discovery_label_used', {
+                      artist: dj.id,
+                      label: discovery,
+                    })
+                  }
+                >
+                  {discoveryLabelText(discovery, locale)}
+                </span>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
       {rest.length > 0 ? (
         <button
@@ -187,6 +242,10 @@ export function LineupMapScene({
   routeIntelligence,
   voice,
   labels,
+  headingId = 'lineup-map-heading',
+  showDiscoveryLabels = false,
+  scheduleAware = false,
+  progressive = false,
 }: LineupMapSceneProps) {
   const isFlow = mode === 'flow';
   const title = isFlow
@@ -195,23 +254,124 @@ export function LineupMapScene({
   const lead = isFlow
     ? voice?.flowLead ?? labels.flowLead
     : voice?.discoveryLead ?? labels.discoveryLead;
+  const clashCopy = getLineupClashCopy(locale);
+  const [scheduleFilter, setScheduleFilter] = useState<
+    'all' | 'fits' | 'conflicts' | 'pending'
+  >('all');
+  const [scheduleLensOpen, setScheduleLensOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(!progressive);
+  const previewGroups = progressive ? genreGroups.slice(0, 1) : genreGroups;
+  const archiveGroups = progressive ? genreGroups.slice(1) : [];
+
+  const discoveryBody = (
+    <div className="lineup-map__discovery">
+      {genres.length > 0 ? (
+        <p className="lineup-map__signal">
+          <span>{labels.soundMap}</span>
+          {genres.slice(0, 6).join(' · ')}
+        </p>
+      ) : null}
+
+      {scheduleAware && archiveOpen && scheduleLensOpen ? (
+        <div
+          className="lineup-map__schedule-filters"
+          role="group"
+          aria-label={clashCopy.myLineup}
+        >
+          {(
+            [
+              ['all', clashCopy.filterAll],
+              ['fits', clashCopy.filterFits],
+              ['conflicts', clashCopy.filterConflicts],
+              ['pending', clashCopy.filterPending],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={scheduleFilter === key ? 'is-active' : ''}
+              aria-pressed={scheduleFilter === key}
+              onClick={() => setScheduleFilter(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : scheduleAware && archiveOpen ? (
+        <p className="lineup-map__schedule-whisper">
+          <button
+            type="button"
+            onClick={() => {
+              setScheduleLensOpen(true);
+              setScheduleFilter('conflicts');
+            }}
+          >
+            {locale === 'zh' ? '先看需要拍板的名字' : 'See names that need a choice'}
+          </button>
+        </p>
+      ) : null}
+
+      <div className="lineup-map__cast">
+        {(archiveOpen ? genreGroups : previewGroups).map(
+          ({ genreLabel, color, djs }) => (
+            <DiscoveryChapter
+              key={genreLabel}
+              genreLabel={genreLabel}
+              color={color}
+              djs={djs}
+              locale={locale}
+              stagesPublished={stagesPublished}
+              labels={labels}
+              showDiscoveryLabels={showDiscoveryLabels && archiveOpen}
+              scheduleFilter={
+                scheduleAware && archiveOpen ? scheduleFilter : 'all'
+              }
+            />
+          ),
+        )}
+      </div>
+
+      {progressive && !archiveOpen && archiveGroups.length > 0 ? (
+        <button
+          type="button"
+          className="lineup-map__open-archive"
+          onClick={() => setArchiveOpen(true)}
+        >
+          {locale === 'zh'
+            ? `展开完整阵容 · 还有 ${archiveGroups.length} 个声音章节`
+            : `Open the full archive · ${archiveGroups.length} more sound chapters`}
+        </button>
+      ) : null}
+    </div>
+  );
 
   return (
     <section
-      className={`lineup-scene lineup-map lineup-map--${mode}`}
-      aria-labelledby="lineup-map-heading"
+      className={`lineup-scene lineup-map lineup-map--${mode}${progressive ? ' lineup-map--progressive' : ''}${isFlow ? ' lineup-map--cinematic' : ''}`}
+      aria-labelledby={headingId}
       data-reveal
       style={{ '--reveal-delay': '0.08s' } as CSSProperties}
     >
       <div className="container">
-        <header className="lineup-scene__header">
-          <p className="lineup-scene__eyebrow">
-            {isFlow ? labels.flowEyebrow : labels.discoveryEyebrow}
-          </p>
-          <h2 id="lineup-map-heading" className="lineup-scene__title">
+        <header
+          className={
+            isFlow ? 'lineup-map__night-header' : 'lineup-scene__header'
+          }
+        >
+          {isFlow ? null : (
+            <p className="lineup-scene__eyebrow">{labels.discoveryEyebrow}</p>
+          )}
+          <h2
+            id={headingId}
+            className={isFlow ? 'lineup-map__night-title' : 'lineup-scene__title'}
+          >
             {title}
           </h2>
-          <p className="lineup-scene__lead">{lead}</p>
+          <p
+            className={isFlow ? 'lineup-map__night-lead' : 'lineup-scene__lead'}
+          >
+            {lead}
+          </p>
           {isFlow && routeIntelligence ? (
             <p className="lineup-map__intelligence">{routeIntelligence}</p>
           ) : null}
@@ -233,7 +393,9 @@ export function LineupMapScene({
 
                 {day.peaks.length ? (
                   <div className="lineup-flow__chapter">
-                    <h4 className="lineup-flow__chapter-title">{labels.peaksLabel}</h4>
+                    <h4 className="lineup-flow__chapter-title">
+                      {labels.peaksLabel}
+                    </h4>
                     <ol className="lineup-flow__list">
                       {day.peaks.map((stop) => (
                         <li key={`peak-${stop.artistId}-${stop.startMinutes}`}>
@@ -245,8 +407,10 @@ export function LineupMapScene({
                 ) : null}
 
                 {day.route.length ? (
-                  <div className="lineup-flow__chapter">
-                    <h4 className="lineup-flow__chapter-title">{labels.routeLabel}</h4>
+                  <div className="lineup-flow__chapter lineup-flow__chapter--route">
+                    <h4 className="lineup-flow__chapter-title">
+                      {labels.routeLabel}
+                    </h4>
                     <ol className="lineup-flow__route">
                       {day.route.map((stop, index) => (
                         <li key={`route-${stop.artistId}-${stop.startMinutes}`}>
@@ -263,8 +427,12 @@ export function LineupMapScene({
                 {day.stages.length ? (
                   <details className="lineup-flow__stages">
                     <summary>
-                      <span className="lineup-flow__stages-open">{labels.expandStages}</span>
-                      <span className="lineup-flow__stages-close">{labels.collapseStages}</span>
+                      <span className="lineup-flow__stages-open">
+                        {labels.expandStages}
+                      </span>
+                      <span className="lineup-flow__stages-close">
+                        {labels.collapseStages}
+                      </span>
                       {stageLabels.length ? (
                         <span className="lineup-flow__stages-meta">
                           {stageLabels.join(' · ')}
@@ -274,7 +442,9 @@ export function LineupMapScene({
                     <div className="lineup-flow__stage-list">
                       {day.stages.map((stage) => (
                         <div className="lineup-flow__stage" key={stage.stageKey}>
-                          <h5 className="lineup-flow__stage-title">{stage.stageLabel}</h5>
+                          <h5 className="lineup-flow__stage-title">
+                            {stage.stageLabel}
+                          </h5>
                           <ol className="lineup-flow__list">
                             {stage.slots.map((slot) => (
                               <li key={`${slot.artistId}-${slot.startMinutes}`}>
@@ -308,28 +478,7 @@ export function LineupMapScene({
             ))}
           </div>
         ) : (
-          <div className="lineup-map__discovery">
-            {genres.length > 0 ? (
-              <p className="lineup-map__signal">
-                <span>{labels.soundMap}</span>
-                {genres.slice(0, 6).join(' · ')}
-              </p>
-            ) : null}
-
-            <div className="lineup-map__cast">
-              {genreGroups.map(({ genreLabel, color, djs }) => (
-                <DiscoveryChapter
-                  key={genreLabel}
-                  genreLabel={genreLabel}
-                  color={color}
-                  djs={djs}
-                  locale={locale}
-                  stagesPublished={stagesPublished}
-                  labels={labels}
-                />
-              ))}
-            </div>
-          </div>
+          discoveryBody
         )}
       </div>
     </section>

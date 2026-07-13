@@ -2224,11 +2224,11 @@ body:has(.plan-page-shell[data-journey-phase='generating']) .plan-gen {
   padding-top: clamp(36px, 5vw, 56px);
 }
 
-/* Results lead with confidence, then reveal the fuller story on request. */
-.raven-journey__section--budget { order: 2; }
+/* The journey follows the festival weekend before practical confidence. */
+.raven-journey__section--timeline { order: 2; }
 .raven-journey__section--music { order: 3; }
 .raven-journey__section--travel { order: 4; }
-.raven-journey__section--timeline { order: 5; }
+.raven-journey__section--budget { order: 5; }
 .raven-journey__section--essentials { order: 6; }
 .raven-journey__section--squad { order: 7; }
 .raven-journey__section--share { order: 8; }

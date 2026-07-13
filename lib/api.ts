@@ -329,10 +329,14 @@ export type ScheduleFetchResult = {
 
 export async function fetchActivitySchedule(
   legacyId: number,
+  options?: { weekend?: "w1" | "w2" },
 ): Promise<ScheduleFetchResult> {
   try {
+    const params = new URLSearchParams();
+    if (options?.weekend) params.set("weekend", options.weekend);
+    const query = params.size ? `?${params.toString()}` : "";
     const schedule = await apiGet<ActivitySchedule>(
-      `/activities/${legacyId}/itinerary/schedule`,
+      `/activities/${legacyId}/itinerary/schedule${query}`,
     );
     const djs = schedule?.djs ?? [];
     const performances = schedule?.performances ?? [];
@@ -349,6 +353,9 @@ export async function fetchActivitySchedule(
 export type RavenPlanGenerationPayload = {
   guideId: string;
   departure: string;
+  travelDateMode: "raven" | "manual";
+  departureDate?: string;
+  returnDate?: string;
   headcount: number;
   budgetTier: "economy" | "standard" | "comfort";
   selfDrive?: boolean;
@@ -368,6 +375,8 @@ export type RavenTravelGuidePlan = {
   budgetLabel: string;
   accommodationNights: number;
   selfDrive: boolean;
+  recommendedDepartureDate?: string;
+  recommendedReturnDate?: string;
   transport: {
     title: string;
     lines: string[];
