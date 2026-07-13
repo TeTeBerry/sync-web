@@ -55,7 +55,6 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
               festivals: t.nav.festivals,
               waitlist: t.nav.waitlist,
               language: t.nav.language,
-              planCta: t.nav.planCta,
               openMenu: t.nav.openMenu,
               closeMenu: t.nav.closeMenu,
               mainNav: t.nav.mainNav,

@@ -14,7 +14,6 @@ type SiteNavProps = {
     festivals: string;
     waitlist: string;
     language: string;
-    planCta: string;
     openMenu: string;
     closeMenu: string;
     mainNav: string;
@@ -66,9 +65,6 @@ export function SiteNav({ locale, nextLocale, labels }: SiteNavProps) {
             {link.label}
           </Link>
         ))}
-        <Link className="button button--compact" href={localizedPath(locale, '/waitlist')}>
-          {labels.planCta}
-        </Link>
       </nav>
 
       <button
@@ -99,13 +95,6 @@ export function SiteNav({ locale, nextLocale, labels }: SiteNavProps) {
               {link.label}
             </Link>
           ))}
-          <Link
-            className="button"
-            href={localizedPath(locale, '/waitlist')}
-            onClick={() => setOpen(false)}
-          >
-            {labels.planCta}
-          </Link>
         </nav>
       </div>
     </>
