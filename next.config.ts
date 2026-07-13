@@ -1,6 +1,8 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // Required for the CloudBase / Docker runner image (`.next/standalone`).
+  output: 'standalone',
   images: {
     qualities: [75, 85],
     remotePatterns: [

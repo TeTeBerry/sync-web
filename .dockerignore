@@ -1,0 +1,22 @@
+node_modules
+.next
+out
+coverage
+.git
+.github
+.vercel
+.vscode
+.idea
+
+# Local env / secrets — inject at runtime via CloudBase env / orchestrator secrets.
+.env
+.env.*
+
+# Dev / test artifacts
+**/*.test.ts
+**/*.test.tsx
+docs
+*.md
+npm-debug.log*
+.DS_Store
+tsconfig.tsbuildinfo

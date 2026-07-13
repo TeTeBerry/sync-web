@@ -27,28 +27,33 @@ npm run dev:clean
 
 Set `API_BASE_URL` to the backend API root for server-rendered reads. Production currently points at `https://sync-backend-prd-269371-9-1442514260.sh.run.tcloudbase.com/api`; local backend dev can use `http://127.0.0.1:3000/api`.
 
-## Vercel Deployment
+## Deployment (Vercel + CloudBase)
 
-Deploy the MVP to Vercel. Production URL is assigned automatically (currently `https://raven-ashen-mu.vercel.app`). Metadata, canonical URLs, `robots.txt`, and `sitemap.xml` use `VERCEL_PROJECT_PRODUCTION_URL`.
+Full Raven needs **Node** on both sides:
 
-Required production environment variables:
+| Target | How |
+|--------|-----|
+| **Vercel** | Git integration (SSR + Route Handlers). Prod URL e.g. `https://raven-ashen-mu.vercel.app`. |
+| **CloudBase 云托管** | `Dockerfile` → standalone `node server.js`. Not 静态网站托管. |
 
-- `API_BASE_URL`: backend API root for activity and recruit reads.
-- `DATABASE_URL`: optional local override. On Vercel with the Supabase integration, `POSTGRES_URL` is injected automatically and used at runtime.
-- `NEXT_PUBLIC_SITE_URL`: optional override for site URL. When unset, production uses `VERCEL_PROJECT_PRODUCTION_URL`.
+**Env reference (required / optional / build vs runtime / per-target checklists):** see **[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)**.
 
-Optional production environment variables:
+Short version for both targets:
 
-- `RESEND_API_KEY`: enables email notification for waitlist submissions after the database write succeeds.
+| Variable | Role |
+|----------|------|
+| `API_BASE_URL` | Nest API root (`…/api`) |
+| `DATABASE_URL` or `POSTGRES_URL` | Waitlist + Raven auth Postgres |
+| `NEXT_PUBLIC_SITE_URL` | Canonical origin (required on CloudBase; optional on Vercel if `VERCEL_*` fallback is enough) |
+| `TEMP_EMAIL_ONLY_AUTH_ENABLED` (+ `NEXT_PUBLIC_…`) | Email login gate in production |
+| `RESEND_API_KEY` | Optional waitlist email |
 
-Waitlist submissions are stored in Supabase Postgres (`waitlist_submissions`). The API creates the table on first successful request, so no separate migration command is required for the MVP.
+Waitlist / auth tables are created on first successful use when Postgres is configured. Vercel Analytics remains enabled on the Vercel deploy.
 
-Vercel Analytics is enabled in the root layout. It records page views plus key conversion events such as home event clicks, event subscribe clicks, and waitlist submission results.
-
-The app currently consumes read-only backend APIs:
+Backend reads used by the app:
 
 - `GET /api/activities`
 - `GET /api/activities/:legacyId`
 - `GET /api/posts?activityLegacyId=:legacyId&limit=6`
 
-Fallback data remains in place so the UI can still be reviewed when the backend is offline.
+Fallback data remains when the backend is offline.
