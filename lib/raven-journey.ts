@@ -175,10 +175,18 @@ function localizeFlightLabel(
     .replace(/曼谷国际机场/g, "Bangkok International Airport")
     .replace(/仁川国际机场/g, "Incheon International Airport")
     .replace(/普吉岛|普吉/g, "Phuket")
+    .replace(/芭提雅/g, "Pattaya")
     .replace(/曼谷/g, "Bangkok")
+    .replace(/清迈/g, "Chiang Mai")
+    .replace(/苏梅岛|苏梅/g, "Koh Samui")
     .replace(/仁川/g, "Incheon")
+    .replace(/首尔/g, "Seoul")
     .replace(/东京/g, "Tokyo")
     .replace(/大阪/g, "Osaka")
+    .replace(/香港/g, "Hong Kong")
+    .replace(/澳门/g, "Macau")
+    .replace(/台北/g, "Taipei")
+    .replace(/高雄/g, "Kaohsiung")
     .replace(/布鲁塞尔/g, "Brussels")
     .replace(/安特卫普/g, "Antwerp")
     .replace(/（/g, "(")
@@ -220,7 +228,12 @@ function englishSafeText(
   if (!value?.trim()) return fallback;
   if (locale !== "en") return value;
   const localized = localizeFlightLabel(value, locale)?.trim() || value.trim();
-  return looksLikeChineseCopy(localized) ? fallback : localized;
+  if (!/[\u3400-\u9fff]/.test(localized)) return localized;
+  if (!fallback.trim()) return "";
+  const localizedFallback = localizeFlightLabel(fallback, locale)?.trim() || "";
+  return /[\u3400-\u9fff]/.test(localizedFallback)
+    ? "Festival destination"
+    : localizedFallback;
 }
 
 /** System route copy must never mix Chinese place labels into an English plan. */
