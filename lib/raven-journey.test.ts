@@ -153,11 +153,10 @@ describe("detectPriceSource", () => {
 });
 
 describe("assignFlightBadges", () => {
-  it("derives badges from rank, price, and stops — not fixed index labels", () => {
+  it("exposes the scored recommendation categories", () => {
     const offers = makeRemote().transport.flightOffers!;
     const badges = assignFlightBadges(offers, "en");
-    expect(badges[0]).toBe("Recommended");
-    expect(badges[1]).toBe("Lowest Cost");
+    expect(badges).toEqual(["Best overall", "Lowest price"]);
   });
 });
 
@@ -337,8 +336,8 @@ describe("buildRavenJourneyView", () => {
       festivalDates: "Jul 17–19",
       favoriteArtists: [],
     });
-    expect(view.flightStrategy.options[0]?.badge).toBe("Recommended");
-    expect(view.flightStrategy.options[1]?.badge).toBe("Lowest Cost");
+    expect(view.flightStrategy.options[0]?.badge).toBe("Best overall");
+    expect(view.flightStrategy.options[1]?.badge).toBe("Lowest price");
     expect(view.flightStrategy.options[1]?.tradeoff).toMatch(
       /stops|fare|route/i,
     );
@@ -373,6 +372,133 @@ describe("buildRavenJourneyView", () => {
     );
     expect(view.flightStrategy.options[0]?.route).toMatch(
       /Balanced flights|Boom|Tomorrowland/i,
+    );
+  });
+
+  it("turns an international travel sentence into a complete English route", () => {
+    const view = buildRavenJourneyView({
+      remote: makeRemote({
+        transport: {
+          title: "Getting there",
+          lines: [
+            "Travel from 「Shanghai, China」 to 普吉 is international — arrive 1–2 days early for immigration, SIM pickup, and rest.",
+            "Fly PVG → HKT; watch round-trip fares ahead.",
+          ],
+          flightOffers: [],
+        },
+      }),
+      local: localPlan,
+      locale: "en",
+      festivalName: "EDC Thailand",
+      destination: "普吉",
+      festivalDates: "Dec 18–20",
+      favoriteArtists: [],
+    });
+
+    expect(view.flightStrategy.options[0]?.route).toBe(
+      "Shanghai, China → Phuket",
+    );
+    expect(view.flightStrategy.options[0]?.route).not.toContain("…");
+  });
+
+  it("localizes Chinese airport labels in an existing English plan", () => {
+    const view = buildRavenJourneyView({
+      remote: makeRemote({
+        transport: {
+          title: "Getting there",
+          lines: ["Fly 上海浦东/虹桥国际机场（PVG/SHA） → 普吉国际机场（HKT）"],
+          flightOffers: [],
+        },
+      }),
+      local: localPlan,
+      locale: "en",
+      festivalName: "EDC Thailand",
+      destination: "Phuket, Thailand",
+      festivalDates: "Dec 18–20",
+      favoriteArtists: [],
+    });
+
+    expect(view.flightStrategy.options[0]?.route).toBe(
+      "Shanghai Pudong / Hongqiao International Airports (PVG/SHA) → Phuket International Airport (HKT)",
+    );
+  });
+
+  it("keeps the full airport route beside a live fare", () => {
+    const view = buildRavenJourneyView({
+      remote: makeRemote({
+        transport: {
+          title: "Getting there",
+          lines: [
+            "Fly Shanghai Pudong / Hongqiao International Airports (PVG/SHA) → Phuket International Airport (HKT)",
+          ],
+          flightOffers: [
+            {
+              pricePerAdult: 2880,
+              currency: "CNY",
+              outbound: { route: "PVG→HKT", stopsLabel: "Direct" },
+            },
+          ],
+        },
+      }),
+      local: localPlan,
+      locale: "en",
+      festivalName: "EDC Thailand",
+      destination: "Phuket, Thailand",
+      festivalDates: "Dec 18–20",
+      favoriteArtists: [],
+    });
+
+    expect(view.flightStrategy.options[0]?.route).toBe(
+      "Shanghai Pudong / Hongqiao International Airports (PVG/SHA) → Phuket International Airport (HKT)",
+    );
+    expect(view.flightStrategy.options[0]?.price).toBe("About $400 / person");
+  });
+
+  it("removes duplicate flight lines and keeps an English recommendation reason", () => {
+    const view = buildRavenJourneyView({
+      remote: makeRemote({
+        transport: {
+          title: "Getting there",
+          lines: [
+            "Travel from Singapore, Singapore to Incheon is international — arrive early.",
+            "Fly 新加坡樟宜国际机场 (SIN) → Incheon International Airport (ICN)",
+            "Bring passport, visa / K-ETA if needed, return flight, and hotel booking.",
+          ],
+          flightOffers: [
+            {
+              pricePerAdult: 353,
+              currency: "USD",
+              outbound: {
+                route: "SIN→ICN",
+                stopsLabel: "Direct",
+                depTime: "00:50",
+                arrTime: "08:40",
+              },
+              return: {
+                route: "ICN→SIN",
+                depTime: "18:10",
+                arrTime: "23:40",
+                stopsLabel: "Direct",
+              },
+              recommendationReason: "Direct · Good arrival window",
+            },
+          ],
+        },
+      }),
+      local: localPlan,
+      locale: "en",
+      festivalName: "EDC Korea",
+      destination: "Incheon, South Korea",
+      festivalDates: "Oct 17–18",
+      favoriteArtists: [],
+    });
+
+    expect(view.flightStrategy.reasons[0]).toBe("Direct · Good arrival window");
+    expect(view.flightStrategy.reasons.join(" ")).not.toMatch(
+      /passport|visa|K-ETA|hotel booking/i,
+    );
+    expect(view.flightStrategy.reasons.join(" ")).not.toMatch(
+      /[\u4e00-\u9fff]/,
     );
   });
 

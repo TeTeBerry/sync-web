@@ -22,11 +22,14 @@ import type { Activity } from "../../lib/types";
 import {
   fetchRavenPlaceSuggestions,
   generateRavenPlanAsync,
+  getRavenFestivalWeather,
   getRavenPlanGenerationJob,
+  getSavedRavenPlan,
   isRavenApiStatusError,
   type RavenPlaceSuggestion,
   type RavenPlanGenerationPayload,
   type RavenTravelGuidePlan,
+  type RavenFestivalWeather,
   type ScheduleDj,
   type SchedulePerformance,
 } from "../../lib/api";
@@ -234,7 +237,11 @@ function toYmd(date: Date): string {
 function calendarDays(month: Date): Array<Date | null> {
   const first = new Date(month.getFullYear(), month.getMonth(), 1);
   const offset = (first.getDay() + 6) % 7;
-  const count = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  const count = new Date(
+    month.getFullYear(),
+    month.getMonth() + 1,
+    0,
+  ).getDate();
   return Array.from({ length: 42 }, (_, index) =>
     index < offset || index >= offset + count
       ? null
@@ -269,7 +276,10 @@ function RavenTravelCalendar({
   onMonthChange: (month: Date) => void;
   onSelect: (date: string) => void;
 }) {
-  const weekdays = locale === "zh" ? ["一", "二", "三", "四", "五", "六", "日"] : ["M", "T", "W", "T", "F", "S", "S"];
+  const weekdays =
+    locale === "zh"
+      ? ["一", "二", "三", "四", "五", "六", "日"]
+      : ["M", "T", "W", "T", "F", "S", "S"];
   const title = new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", {
     month: "long",
     year: "numeric",
@@ -291,20 +301,45 @@ function RavenTravelCalendar({
     >
       <header className="raven-travel-calendar__head">
         <span className="raven-travel-calendar__eyebrow">
-          {target === "departure" ? (locale === "zh" ? "选择启程日" : "Choose departure") : (locale === "zh" ? "选择归来日" : "Choose return")}
+          {target === "departure"
+            ? locale === "zh"
+              ? "选择启程日"
+              : "Choose departure"
+            : locale === "zh"
+              ? "选择归来日"
+              : "Choose return"}
         </span>
         <div className="raven-travel-calendar__month">
-          <button type="button" disabled={!canGoPrevious} aria-label={locale === "zh" ? "上个月" : "Previous month"} onClick={() => onMonthChange(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>
+          <button
+            type="button"
+            disabled={!canGoPrevious}
+            aria-label={locale === "zh" ? "上个月" : "Previous month"}
+            onClick={() =>
+              onMonthChange(
+                new Date(month.getFullYear(), month.getMonth() - 1, 1),
+              )
+            }
+          >
             <ChevronLeft size={17} aria-hidden />
           </button>
           <strong>{title}</strong>
-          <button type="button" aria-label={locale === "zh" ? "下个月" : "Next month"} onClick={() => onMonthChange(new Date(month.getFullYear(), month.getMonth() + 1, 1))}>
+          <button
+            type="button"
+            aria-label={locale === "zh" ? "下个月" : "Next month"}
+            onClick={() =>
+              onMonthChange(
+                new Date(month.getFullYear(), month.getMonth() + 1, 1),
+              )
+            }
+          >
             <ChevronRight size={17} aria-hidden />
           </button>
         </div>
       </header>
       <div className="raven-travel-calendar__week" aria-hidden>
-        {weekdays.map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}
+        {weekdays.map((day, index) => (
+          <span key={`${day}-${index}`}>{day}</span>
+        ))}
       </div>
       <div className="raven-travel-calendar__days">
         {calendarDays(month).map((date, index) => {
@@ -316,7 +351,22 @@ function RavenTravelCalendar({
           const isDeparture = value === departureDate;
           const isReturn = value === returnDate;
           return (
-            <button key={value} type="button" disabled={disabled} aria-pressed={isSelected} className={["raven-travel-calendar__day", isSelected ? "is-selected" : "", isToday ? "is-today" : "", isDeparture ? "is-departure" : "", isReturn ? "is-return" : ""].filter(Boolean).join(" ")} onClick={() => onSelect(value)}>
+            <button
+              key={value}
+              type="button"
+              disabled={disabled}
+              aria-pressed={isSelected}
+              className={[
+                "raven-travel-calendar__day",
+                isSelected ? "is-selected" : "",
+                isToday ? "is-today" : "",
+                isDeparture ? "is-departure" : "",
+                isReturn ? "is-return" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              onClick={() => onSelect(value)}
+            >
               {date.getDate()}
             </button>
           );
@@ -383,6 +433,7 @@ export function AiPlannerFlow({
   const [remotePlan, setRemotePlan] = useState<RavenTravelGuidePlan | null>(
     initialRemotePlan,
   );
+  const [weather, setWeather] = useState<RavenFestivalWeather | null>(null);
   const [activeGuideId, setActiveGuideId] = useState<string | null>(
     initialGuideId,
   );
@@ -393,7 +444,9 @@ export function AiPlannerFlow({
     useState<RavenPlanGenerationPayload | null>(null);
   const [departureDate, setDepartureDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
-  const [travelDateMode, setTravelDateMode] = useState<"raven" | "manual">("raven");
+  const [travelDateMode, setTravelDateMode] = useState<"raven" | "manual">(
+    "raven",
+  );
   const [calendarTarget, setCalendarTarget] = useState<CalendarTarget | null>(
     null,
   );
@@ -402,9 +455,29 @@ export function AiPlannerFlow({
   );
   const hasUserGeneratedRef = useRef(false);
   const sharedPlanSeededRef = useRef(false);
+  const refreshedGuideIdsRef = useRef(new Set<string>());
 
   const [preferences, setPreferences] =
     useState<PlannerPreferences>(DEFAULT_PREFERENCES);
+
+  useEffect(() => {
+    if (phase !== "result") {
+      setWeather(null);
+      return;
+    }
+    let active = true;
+    setWeather(null);
+    getRavenFestivalWeather(activity.legacyId)
+      .then((forecast) => {
+        if (active) setWeather(forecast);
+      })
+      .catch(() => {
+        if (active) setWeather(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [activity.legacyId, phase]);
 
   const fallbackPlan = useCallback(() => {
     const fallback = buildPlannerPlan(
@@ -462,6 +535,37 @@ export function AiPlannerFlow({
   ]);
   const fallbackPlanRef = useRef(fallbackPlan);
   fallbackPlanRef.current = fallbackPlan;
+
+  // Generation jobs store their completed plan snapshot. Re-read the saved
+  // journey once so quotes attached during persistence/refresh are visible in
+  // the same result view, rather than only after reopening the guide link.
+  useEffect(() => {
+    if (phase !== "result" || !activeGuideId) return;
+    if (refreshedGuideIdsRef.current.has(activeGuideId)) return;
+
+    refreshedGuideIdsRef.current.add(activeGuideId);
+    let active = true;
+    void getSavedRavenPlan(activeGuideId)
+      .then((saved) => {
+        if (!active || !saved?.plan) return;
+        const resolved = resolveResultPlan(
+          saved.plan,
+          fallbackPlanRef.current(),
+          locale,
+          { preferRemote: true },
+        );
+        setRemotePlan(saved.plan);
+        setPlan(resolved.plan);
+        setShowLanguageCaveat(resolved.showLanguageCaveat);
+      })
+      .catch(() => {
+        // The job snapshot remains a graceful fallback when a saved read fails.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activeGuideId, locale, phase]);
   const dismissJourneyReveal = useCallback((shouldAnimateResult = true) => {
     setShowJourneyReveal(false);
     setHasJourneyRevealed(shouldAnimateResult);
@@ -593,7 +697,9 @@ export function AiPlannerFlow({
       return (
         preferences.origin.length > 0 &&
         (travelDateMode === "raven" ||
-          (Boolean(departureDate) && Boolean(returnDate) && returnDate >= departureDate))
+          (Boolean(departureDate) &&
+            Boolean(returnDate) &&
+            returnDate >= departureDate))
       );
     }
     if (currentStep === "priority") return preferences.priorities.length > 0;
@@ -974,71 +1080,108 @@ export function AiPlannerFlow({
                   autoComplete="off"
                 />
               </label>
-              <div className="plan-step__date-mode" role="radiogroup" aria-label={locale === "zh" ? "日期方式" : "Travel date mode"}>
-                <button type="button" role="radio" aria-checked={travelDateMode === "raven"} className={travelDateMode === "raven" ? "is-selected" : ""} onClick={() => setTravelDateMode("raven")}>
+              <div
+                className="plan-step__date-mode"
+                role="radiogroup"
+                aria-label={locale === "zh" ? "日期方式" : "Travel date mode"}
+              >
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={travelDateMode === "raven"}
+                  className={travelDateMode === "raven" ? "is-selected" : ""}
+                  onClick={() => setTravelDateMode("raven")}
+                >
                   <Sparkles size={15} aria-hidden />
-                  {locale === "zh" ? "让 Raven 推荐日期" : "Let Raven recommend"}
+                  {locale === "zh"
+                    ? "让 Raven 推荐日期"
+                    : "Let Raven recommend"}
                 </button>
-                <button type="button" role="radio" aria-checked={travelDateMode === "manual"} className={travelDateMode === "manual" ? "is-selected" : ""} onClick={() => setTravelDateMode("manual")}>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={travelDateMode === "manual"}
+                  className={travelDateMode === "manual" ? "is-selected" : ""}
+                  onClick={() => setTravelDateMode("manual")}
+                >
                   <CalendarDays size={15} aria-hidden />
                   {locale === "zh" ? "自己选择日期" : "Choose dates myself"}
                 </button>
               </div>
               {travelDateMode === "manual" ? (
                 <>
-              <div className="plan-step__dates" aria-label={locale === "zh" ? "旅行日期" : "Travel dates"}>
-                <span className="plan-step__date-thread" aria-hidden>
-                  <span />
-                  <ArrowRight size={15} strokeWidth={1.8} />
-                </span>
-                <label
-                  className={`plan-step__date-field${departureDate ? " is-filled" : ""}`}
-                >
-                  <span className="plan-step__date-icon" aria-hidden>
-                    <CalendarDays size={18} strokeWidth={1.7} />
-                  </span>
-                  <span className="plan-step__date-copy">
-                    <span className="plan-step__date-label">
-                      {locale === "zh" ? "启程" : "Departure"}
+                  <div
+                    className="plan-step__dates"
+                    aria-label={locale === "zh" ? "旅行日期" : "Travel dates"}
+                  >
+                    <span className="plan-step__date-thread" aria-hidden>
+                      <span />
+                      <ArrowRight size={15} strokeWidth={1.8} />
                     </span>
-                    <span className="plan-step__date-caption">
-                      {locale === "zh" ? "旅程从这里开始" : "The journey begins"}
-                    </span>
-                  </span>
-                  <button type="button" className="plan-step__date-trigger" aria-haspopup="dialog" aria-expanded={calendarTarget === "departure"} onClick={() => openCalendar("departure")}>
-                    {formatTravelDate(departureDate, locale)}
-                  </button>
-                </label>
-                <label
-                  className={`plan-step__date-field${returnDate ? " is-filled" : ""}`}
-                >
-                  <span className="plan-step__date-icon" aria-hidden>
-                    <CalendarDays size={18} strokeWidth={1.7} />
-                  </span>
-                  <span className="plan-step__date-copy">
-                    <span className="plan-step__date-label">
-                      {locale === "zh" ? "归来" : "Return"}
-                    </span>
-                    <span className="plan-step__date-caption">
-                      {locale === "zh" ? "把余韵带回日常" : "Bring the afterglow home"}
-                    </span>
-                  </span>
-                  <button type="button" className="plan-step__date-trigger" aria-haspopup="dialog" aria-expanded={calendarTarget === "return"} onClick={() => openCalendar("return")}>
-                    {formatTravelDate(returnDate, locale)}
-                  </button>
-                </label>
-              </div>
-              {calendarTarget ? (
-                <RavenTravelCalendar
-                  target={calendarTarget}
-                  month={calendarMonth}
-                  departureDate={departureDate}
-                  returnDate={returnDate}
-                  locale={locale}
-                  onMonthChange={setCalendarMonth}
-                  onSelect={selectCalendarDate}
-                />
-              ) : null}
+                    <label
+                      className={`plan-step__date-field${departureDate ? " is-filled" : ""}`}
+                    >
+                      <span className="plan-step__date-icon" aria-hidden>
+                        <CalendarDays size={18} strokeWidth={1.7} />
+                      </span>
+                      <span className="plan-step__date-copy">
+                        <span className="plan-step__date-label">
+                          {locale === "zh" ? "启程" : "Departure"}
+                        </span>
+                        <span className="plan-step__date-caption">
+                          {locale === "zh"
+                            ? "旅程从这里开始"
+                            : "The journey begins"}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className="plan-step__date-trigger"
+                        aria-haspopup="dialog"
+                        aria-expanded={calendarTarget === "departure"}
+                        onClick={() => openCalendar("departure")}
+                      >
+                        {formatTravelDate(departureDate, locale)}
+                      </button>
+                    </label>
+                    <label
+                      className={`plan-step__date-field${returnDate ? " is-filled" : ""}`}
+                    >
+                      <span className="plan-step__date-icon" aria-hidden>
+                        <CalendarDays size={18} strokeWidth={1.7} />
+                      </span>
+                      <span className="plan-step__date-copy">
+                        <span className="plan-step__date-label">
+                          {locale === "zh" ? "归来" : "Return"}
+                        </span>
+                        <span className="plan-step__date-caption">
+                          {locale === "zh"
+                            ? "把余韵带回日常"
+                            : "Bring the afterglow home"}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className="plan-step__date-trigger"
+                        aria-haspopup="dialog"
+                        aria-expanded={calendarTarget === "return"}
+                        onClick={() => openCalendar("return")}
+                      >
+                        {formatTravelDate(returnDate, locale)}
+                      </button>
+                    </label>
+                  </div>
+                  {calendarTarget ? (
+                    <RavenTravelCalendar
+                      target={calendarTarget}
+                      month={calendarMonth}
+                      departureDate={departureDate}
+                      returnDate={returnDate}
+                      locale={locale}
+                      onMonthChange={setCalendarMonth}
+                      onSelect={selectCalendarDate}
+                    />
+                  ) : null}
                 </>
               ) : null}
               <div
@@ -1119,7 +1262,10 @@ export function AiPlannerFlow({
                 })}
               </div>
               <p className="plan-step__choice-consequence" aria-live="polite">
-                {copy.steps.travelStyle.options[preferences.travelStyle].experience}
+                {
+                  copy.steps.travelStyle.options[preferences.travelStyle]
+                    .experience
+                }
               </p>
             </div>
           ) : null}
@@ -1382,6 +1528,7 @@ export function AiPlannerFlow({
           favoriteArtists={favoriteArtists}
           squadHref={eventSquadPath(locale, activity)}
           eventLegacyId={activity.legacyId}
+          weather={weather}
           onSave={() => {
             window.location.href = waitlistHref;
           }}

@@ -1,20 +1,22 @@
-'use client';
+"use client";
 
-import { useMemo } from 'react';
-import { ArrowRight } from 'lucide-react';
-import { EventImage } from '../EventImage';
-import { FestivalSquadJourneyCta } from '../festival-squad/FestivalSquadJourneyCta';
-import { JourneyShareSection } from '../journey-share';
+import { useMemo } from "react";
+import { ArrowRight } from "lucide-react";
+import { EventImage } from "../EventImage";
+import { FestivalSquadJourneyCta } from "../festival-squad/FestivalSquadJourneyCta";
+import { JourneyShareSection } from "../journey-share";
 import {
   isBudgetTotalLabel,
   type PriceSource,
   type RavenJourneyFlightOption,
   type RavenJourneyStayOption,
   type RavenJourneyView,
-} from '../../lib/raven-journey';
-import { buildJourneyShareFromView } from '../../lib/journey-share';
-import type { PlannerPreferences } from '../../lib/planner-plan';
-import { getMessages, type Locale } from '../../lib/i18n';
+} from "../../lib/raven-journey";
+import { buildJourneyShareFromView } from "../../lib/journey-share";
+import type { PlannerPreferences } from "../../lib/planner-plan";
+import { getMessages, type Locale } from "../../lib/i18n";
+import type { RavenFestivalWeather } from "../../lib/api";
+import { FestivalWeatherReadiness } from "./FestivalWeatherReadiness";
 
 const TIMELINE_LINES_VISIBLE = 1;
 const SETS_VISIBLE = 3;
@@ -31,6 +33,7 @@ type RavenJourneyResultProps = {
   favoriteArtists?: string[];
   squadHref?: string;
   eventLegacyId?: number;
+  weather?: RavenFestivalWeather | null;
   onSave: () => void;
   onEditPreferences: () => void;
   onRebuild: () => void;
@@ -53,7 +56,9 @@ function TravelStay({
 
   return (
     <article className="raven-journey__story">
-      {areaHeadline ? <p className="raven-journey__story-context">{areaHeadline}</p> : null}
+      {areaHeadline ? (
+        <p className="raven-journey__story-context">{areaHeadline}</p>
+      ) : null}
       <h4 className="raven-journey__story-title">{option.name}</h4>
       {why ? (
         <p className="raven-journey__story-why">
@@ -61,7 +66,9 @@ function TravelStay({
           {why}
         </p>
       ) : null}
-      {option.note ? <p className="raven-journey__story-note">{option.note}</p> : null}
+      {option.note ? (
+        <p className="raven-journey__story-note">{option.note}</p>
+      ) : null}
     </article>
   );
 }
@@ -77,27 +84,42 @@ function TravelFlight({
 }) {
   return (
     <article className="raven-journey__story raven-journey__story--support">
+      {option.badge ? (
+        <span className="raven-journey__flight-badge">{option.badge}</span>
+      ) : null}
       <h4 className="raven-journey__story-title raven-journey__story-title--route">
         {option.route || recommendation}
       </h4>
-      {option.detail ? <p className="raven-journey__story-note">{option.detail}</p> : null}
-      {option.price ? <p className="raven-journey__story-price">{option.price}</p> : null}
-      {reasons[0] ? <p className="raven-journey__story-why">{reasons[0]}</p> : null}
+      {option.detail ? (
+        <p className="raven-journey__story-note">{option.detail}</p>
+      ) : null}
+      {option.price ? (
+        <p className="raven-journey__story-price">{option.price}</p>
+      ) : null}
+      {option.tradeoff || option.recommendationReason || reasons[0] ? (
+        <p className="raven-journey__story-why">
+          {option.tradeoff || option.recommendationReason || reasons[0]}
+        </p>
+      ) : null}
     </article>
   );
 }
 
 function budgetConfidenceCopy(
   confidence: PriceSource,
-  copy: ReturnType<typeof getMessages>['aiPlanner']['journeyResult'],
+  copy: ReturnType<typeof getMessages>["aiPlanner"]["journeyResult"],
 ): string | null {
-  if (confidence === 'live') return copy.budgetConfidenceLive;
-  if (confidence === 'unavailable') return copy.budgetConfidenceUnavailable;
-  if (confidence === 'estimated' || confidence === 'user') return copy.budgetConfidenceEstimated;
+  if (confidence === "live") return copy.budgetConfidenceLive;
+  if (confidence === "unavailable") return copy.budgetConfidenceUnavailable;
+  if (confidence === "estimated" || confidence === "user")
+    return copy.budgetConfidenceEstimated;
   return null;
 }
 
-function prioritizeSets<T extends { highlight?: boolean }>(sets: T[], limit: number): T[] {
+function prioritizeSets<T extends { highlight?: boolean }>(
+  sets: T[],
+  limit: number,
+): T[] {
   const highlighted = sets.filter((set) => set.highlight);
   if (highlighted.length >= limit) return highlighted.slice(0, limit);
   const rest = sets.filter((set) => !set.highlight);
@@ -115,6 +137,7 @@ export function RavenJourneyResult({
   favoriteArtists,
   squadHref,
   eventLegacyId,
+  weather,
   onSave,
   onEditPreferences,
   onRebuild,
@@ -129,10 +152,12 @@ export function RavenJourneyResult({
       [
         journey.destination,
         journey.festivalDates,
-        journey.tripNights > 0 ? copy.nights.replace('{n}', String(journey.tripNights)) : null,
-        copy.travelers.replace('{n}', String(journey.travelers)),
-        journey.origin && journey.origin !== '—'
-          ? copy.from.replace('{origin}', journey.origin)
+        journey.tripNights > 0
+          ? copy.nights.replace("{n}", String(journey.tripNights))
+          : null,
+        copy.travelers.replace("{n}", String(journey.travelers)),
+        journey.origin && journey.origin !== "—"
+          ? copy.from.replace("{origin}", journey.origin)
           : null,
       ].filter(Boolean) as string[],
     [copy, journey],
@@ -151,7 +176,9 @@ export function RavenJourneyResult({
   const budgetInsight = journey.budget.insight || journey.insights[1];
   const placeEyebrow = journey.destination || journey.festivalDates || null;
   const heroPromise =
-    journey.summary && journey.summary !== copy.lead ? journey.summary : copy.lead;
+    journey.summary && journey.summary !== copy.lead
+      ? journey.summary
+      : copy.lead;
   const hasMusicDetail =
     journey.festivalExperience.ravenPicks.length > 0 ||
     journey.festivalExperience.conflicts.length > 0;
@@ -160,10 +187,17 @@ export function RavenJourneyResult({
     journey.festivalExperience.dailyFlow.length > 0 ||
     hasMusicDetail ||
     Boolean(musicInsight);
-  const budgetLineItems = journey.budget.items.filter((item) => !isBudgetTotalLabel(item.label));
+  const budgetLineItems = journey.budget.items.filter(
+    (item) => !isBudgetTotalLabel(item.label),
+  );
   const breathLines = journey.breath.slice(0, 2);
-  const visibleMusicDays = journey.festivalExperience.dailyFlow.slice(0, FESTIVAL_DAYS_VISIBLE);
-  const hiddenMusicDays = journey.festivalExperience.dailyFlow.slice(FESTIVAL_DAYS_VISIBLE);
+  const visibleMusicDays = journey.festivalExperience.dailyFlow.slice(
+    0,
+    FESTIVAL_DAYS_VISIBLE,
+  );
+  const hiddenMusicDays = journey.festivalExperience.dailyFlow.slice(
+    FESTIVAL_DAYS_VISIBLE,
+  );
   const showMetaQuietly = metaBits.length > 0 && breathLines.length === 0;
   const confidenceLine = budgetConfidenceCopy(journey.budget.confidence, copy);
 
@@ -182,7 +216,7 @@ export function RavenJourneyResult({
   // Festival-first chapter: Music before Stay (aligned with design bible).
   return (
     <section
-      className={`raven-journey${isRevealing ? ' is-revealing' : ''}${hasRevealed ? ' has-revealed' : ''}`}
+      className={`raven-journey${isRevealing ? " is-revealing" : ""}${hasRevealed ? " has-revealed" : ""}`}
       aria-labelledby="raven-journey-heading"
       aria-hidden={isRevealing || undefined}
       inert={isRevealing || undefined}
@@ -201,7 +235,9 @@ export function RavenJourneyResult({
         <div className="raven-journey__reveal-grain" aria-hidden />
         <div className="raven-journey__reveal-glow" aria-hidden />
         <div className="raven-journey__reveal-copy">
-          {placeEyebrow ? <p className="raven-journey__eyebrow">{placeEyebrow}</p> : null}
+          {placeEyebrow ? (
+            <p className="raven-journey__eyebrow">{placeEyebrow}</p>
+          ) : null}
           <h2 id="raven-journey-heading" className="raven-journey__title">
             {journey.festivalName}
           </h2>
@@ -211,7 +247,11 @@ export function RavenJourneyResult({
 
       <div className="raven-journey__body">
         {(breathLines.length > 0 || showMetaQuietly) && (
-          <section className="raven-journey__context" aria-label={copy.contextKicker} data-journey-reveal>
+          <section
+            className="raven-journey__context"
+            aria-label={copy.contextKicker}
+            data-journey-reveal
+          >
             {breathLines.length ? (
               <ul className="raven-journey__hero-breath">
                 {breathLines.map((line, index) => (
@@ -219,7 +259,7 @@ export function RavenJourneyResult({
                 ))}
               </ul>
             ) : (
-              <p className="raven-journey__hero-meta">{metaBits.join(' · ')}</p>
+              <p className="raven-journey__hero-meta">{metaBits.join(" · ")}</p>
             )}
           </section>
         )}
@@ -238,42 +278,60 @@ export function RavenJourneyResult({
           >
             <details className="raven-journey__timeline-disclosure">
               <summary id="raven-timeline-heading">
-                <span className="raven-journey__section-kicker">{copy.timelineKicker}</span>
-                <span className="raven-journey__section-title">{copy.timelineTitle}</span>
+                <span className="raven-journey__section-kicker">
+                  {copy.timelineKicker}
+                </span>
+                <span className="raven-journey__section-title">
+                  {copy.timelineTitle}
+                </span>
               </summary>
               <ol className="raven-journey__timeline">
-              {journey.timeline.map((day, dayIndex) => {
-                const visible = day.lines.slice(0, TIMELINE_LINES_VISIBLE);
-                const extra = day.lines.slice(TIMELINE_LINES_VISIBLE);
-                return (
-                  <li key={`day-${dayIndex}-${day.label}`} className="raven-journey__timeline-day">
-                    <div className="raven-journey__timeline-rail" aria-hidden />
-                    <div>
-                      <h4 className="raven-journey__timeline-label">{day.label}</h4>
-                      {day.feeling ? (
-                        <p className="raven-journey__timeline-feeling">{day.feeling}</p>
-                      ) : null}
-                      {visible.length ? (
-                        <ul className="raven-journey__list raven-journey__list--tight">
-                          {visible.map((line, lineIndex) => (
-                            <li key={`day-${dayIndex}-line-${lineIndex}`}>{line}</li>
-                          ))}
-                        </ul>
-                      ) : null}
-                      {extra.length ? (
-                        <details className="raven-journey__disclosure raven-journey__disclosure--quiet">
-                          <summary>{copy.moreDayDetail}</summary>
+                {journey.timeline.map((day, dayIndex) => {
+                  const visible = day.lines.slice(0, TIMELINE_LINES_VISIBLE);
+                  const extra = day.lines.slice(TIMELINE_LINES_VISIBLE);
+                  return (
+                    <li
+                      key={`day-${dayIndex}-${day.label}`}
+                      className="raven-journey__timeline-day"
+                    >
+                      <div
+                        className="raven-journey__timeline-rail"
+                        aria-hidden
+                      />
+                      <div>
+                        <h4 className="raven-journey__timeline-label">
+                          {day.label}
+                        </h4>
+                        {day.feeling ? (
+                          <p className="raven-journey__timeline-feeling">
+                            {day.feeling}
+                          </p>
+                        ) : null}
+                        {visible.length ? (
                           <ul className="raven-journey__list raven-journey__list--tight">
-                            {extra.map((line, lineIndex) => (
-                              <li key={`day-${dayIndex}-extra-${lineIndex}`}>{line}</li>
+                            {visible.map((line, lineIndex) => (
+                              <li key={`day-${dayIndex}-line-${lineIndex}`}>
+                                {line}
+                              </li>
                             ))}
                           </ul>
-                        </details>
-                      ) : null}
-                    </div>
-                  </li>
-                );
-              })}
+                        ) : null}
+                        {extra.length ? (
+                          <details className="raven-journey__disclosure raven-journey__disclosure--quiet">
+                            <summary>{copy.moreDayDetail}</summary>
+                            <ul className="raven-journey__list raven-journey__list--tight">
+                              {extra.map((line, lineIndex) => (
+                                <li key={`day-${dayIndex}-extra-${lineIndex}`}>
+                                  {line}
+                                </li>
+                              ))}
+                            </ul>
+                          </details>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
               </ol>
             </details>
           </section>
@@ -286,34 +344,55 @@ export function RavenJourneyResult({
             data-journey-reveal
           >
             <header className="raven-journey__section-head raven-journey__section-head--bare">
-              <h3 id="raven-festival-heading" className="raven-journey__section-title">
+              <h3
+                id="raven-festival-heading"
+                className="raven-journey__section-title"
+              >
                 {copy.festivalExperience}
               </h3>
             </header>
 
             {(journey.festivalExperience.dailyFlow.length > 0 ||
-              journey.festivalExperience.setTimesStatus === 'unavailable') && (
+              journey.festivalExperience.setTimesStatus === "unavailable") && (
               <div className="raven-journey__block raven-journey__block--peak">
-                {journey.festivalExperience.setTimesStatus === 'unavailable' ||
+                {journey.festivalExperience.setTimesStatus === "unavailable" ||
                 !journey.festivalExperience.dailyFlow.length ? (
-                  <p className="raven-journey__empty">{copy.setTimesUnavailable}</p>
+                  <p className="raven-journey__empty">
+                    {copy.setTimesUnavailable}
+                  </p>
                 ) : (
                   <div className="raven-journey__chapters">
                     {visibleMusicDays.map((day) => {
-                      const visibleSets = prioritizeSets(day.sets, SETS_VISIBLE);
-                      const hiddenSets = day.sets.filter((set) => !visibleSets.includes(set));
+                      const visibleSets = prioritizeSets(
+                        day.sets,
+                        SETS_VISIBLE,
+                      );
+                      const hiddenSets = day.sets.filter(
+                        (set) => !visibleSets.includes(set),
+                      );
                       return (
-                        <section key={day.label} className="raven-journey__chapter">
-                          <h4 className="raven-journey__chapter-label">{day.label}</h4>
+                        <section
+                          key={day.label}
+                          className="raven-journey__chapter"
+                        >
+                          <h4 className="raven-journey__chapter-label">
+                            {day.label}
+                          </h4>
                           <ol className="raven-journey__chapter-nights">
                             {visibleSets.map((set) => (
                               <li
                                 key={`${day.label}-${set.time}-${set.artist}`}
-                                className={set.highlight ? 'is-highlight' : undefined}
+                                className={
+                                  set.highlight ? "is-highlight" : undefined
+                                }
                               >
-                                <p className="raven-journey__chapter-artist">{set.artist}</p>
+                                <p className="raven-journey__chapter-artist">
+                                  {set.artist}
+                                </p>
                                 <p className="raven-journey__chapter-scene">
-                                  {[set.stage, set.time].filter(Boolean).join(' · ')}
+                                  {[set.stage, set.time]
+                                    .filter(Boolean)
+                                    .join(" · ")}
                                 </p>
                               </li>
                             ))}
@@ -323,10 +402,16 @@ export function RavenJourneyResult({
                               <summary>{copy.moreSets}</summary>
                               <ol className="raven-journey__chapter-nights">
                                 {hiddenSets.map((set) => (
-                                  <li key={`${day.label}-more-${set.time}-${set.artist}`}>
-                                    <p className="raven-journey__chapter-artist">{set.artist}</p>
+                                  <li
+                                    key={`${day.label}-more-${set.time}-${set.artist}`}
+                                  >
+                                    <p className="raven-journey__chapter-artist">
+                                      {set.artist}
+                                    </p>
                                     <p className="raven-journey__chapter-scene">
-                                      {[set.stage, set.time].filter(Boolean).join(' · ')}
+                                      {[set.stage, set.time]
+                                        .filter(Boolean)
+                                        .join(" · ")}
                                     </p>
                                   </li>
                                 ))}
@@ -340,13 +425,29 @@ export function RavenJourneyResult({
                       <details className="raven-journey__disclosure raven-journey__disclosure--quiet">
                         <summary>{copy.moreSets}</summary>
                         {hiddenMusicDays.map((day) => (
-                          <section key={day.label} className="raven-journey__chapter">
-                            <h4 className="raven-journey__chapter-label">{day.label}</h4>
+                          <section
+                            key={day.label}
+                            className="raven-journey__chapter"
+                          >
+                            <h4 className="raven-journey__chapter-label">
+                              {day.label}
+                            </h4>
                             <ol className="raven-journey__chapter-nights">
                               {day.sets.map((set) => (
-                                <li key={`${day.label}-${set.time}-${set.artist}`} className={set.highlight ? 'is-highlight' : undefined}>
-                                  <p className="raven-journey__chapter-artist">{set.artist}</p>
-                                  <p className="raven-journey__chapter-scene">{[set.stage, set.time].filter(Boolean).join(' · ')}</p>
+                                <li
+                                  key={`${day.label}-${set.time}-${set.artist}`}
+                                  className={
+                                    set.highlight ? "is-highlight" : undefined
+                                  }
+                                >
+                                  <p className="raven-journey__chapter-artist">
+                                    {set.artist}
+                                  </p>
+                                  <p className="raven-journey__chapter-scene">
+                                    {[set.stage, set.time]
+                                      .filter(Boolean)
+                                      .join(" · ")}
+                                  </p>
                                 </li>
                               ))}
                             </ol>
@@ -361,37 +462,51 @@ export function RavenJourneyResult({
 
             {journey.festivalExperience.nonNegotiables.length ? (
               <div className="raven-journey__block">
-                <h4 className="raven-journey__block-title">{copy.nonNegotiables}</h4>
+                <h4 className="raven-journey__block-title">
+                  {copy.nonNegotiables}
+                </h4>
                 <ul className="raven-journey__artists">
-                  {journey.festivalExperience.nonNegotiables.slice(0, 5).map((artist) => (
-                    <li key={artist}>{artist}</li>
-                  ))}
+                  {journey.festivalExperience.nonNegotiables
+                    .slice(0, 5)
+                    .map((artist) => (
+                      <li key={artist}>{artist}</li>
+                    ))}
                 </ul>
               </div>
             ) : null}
 
-            {musicInsight ? <p className="raven-journey__insight-line">{musicInsight}</p> : null}
+            {musicInsight ? (
+              <p className="raven-journey__insight-line">{musicInsight}</p>
+            ) : null}
 
             {hasMusicDetail ? (
               <details className="raven-journey__disclosure">
                 <summary>{copy.moreMusicDetail}</summary>
                 {journey.festivalExperience.ravenPicks.length ? (
                   <div className="raven-journey__block">
-                    <h4 className="raven-journey__block-title">{copy.ravenPicks}</h4>
+                    <h4 className="raven-journey__block-title">
+                      {copy.ravenPicks}
+                    </h4>
                     <ul className="raven-journey__list">
-                      {journey.festivalExperience.ravenPicks.map((pick, index) => (
-                        <li key={`pick-${index}`}>{pick}</li>
-                      ))}
+                      {journey.festivalExperience.ravenPicks.map(
+                        (pick, index) => (
+                          <li key={`pick-${index}`}>{pick}</li>
+                        ),
+                      )}
                     </ul>
                   </div>
                 ) : null}
                 {journey.festivalExperience.conflicts.length ? (
                   <div className="raven-journey__block">
-                    <h4 className="raven-journey__block-title">{copy.potentialConflicts}</h4>
+                    <h4 className="raven-journey__block-title">
+                      {copy.potentialConflicts}
+                    </h4>
                     <ul className="raven-journey__list">
-                      {journey.festivalExperience.conflicts.map((conflict, index) => (
-                        <li key={`conflict-${index}`}>{conflict}</li>
-                      ))}
+                      {journey.festivalExperience.conflicts.map(
+                        (conflict, index) => (
+                          <li key={`conflict-${index}`}>{conflict}</li>
+                        ),
+                      )}
                     </ul>
                   </div>
                 ) : null}
@@ -406,7 +521,10 @@ export function RavenJourneyResult({
             aria-labelledby="raven-travel-heading"
             data-journey-reveal
           >
-            <p id="raven-travel-heading" className="raven-journey__editorial-open">
+            <p
+              id="raven-travel-heading"
+              className="raven-journey__editorial-open"
+            >
               {copy.travelTitle}
             </p>
 
@@ -418,7 +536,9 @@ export function RavenJourneyResult({
                 whyLabel={copy.whyStay}
               />
             ) : journey.stayStrategy.areaHeadline ? (
-              <p className="raven-journey__section-lead">{journey.stayStrategy.areaHeadline}</p>
+              <p className="raven-journey__section-lead">
+                {journey.stayStrategy.areaHeadline}
+              </p>
             ) : null}
 
             {alternateStays.length ? (
@@ -426,12 +546,21 @@ export function RavenJourneyResult({
                 <summary>{copy.moreStayOptions}</summary>
                 <div className="raven-journey__options">
                   {alternateStays.map((option, index) => (
-                    <article key={`stay-${index}-${option.name}`} className="raven-journey__option">
-                      <h4 className="raven-journey__option-title">{option.name}</h4>
+                    <article
+                      key={`stay-${index}-${option.name}`}
+                      className="raven-journey__option"
+                    >
+                      <h4 className="raven-journey__option-title">
+                        {option.name}
+                      </h4>
                       {option.reason ? (
-                        <p className="raven-journey__option-reason">{option.reason}</p>
+                        <p className="raven-journey__option-reason">
+                          {option.reason}
+                        </p>
                       ) : null}
-                      <p className="raven-journey__option-note">{option.note}</p>
+                      <p className="raven-journey__option-note">
+                        {option.note}
+                      </p>
                     </article>
                   ))}
                 </div>
@@ -440,7 +569,9 @@ export function RavenJourneyResult({
 
             {primaryFlight ? (
               <div className="raven-journey__travel-flight">
-                <h4 className="raven-journey__block-title">{copy.flightStrategy}</h4>
+                <h4 className="raven-journey__block-title">
+                  {copy.flightStrategy}
+                </h4>
                 <TravelFlight
                   option={primaryFlight}
                   recommendation={journey.flightStrategy.recommendation}
@@ -455,15 +586,28 @@ export function RavenJourneyResult({
                           key={`flight-${index}-${option.route}`}
                           className="raven-journey__option"
                         >
-                          <h4 className="raven-journey__option-title">{option.route}</h4>
+                          {option.badge ? (
+                            <span className="raven-journey__flight-badge">
+                              {option.badge}
+                            </span>
+                          ) : null}
+                          <h4 className="raven-journey__option-title">
+                            {option.route}
+                          </h4>
                           {option.detail ? (
-                            <p className="raven-journey__option-note">{option.detail}</p>
+                            <p className="raven-journey__option-note">
+                              {option.detail}
+                            </p>
                           ) : null}
                           {option.price ? (
-                            <p className="raven-journey__option-price">{option.price}</p>
+                            <p className="raven-journey__option-price">
+                              {option.price}
+                            </p>
                           ) : null}
                           {option.tradeoff ? (
-                            <p className="raven-journey__option-reason">{option.tradeoff}</p>
+                            <p className="raven-journey__option-reason">
+                              {option.tradeoff}
+                            </p>
                           ) : null}
                         </article>
                       ))}
@@ -475,6 +619,10 @@ export function RavenJourneyResult({
           </section>
         ) : null}
 
+        {weather ? (
+          <FestivalWeatherReadiness locale={locale} weather={weather} />
+        ) : null}
+
         {journey.budget.items.length || journey.budget.total ? (
           <section
             className="raven-journey__section raven-journey__section--budget"
@@ -482,23 +630,38 @@ export function RavenJourneyResult({
             data-journey-reveal
           >
             {journey.budget.total ? (
-              <p className="raven-journey__budget-total" id="raven-budget-heading">
+              <p
+                className="raven-journey__budget-total"
+                id="raven-budget-heading"
+              >
                 {journey.budget.total}
               </p>
             ) : (
-              <h3 id="raven-budget-heading" className="raven-journey__section-title">
+              <h3
+                id="raven-budget-heading"
+                className="raven-journey__section-title"
+              >
                 {copy.budgetTitle}
               </h3>
             )}
             {journey.budget.total ? (
-              <p className="raven-journey__budget-caption">{copy.budgetTitle}</p>
+              <p className="raven-journey__budget-caption">
+                {copy.budgetTitle}
+              </p>
             ) : null}
             {confidenceLine ? (
-              <p className="raven-journey__budget-confidence">{confidenceLine}</p>
+              <p className="raven-journey__budget-confidence">
+                {confidenceLine}
+              </p>
             ) : null}
-            {budgetInsight ? <p className="raven-journey__insight-line">{budgetInsight}</p> : null}
+            {budgetInsight ? (
+              <p className="raven-journey__insight-line">{budgetInsight}</p>
+            ) : null}
             {budgetLineItems.length ? (
-              <details className="raven-journey__disclosure" open={!journey.budget.total}>
+              <details
+                className="raven-journey__disclosure"
+                open={!journey.budget.total}
+              >
                 <summary>{copy.budgetBreakdown}</summary>
                 <ul className="raven-journey__budget-list">
                   {budgetLineItems.map((item) => (
@@ -507,7 +670,9 @@ export function RavenJourneyResult({
                         <span>{item.label}</span>
                         <span>{item.amount}</span>
                       </div>
-                      {item.note ? <p className="raven-journey__muted">{item.note}</p> : null}
+                      {item.note ? (
+                        <p className="raven-journey__muted">{item.note}</p>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
@@ -526,7 +691,10 @@ export function RavenJourneyResult({
               <summary>{copy.essentialsToggle}</summary>
               <div className="raven-journey__essentials">
                 {journey.essentials.map((group) => (
-                  <article key={group.title} className="raven-journey__essentials-group">
+                  <article
+                    key={group.title}
+                    className="raven-journey__essentials-group"
+                  >
                     <h4>{group.title}</h4>
                     <ul className="raven-journey__list raven-journey__list--tight">
                       {group.items.map((item) => (
@@ -541,22 +709,31 @@ export function RavenJourneyResult({
         ) : null}
 
         {squadHref ? (
-          <div className="raven-journey__section raven-journey__section--squad" data-journey-reveal>
+          <div
+            className="raven-journey__section raven-journey__section--squad"
+            data-journey-reveal
+          >
             <FestivalSquadJourneyCta
               squadHref={squadHref}
               labels={t.festivalSquad.journeyCta}
               journeySignals={[
-                journey.origin && journey.origin !== '—'
-                  ? t.festivalSquad.journeyCta.fromOrigin.replace('{origin}', journey.origin)
-                  : '',
+                journey.origin && journey.origin !== "—"
+                  ? t.festivalSquad.journeyCta.fromOrigin.replace(
+                      "{origin}",
+                      journey.origin,
+                    )
+                  : "",
                 journey.glance.stay.headline,
                 journey.glance.budget.headline,
                 ...journey.festivalExperience.ravenPicks.slice(0, 2),
               ].filter(Boolean)}
               eventProperties={{
-                event: eventLegacyId != null ? String(eventLegacyId) : journey.festivalName,
+                event:
+                  eventLegacyId != null
+                    ? String(eventLegacyId)
+                    : journey.festivalName,
                 locale,
-                source: 'journey-result',
+                source: "journey-result",
               }}
             />
           </div>
@@ -584,21 +761,37 @@ export function RavenJourneyResult({
 
         <footer className="raven-journey__finale" data-journey-reveal>
           <p className="raven-journey__finale-lead">{copy.finaleLead}</p>
-          <p className="raven-journey__finale-festival">{journey.festivalName}</p>
+          <p className="raven-journey__finale-festival">
+            {journey.festivalName}
+          </p>
           <div className="raven-journey__finale-actions">
-            <button type="button" className="raven-journey__cta" onClick={onSave}>
+            <button
+              type="button"
+              className="raven-journey__cta"
+              onClick={onSave}
+            >
               {copy.save}
               <ArrowRight size={15} strokeWidth={2.25} aria-hidden />
             </button>
           </div>
-          {copy.saveHint ? <p className="raven-journey__save-hint">{copy.saveHint}</p> : null}
+          {copy.saveHint ? (
+            <p className="raven-journey__save-hint">{copy.saveHint}</p>
+          ) : null}
           <details className="raven-journey__disclosure raven-journey__disclosure--quiet raven-journey__finale-tools">
             <summary>{copy.changeJourney}</summary>
             <div className="raven-journey__finale-tool-actions">
-              <button type="button" className="raven-journey__text-action" onClick={onEditPreferences}>
+              <button
+                type="button"
+                className="raven-journey__text-action"
+                onClick={onEditPreferences}
+              >
                 {copy.editPreferences}
               </button>
-              <button type="button" className="raven-journey__text-action" onClick={onRebuild}>
+              <button
+                type="button"
+                className="raven-journey__text-action"
+                onClick={onRebuild}
+              >
                 {copy.rebuild}
               </button>
             </div>

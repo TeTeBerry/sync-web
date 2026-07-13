@@ -400,6 +400,7 @@ export type RavenTravelGuidePlan = {
         stopsLabel: string;
       };
       cabinLabel?: string;
+      recommendationReason?: string;
     }>;
   };
   accommodation: {
@@ -462,6 +463,20 @@ export type RavenSavedPlan = {
   plan: RavenTravelGuidePlan;
   createdAt: string;
 };
+
+export type RavenFestivalWeather = {
+  date: string;
+  temperatureMin: number;
+  temperatureMax: number;
+  precipitationProbability: number;
+  weatherCode: number;
+};
+
+export function getRavenFestivalWeather(legacyId: number) {
+  return ravenApiRequest<RavenFestivalWeather | null>(
+    `/raven/activities/${legacyId}/weather`,
+  );
+}
 
 export function generateRavenPlan(
   legacyId: number,

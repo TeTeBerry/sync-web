@@ -27,6 +27,7 @@ export type RavenJourneyFlightOption = {
   cabin?: string;
   source: PriceSource;
   tradeoff?: string;
+  recommendationReason?: string;
 };
 
 export type RavenJourneyBudgetItem = {
@@ -160,6 +161,29 @@ function localizeFlightLabel(
   if (!value?.trim()) return value;
   if (locale !== "en") return value;
   return value
+    .replace(
+      /上海浦东\/虹桥国际机场/g,
+      "Shanghai Pudong / Hongqiao International Airports",
+    )
+    .replace(
+      /上海虹桥\/浦东国际机场/g,
+      "Shanghai Hongqiao / Pudong International Airports",
+    )
+    .replace(/新加坡樟宜国际机场/g, "Singapore Changi International Airport")
+    .replace(/新加坡国际机场/g, "Singapore International Airport")
+    .replace(/普吉国际机场/g, "Phuket International Airport")
+    .replace(/曼谷国际机场/g, "Bangkok International Airport")
+    .replace(/仁川国际机场/g, "Incheon International Airport")
+    .replace(/普吉岛|普吉/g, "Phuket")
+    .replace(/曼谷/g, "Bangkok")
+    .replace(/仁川/g, "Incheon")
+    .replace(/东京/g, "Tokyo")
+    .replace(/大阪/g, "Osaka")
+    .replace(/布鲁塞尔/g, "Brussels")
+    .replace(/安特卫普/g, "Antwerp")
+    .replace(/（/g, "(")
+    .replace(/）/g, ")")
+    .replace(/\s*\(([^)]*)\)/g, " ($1)")
     .replace(/超级经济舱/g, "Premium Economy")
     .replace(/经济舱/g, "Economy")
     .replace(/公务舱|商务舱/g, "Business")
@@ -208,7 +232,9 @@ function englishSystemPlace(
   if (locale !== "en") return value;
   const normalized = value.trim();
   if (!looksLikeChineseCopy(normalized)) return normalized;
-  return airportCode ? `${airportCode.toUpperCase()} Airport` : "Festival destination";
+  return airportCode
+    ? `${airportCode.toUpperCase()} Airport`
+    : "Festival destination";
 }
 
 function localizeHotelCopy(
@@ -285,13 +311,19 @@ function conciseStayHeadline(
 function conciseFlightRoute(value: string | undefined, locale: Locale): string {
   const normalized = conciseText(value, 180);
   if (!normalized) return "";
+  const internationalRoute = normalized.match(
+    /travel\s+from\s+[「“\"]?(.+?)[」”\"]?\s+to\s+(.+?)\s+is\s+international/i,
+  );
+  if (internationalRoute) {
+    return `${internationalRoute[1]!.trim()} → ${internationalRoute[2]!.trim()}`;
+  }
   const match = normalized.match(
     /(?:fly|flight)\s+from\s+(.+?)\s+to\s+(.+?)(?=\s+(?:with|via|through)|[,.;]|$)/i,
   );
   if (match) return `${match[1]!.trim()} → ${match[2]!.trim()}`;
   const arrowRoute = normalized.match(/(.+?)\s*(?:→|->)\s*(.+)/);
   if (arrowRoute)
-    return `${arrowRoute[1]!.trim()} → ${conciseText(arrowRoute[2], 74)}`;
+    return `${arrowRoute[1]!.replace(/^fly\s+/i, "").trim()} → ${conciseText(arrowRoute[2], 74)}`;
   return locale === "zh"
     ? conciseText(normalized, 64)
     : conciseText(normalized, 84);
@@ -307,44 +339,21 @@ function stopCount(stopsLabel: string | undefined): number {
   return matched ? Number(matched[1]) : 1;
 }
 
-/** Derive badges from offer attributes — never invent comfort/cost by array index alone. */
+/** Expose the scored recommendation categories carried in backend offer order. */
 export function assignFlightBadges(
   offers: NonNullable<RavenTravelGuidePlan["transport"]["flightOffers"]>,
   locale: Locale,
 ): string[] {
   const en = locale === "en";
-  const badges: string[] = offers.map(() => (en ? "Alternative" : "备选"));
-  if (!offers.length) return badges;
-
-  badges[0] = en ? "Recommended" : "推荐";
-
-  let cheapestIdx = 0;
-  for (let i = 1; i < offers.length; i += 1) {
-    if (offers[i]!.pricePerAdult < offers[cheapestIdx]!.pricePerAdult)
-      cheapestIdx = i;
-  }
-  if (cheapestIdx !== 0) {
-    badges[cheapestIdx] = en ? "Lowest Cost" : "最低成本";
-  }
-
-  let fewestStopsIdx = 0;
-  for (let i = 1; i < offers.length; i += 1) {
-    const current = stopCount(offers[i]!.outbound.stopsLabel);
-    const best = stopCount(offers[fewestStopsIdx]!.outbound.stopsLabel);
-    if (current < best) fewestStopsIdx = i;
-  }
-  if (fewestStopsIdx !== 0 && fewestStopsIdx !== cheapestIdx) {
-    badges[fewestStopsIdx] = en ? "Fewest Stops" : "最少经停";
-  } else if (
-    fewestStopsIdx === 0 &&
-    offers.length > 1 &&
-    isDirectLabel(offers[0]?.outbound.stopsLabel) &&
-    cheapestIdx === 0
-  ) {
-    // Keep Recommended; second offer stays Alternative / Lowest Cost if assigned.
-  }
-
-  return badges;
+  const categories = en
+    ? ["Best overall", "Lowest price", "Fastest route"]
+    : ["综合推荐", "最低价格", "最快路线"];
+  return offers.map((offer, index) => {
+    const explicit = offer.cabinLabel?.match(
+      /Best overall|Lowest price|Fastest route|综合推荐|最低价格|最快路线/i,
+    )?.[0];
+    return explicit || categories[index] || (en ? "Other option" : "其他选项");
+  });
 }
 
 function flightTradeoff(
@@ -499,6 +508,9 @@ export function buildRavenJourneyView(input: {
   const flightBadges = assignFlightBadges(flightOffers, locale);
   const recommendedOffer = flightOffers[0];
   const transportLinesSafe = englishSafeLines(remote?.transport.lines, locale);
+  const primaryRouteFromPlan = transportLinesSafe[0]
+    ? conciseFlightRoute(transportLinesSafe[0], locale)
+    : "";
   const localFlightSafe =
     englishSafeText(local.travel.flight, locale) ||
     (en
@@ -511,14 +523,16 @@ export function buildRavenJourneyView(input: {
       ? flightOffers.slice(0, 3).map((offer, index) => ({
           badge: flightBadges[index] || (en ? "Alternative" : "备选"),
           route: conciseFlightRoute(
-            englishSafeText(
-              offer.outbound.route,
-              locale,
-              `${offer.outbound.depAirport ?? ""}→${offer.outbound.arrAirport ?? ""}`.replace(
-                /^→|→$/g,
-                "",
-              ) || (en ? "Flight route" : "航线"),
-            ),
+            index === 0 && primaryRouteFromPlan
+              ? primaryRouteFromPlan
+              : englishSafeText(
+                  offer.outbound.route,
+                  locale,
+                  `${offer.outbound.depAirport ?? ""}→${offer.outbound.arrAirport ?? ""}`.replace(
+                    /^→|→$/g,
+                    "",
+                  ) || (en ? "Flight route" : "航线"),
+                ),
             locale,
           ),
           detail: conciseText(
@@ -531,6 +545,7 @@ export function buildRavenJourneyView(input: {
           cabin: localizeFlightLabel(offer.cabinLabel, locale),
           source: "live" as const,
           tradeoff: flightTradeoff(offer, recommendedOffer, locale),
+          recommendationReason: offer.recommendationReason,
         }))
       : transportLinesSafe.length
         ? [
@@ -571,12 +586,9 @@ export function buildRavenJourneyView(input: {
     transportLinesSafe[0] ||
     localFlightSafe ||
     (en ? "Route still assembling" : "航线组装中");
-  const flightReasons =
-    transportLinesSafe.length > 1
-      ? transportLinesSafe.slice(1, 3).map((line) => conciseText(line, 120))
-      : primaryFlightOption?.detail
-        ? []
-        : [];
+  const flightReasons = primaryFlightOption?.recommendationReason
+    ? [primaryFlightOption.recommendationReason]
+    : [];
 
   const budgetItemsRaw = remote?.budget?.items ?? [];
   const budgetItems: RavenJourneyBudgetItem[] =
@@ -813,8 +825,7 @@ export function buildRavenJourneyView(input: {
     festivalName: remote?.activityName || festivalName,
     // Prefer page/city destination over venue name (e.g. "Antwerp, Belgium" vs "De Schorre").
     destination:
-      systemDestination ||
-      englishSystemPlace(remote?.venue || "", locale),
+      systemDestination || englishSystemPlace(remote?.venue || "", locale),
     festivalDates: remote?.eventDates || festivalDates,
     tripNights,
     travelers,

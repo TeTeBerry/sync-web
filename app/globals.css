@@ -10923,7 +10923,8 @@ h3 {
   padding: clamp(12px, 2vw, 20px) 0 clamp(18px, 3vw, 28px)
     clamp(18px, 2.5vw, 28px);
   border: 0;
-  border-left: 1px solid rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.42);
+  border-left: 1px solid
+    rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.42);
   border-radius: 0;
   background: radial-gradient(
     ellipse 64% 130% at 0% 0%,
@@ -11176,7 +11177,10 @@ h3 {
 }
 
 .plan-step__date-mode button.is-selected {
-  border-bottom-color: rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.8);
+  border-bottom-color: rgba(
+    var(--festival-accent-rgb, var(--primary-rgb)),
+    0.8
+  );
   color: var(--foreground);
 }
 
@@ -11255,7 +11259,8 @@ h3 {
   border-radius: 50%;
   color: rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.95);
   background: rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.11);
-  box-shadow: 0 0 24px rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.09);
+  box-shadow: 0 0 24px
+    rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.09);
 }
 
 .plan-step__date-copy {
@@ -11304,7 +11309,10 @@ h3 {
 }
 
 .plan-step__date-field:focus-within .plan-step__date-trigger {
-  border-bottom-color: rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.88);
+  border-bottom-color: rgba(
+    var(--festival-accent-rgb, var(--primary-rgb)),
+    0.88
+  );
 }
 
 .plan-step__date-trigger:focus-visible,
@@ -11320,7 +11328,8 @@ h3 {
   gap: 18px;
   margin-top: 2px;
   padding: clamp(20px, 3vw, 26px);
-  border-top: 1px solid rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.28);
+  border-top: 1px solid
+    rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.28);
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
   background:
     radial-gradient(
@@ -11395,7 +11404,9 @@ h3 {
   color: var(--ink-muted);
   background: rgba(255, 255, 255, 0.055);
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
 }
 
 .raven-travel-calendar__month button:hover {
@@ -11435,7 +11446,10 @@ h3 {
   font: inherit;
   font-size: var(--type-body-sm);
   cursor: pointer;
-  transition: color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 }
 
 .raven-travel-calendar__day:hover:not(:disabled) {
@@ -11452,23 +11466,32 @@ h3 {
 .raven-travel-calendar__day.is-selected {
   color: #fff;
   background: rgb(var(--festival-accent-rgb, var(--primary-rgb)));
-  box-shadow: 0 0 22px rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.42);
+  box-shadow: 0 0 22px
+    rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.42);
 }
 
 .raven-travel-calendar__day.is-today:not(.is-selected) {
   color: rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.96);
-  box-shadow: inset 0 0 0 1px rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.55);
+  box-shadow: inset 0 0 0 1px
+    rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.55);
 }
 
 .raven-travel-calendar__day.is-departure:not(.is-selected),
 .raven-travel-calendar__day.is-return:not(.is-selected) {
   color: rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.95);
-  box-shadow: inset 0 0 0 1px rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.46);
+  box-shadow: inset 0 0 0 1px
+    rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.46);
 }
 
 @keyframes raven-calendar-in {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .plan-step__cards {
@@ -11601,7 +11624,8 @@ h3 {
   max-width: 56ch;
   margin: 16px 0 0;
   padding-left: 15px;
-  border-left: 1px solid rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.5);
+  border-left: 1px solid
+    rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.5);
   color: var(--ink-muted);
   font-family: var(--font-display);
   font-size: clamp(16px, 1.8vw, 19px);
@@ -20050,4 +20074,98 @@ h3 {
 
 .auth-email-dialog__panel {
   max-width: 420px;
+}
+/* Flight recommendation labels — an editorial cue inside the Travel Story, not a SaaS badge. */
+.raven-journey__flight-badge {
+  display: block;
+  width: fit-content;
+  margin: 0 0 10px;
+  padding: 1px 0 1px 10px;
+  border: 0;
+  border-left: 1px solid rgba(var(--primary-rgb), 0.7);
+  border-radius: 0;
+  color: var(--ink-muted);
+  background: transparent;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+/* Festival forecast — a compact readiness note within the final journey, never a weather dashboard. */
+.raven-weather-readiness {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  max-width: 620px;
+  margin: clamp(24px, 4vw, 40px) auto 0;
+  padding: 16px 18px;
+  border: 1px solid rgba(var(--primary-rgb), 0.18);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--primary-rgb), 0.11),
+    rgba(255, 255, 255, 0.025)
+  );
+}
+
+.raven-weather-readiness__icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--primary);
+  background: rgba(var(--primary-rgb), 0.14);
+}
+
+.raven-weather-readiness__body {
+  min-width: 0;
+}
+
+.raven-weather-readiness__eyebrow {
+  margin: 0 0 5px;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.raven-weather-readiness__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  align-items: baseline;
+  color: var(--foreground);
+  font-size: 0.875rem;
+}
+
+.raven-weather-readiness__summary strong {
+  font-size: 1.25rem;
+  letter-spacing: -0.035em;
+}
+.raven-weather-readiness__summary span + span::before {
+  content: "·";
+  margin-right: 10px;
+  color: var(--muted-foreground);
+}
+.raven-weather-readiness__tip {
+  margin: 7px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .raven-weather-readiness {
+    padding: 14px;
+    gap: 12px;
+  }
+  .raven-weather-readiness__icon {
+    width: 38px;
+    height: 38px;
+  }
 }

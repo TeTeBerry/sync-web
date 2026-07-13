@@ -59,6 +59,7 @@ export function SquadProfileForm({
     seed.visibility?.allowConnectionRequests !== false,
   );
   const [saving, setSaving] = useState(false);
+  const [displayNameError, setDisplayNameError] = useState(false);
 
   const journeyPreview = useMemo(
     () =>
@@ -108,7 +109,6 @@ export function SquadProfileForm({
   const needsDates = !arrivalDate || !departureDate;
 
   const canSave =
-    displayName.trim().length > 0 &&
     originCity.trim().length > 0 &&
     arrivalDate &&
     departureDate &&
@@ -153,6 +153,11 @@ export function SquadProfileForm({
         onSubmit={(event) => {
           event.preventDefault();
           if (!canSave || saving) return;
+          if (!displayName.trim()) {
+            setDisplayNameError(true);
+            return;
+          }
+          setDisplayNameError(false);
           setSaving(true);
           void Promise.resolve(
             onSave({
@@ -196,10 +201,20 @@ export function SquadProfileForm({
           <input
             className="squad-form__input"
             value={displayName}
-            onChange={(event) => setDisplayName(event.target.value)}
-            required
+            onChange={(event) => {
+              setDisplayName(event.target.value);
+              if (event.target.value.trim()) setDisplayNameError(false);
+            }}
+            aria-required="true"
+            aria-invalid={displayNameError}
+            aria-describedby={displayNameError ? `${titleId}-display-name-error` : undefined}
             autoComplete="nickname"
           />
+          {displayNameError ? (
+            <p id={`${titleId}-display-name-error`} className="squad-form__error" role="alert">
+              {copy.profile.displayNameRequired}
+            </p>
+          ) : null}
         </label>
 
         <fieldset className="squad-filter-group">
