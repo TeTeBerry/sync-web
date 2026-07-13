@@ -69,16 +69,13 @@ export function EmailLoginForm({
     }
   }
 
-  if (unavailable) {
-    return (
-      <div className="auth-email-form auth-email-form--unavailable" role="status">
-        <p className="auth-email-form__notice">{copy.unavailable}</p>
-      </div>
-    );
-  }
-
   return (
     <form className="auth-email-form" onSubmit={handleSubmit} noValidate>
+      {unavailable ? (
+        <p className="auth-email-form__notice" role="status">
+          {copy.unavailable}
+        </p>
+      ) : null}
       <label className="auth-email-form__label" htmlFor="raven-email-login">
         {copy.emailLabel}
       </label>
