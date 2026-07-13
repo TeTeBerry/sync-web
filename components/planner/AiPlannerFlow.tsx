@@ -691,6 +691,16 @@ export function AiPlannerFlow({
       }),
     [copy.steps.origin.presets, originQuery, remoteOriginSuggestions],
   );
+  const initialOriginOptionKey = useMemo(() => {
+    const initial = initialOrigin.trim().toLocaleLowerCase();
+    if (!initial || preferences.origin !== initialOrigin.trim()) return null;
+
+    const city = initial.split(",")[0]?.trim() ?? initial;
+    return (
+      originOptions.find((item) => item.label.trim().toLocaleLowerCase() === city)?.key ??
+      null
+    );
+  }, [initialOrigin, originOptions, preferences.origin]);
 
   const canContinue = useMemo(() => {
     if (currentStep === "origin") {
@@ -1192,7 +1202,7 @@ export function AiPlannerFlow({
                   const selected = isOriginOptionSelected(
                     preferences.origin,
                     item,
-                  );
+                  ) || item.key === initialOriginOptionKey;
                   return (
                     <button
                       key={item.key}
