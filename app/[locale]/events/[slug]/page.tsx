@@ -29,7 +29,7 @@ import {
   eventPath,
   eventPlanPath,
   eventSquadPath,
-  parseEventLegacyId,
+  resolveActivityBySlug,
 } from '../../../../lib/event-slug';
 import { getSiteUrl } from '../../../../lib/site';
 import {
@@ -46,15 +46,12 @@ type EventDetailProps = {
   params: Promise<{ locale: string; slug: string }>;
 };
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 export async function generateMetadata({ params }: EventDetailProps): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
-  const legacyId = parseEventLegacyId(slug);
-  if (!legacyId) return {};
-
-  const activityResult = await getActivity(legacyId);
+  const activityResult = await resolveActivityBySlug(slug, locale);
   if (!activityResult.activity) return {};
 
   return buildEventMetadata(activityResult.activity, locale);

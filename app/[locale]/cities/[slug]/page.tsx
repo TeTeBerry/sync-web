@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { EventCard } from '../../../../components/EventCard';
-import { listActivities } from '../../../../lib/api';
+import { getActivityImage, getActivityTitle, listActivities } from '../../../../lib/api';
+import { eventPath } from '../../../../lib/event-slug';
 import {
   cityAlternateLanguages,
   cityDescription,
@@ -16,8 +17,10 @@ import {
   localizedPath,
   type Locale,
 } from '../../../../lib/i18n';
+import { buildSocialMetadata } from '../../../../lib/seo';
+import { getSiteUrl } from '../../../../lib/site';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 type CityPageProps = {
   params: Promise<{ locale: string; slug: string }>;
@@ -40,22 +43,33 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
   const title = cityTitle(data.group, data.locale);
   const description = cityDescription(data.group, data.locale);
   const firstActivity = data.group.activities[0];
+  const siteUrl = getSiteUrl();
+  const url = `${siteUrl}${cityPath(data.locale, data.group.city)}`;
+  const languages = firstActivity
+    ? Object.fromEntries(
+        Object.entries(cityAlternateLanguages(data.activities, firstActivity.legacyId)).map(
+          ([language, href]) => [language, `${siteUrl}${href}`],
+        ),
+      )
+    : undefined;
+  const image = firstActivity ? getActivityImage(firstActivity) : undefined;
 
   return {
     title,
     description,
     alternates: {
-      canonical: cityPath(data.locale, data.group.city),
-      languages: firstActivity
-        ? cityAlternateLanguages(data.activities, firstActivity.legacyId)
-        : undefined,
+      canonical: url,
+      languages,
     },
-    openGraph: {
+    ...buildSocialMetadata({
       title,
       description,
-      type: 'website',
-      url: cityPath(data.locale, data.group.city),
-    },
+      url,
+      locale: data.locale,
+      image: image
+        ? { url: image, width: 1200, height: 630, alt: title }
+        : undefined,
+    }),
   };
 }
 
@@ -69,9 +83,69 @@ export default async function CityPage({ params }: CityPageProps) {
   const title = cityTitle(group, locale);
   const description = cityDescription(group, locale);
   const relatedAreas = [...new Set(group.activities.map((activity) => activity.area).filter(Boolean))];
+  const siteUrl = getSiteUrl();
+  const cityUrl = `${siteUrl}${cityPath(locale, group.city)}`;
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        '@id': `${cityUrl}#collection`,
+        url: cityUrl,
+        name: title,
+        description,
+        inLanguage: locale === 'zh' ? 'zh-CN' : 'en',
+        isPartOf: {
+          '@type': 'WebSite',
+          '@id': `${siteUrl}/#website`,
+          name: 'Raven',
+          url: siteUrl,
+        },
+        mainEntity: {
+          '@type': 'ItemList',
+          numberOfItems: group.activities.length,
+          itemListElement: group.activities.map((activity, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            url: `${siteUrl}${eventPath(locale, activity)}`,
+            name: getActivityTitle(activity),
+          })),
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: t.breadcrumbs.home,
+            item: `${siteUrl}${localizedPath(locale)}`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: t.breadcrumbs.events,
+            item: `${siteUrl}${localizedPath(locale, '/events')}`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: title,
+            item: cityUrl,
+          },
+        ],
+      },
+    ],
+  };
 
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+        }}
+      />
       <section className="section city-landing">
         <div className="container">
           <div className="section__header city-landing__header">

@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { EventImage } from "../../../../../components/EventImage";
 import { LineupExperience } from "../../../../../components/lineup/LineupExperience";
 import { EventLoadError } from "../../../../../components/states/EventLoadError";
 import { EventUnavailableState } from "../../../../../components/states/EventUnavailableState";
 import { LineupEmptyState } from "../../../../../components/states/LineupEmptyState";
 import { LineupErrorState } from "../../../../../components/states/LineupErrorState";
-import { getActivity, getActivityImage } from "../../../../../lib/api";
+import { getActivityImage } from "../../../../../lib/api";
 import { loadEventPageData } from "../../../../../lib/event-page";
 import { getFestivalAtmosphere } from "../../../../../lib/festival-atmosphere";
 import { buildFestivalFlow } from "../../../../../lib/lineup-flow";
@@ -16,7 +16,8 @@ import {
   eventLineupPath,
   eventPath,
   eventPlanPath,
-  parseEventLegacyId,
+  eventSlugMatches,
+  resolveActivityBySlug,
 } from "../../../../../lib/event-slug";
 import { buildLineupJsonLd, buildLineupMetadata } from "../../../../../lib/seo";
 import { getSiteUrl } from "../../../../../lib/site";
@@ -40,10 +41,7 @@ export async function generateMetadata({
 }: LineupPageProps): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
-  const legacyId = parseEventLegacyId(slug);
-  if (!legacyId) return {};
-
-  const activityResult = await getActivity(legacyId);
+  const activityResult = await resolveActivityBySlug(slug, locale);
   if (!activityResult.activity) return {};
 
   return buildLineupMetadata(activityResult.activity, locale);
@@ -61,6 +59,15 @@ export default async function EventLineupPage({
   const t = getMessages(locale);
   const weekend =
     rawWeekend === "w1" || rawWeekend === "w2" ? rawWeekend : undefined;
+  const activityResult = await resolveActivityBySlug(slug, locale);
+  if (activityResult.status === "error") return <EventLoadError locale={locale} />;
+  if (activityResult.status === "not_found" || !activityResult.activity) {
+    return <EventUnavailableState locale={locale} />;
+  }
+  if (!eventSlugMatches(slug, activityResult.activity, locale)) {
+    const canonical = eventLineupPath(locale, activityResult.activity);
+    permanentRedirect(weekend ? `${canonical}?weekend=${weekend}` : canonical);
+  }
   const pageData = await loadEventPageData(locale, slug, { weekend });
 
   if (pageData === "error") return <EventLoadError locale={locale} />;

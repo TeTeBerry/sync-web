@@ -30,7 +30,7 @@ import {
 } from '../../lib/seo';
 import type { Activity } from '../../lib/types';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 type HomePageProps = {
   params: Promise<{ locale: string }>;

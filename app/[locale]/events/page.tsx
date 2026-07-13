@@ -37,7 +37,7 @@ import {
 } from '../../../lib/activity-continent';
 import type { Activity } from '../../../lib/types';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 type SortOption = 'popular' | 'upcoming' | 'name';
 type MoodPath = 'ready' | 'lineup' | 'soon';

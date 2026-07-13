@@ -1,6 +1,5 @@
 import { notFound, permanentRedirect } from 'next/navigation';
-import { getActivity } from '../../../../../lib/api';
-import { eventPlanPath, parseEventLegacyId } from '../../../../../lib/event-slug';
+import { eventPlanPath, resolveActivityBySlug } from '../../../../../lib/event-slug';
 import { isLocale, localizeActivity, type Locale } from '../../../../../lib/i18n';
 
 type TravelRedirectPageProps = {
@@ -16,10 +15,7 @@ export default async function EventTravelRedirectPage({ params }: TravelRedirect
   if (!isLocale(rawLocale)) notFound();
 
   const locale = rawLocale as Locale;
-  const legacyId = parseEventLegacyId(slug);
-  if (!legacyId) notFound();
-
-  const activityResult = await getActivity(legacyId);
+  const activityResult = await resolveActivityBySlug(slug, locale);
   if (activityResult.status === 'error') {
     permanentRedirect(`/${locale}/events`);
   }

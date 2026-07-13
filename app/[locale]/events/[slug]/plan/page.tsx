@@ -6,7 +6,6 @@ import { EventLoadError } from "../../../../../components/states/EventLoadError"
 import { EventUnavailableState } from "../../../../../components/states/EventUnavailableState";
 import {
   fetchActivitySchedule,
-  getActivity,
   getActivityImage,
   getActivityTitle,
   getSavedRavenPlan,
@@ -16,7 +15,7 @@ import {
   eventPath,
   eventPlanPath,
   eventSlugMatches,
-  parseEventLegacyId,
+  resolveActivityBySlug,
 } from "../../../../../lib/event-slug";
 import { getFestivalAtmosphere } from "../../../../../lib/festival-atmosphere";
 import { buildPlannerLandingData } from "../../../../../lib/planner-landing";
@@ -58,10 +57,7 @@ export async function generateMetadata({
 }: PlannerPageProps): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
-  const legacyId = parseEventLegacyId(slug);
-  if (!legacyId) return {};
-
-  const activityResult = await getActivity(legacyId);
+  const activityResult = await resolveActivityBySlug(slug, locale);
   if (!activityResult.activity) return {};
 
   const activity = localizeActivity(activityResult.activity, locale);
@@ -78,10 +74,7 @@ export default async function AiPlannerPage({
 
   const locale = rawLocale as Locale;
   const t = getMessages(locale);
-  const legacyId = parseEventLegacyId(slug);
-  if (!legacyId) notFound();
-
-  const activityResult = await getActivity(legacyId);
+  const activityResult = await resolveActivityBySlug(slug, locale);
 
   if (activityResult.status === "error") {
     return <EventLoadError locale={locale} />;

@@ -1,20 +1,21 @@
 import type { CSSProperties } from 'react';
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { Breadcrumbs } from '../../../../../components/Breadcrumbs';
 import { FestivalSquadExperience } from '../../../../../components/festival-squad/FestivalSquadExperience';
 import { EventImage } from '../../../../../components/EventImage';
 import { EventLoadError } from '../../../../../components/states/EventLoadError';
 import { EventUnavailableState } from '../../../../../components/states/EventUnavailableState';
-import { getActivity, getActivityImage, getActivityTitle } from '../../../../../lib/api';
+import { getActivityImage, getActivityTitle } from '../../../../../lib/api';
 import { getActivityDateRange } from '../../../../../lib/activity-date';
 import { loadEventPageData } from '../../../../../lib/event-page';
 import { getFestivalAtmosphere } from '../../../../../lib/festival-atmosphere';
 import {
   eventPath,
+  eventSlugMatches,
   eventSquadAlternateLanguages,
   eventSquadPath,
-  parseEventLegacyId,
+  resolveActivityBySlug,
 } from '../../../../../lib/event-slug';
 import { getSiteUrl } from '../../../../../lib/site';
 import {
@@ -37,10 +38,7 @@ export async function generateMetadata({ params }: SquadPageProps): Promise<Meta
   const { locale: rawLocale, slug } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
   const t = getMessages(locale);
-  const legacyId = parseEventLegacyId(slug);
-  if (!legacyId) return {};
-
-  const activityResult = await getActivity(legacyId);
+  const activityResult = await resolveActivityBySlug(slug, locale);
   if (!activityResult.activity) return {};
 
   const activity = activityResult.activity;
@@ -82,6 +80,14 @@ export default async function EventSquadPage({ params }: SquadPageProps) {
 
   const locale = rawLocale as Locale;
   const t = getMessages(locale);
+  const activityResult = await resolveActivityBySlug(slug, locale);
+  if (activityResult.status === 'error') return <EventLoadError locale={locale} />;
+  if (activityResult.status === 'not_found' || !activityResult.activity) {
+    return <EventUnavailableState locale={locale} />;
+  }
+  if (!eventSlugMatches(slug, activityResult.activity, locale)) {
+    permanentRedirect(eventSquadPath(locale, activityResult.activity));
+  }
   const pageData = await loadEventPageData(locale, slug);
 
   if (pageData === 'error') return <EventLoadError locale={locale} />;

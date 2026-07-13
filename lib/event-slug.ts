@@ -1,4 +1,9 @@
-import { getActivityTitle } from './api';
+import {
+  fetchActivities,
+  getActivity,
+  getActivityTitle,
+  type ActivityFetchResult,
+} from './api';
 import { localizeActivity, localizedPath, DEFAULT_LOCALE, type Locale } from './i18n';
 import type { JourneyTab, JourneyEntryFrom } from './planner-journey';
 import type { Activity } from './types';
@@ -16,8 +21,7 @@ function slugifyTitle(value: string): string {
 export function eventSlug(activity: Activity, locale: Locale): string {
   const localized = localizeActivity(activity, locale);
   const title = getActivityTitle(localized);
-  const base = slugifyTitle(title) || 'festival';
-  return `${base}-${localized.legacyId}`;
+  return slugifyTitle(title) || 'festival';
 }
 
 export function eventPath(locale: Locale, activity: Activity): string {
@@ -109,12 +113,42 @@ export function parseEventLegacyId(slugParam: string): number | null {
   return suffix ? Number(suffix[1]) : null;
 }
 
-export function eventSlugMatches(slugParam: string, activity: Activity, locale: Locale): boolean {
+function decodeSlugParam(slugParam: string): string {
   try {
-    return decodeURIComponent(slugParam) === eventSlug(activity, locale);
+    return decodeURIComponent(slugParam).trim();
   } catch {
-    return slugParam === eventSlug(activity, locale);
+    return slugParam.trim();
   }
+}
+
+export async function resolveActivityBySlug(
+  slugParam: string,
+  locale: Locale,
+): Promise<ActivityFetchResult> {
+  const decoded = decodeSlugParam(slugParam);
+
+  const result = await fetchActivities();
+  if (result.status !== 'error') {
+    const matched = result.activities.find((activity) => eventSlug(activity, locale) === decoded);
+    if (matched) return { activity: matched, status: 'ok' };
+  }
+
+  const legacyId = parseEventLegacyId(decoded);
+  if (legacyId) {
+    const legacyResult = await getActivity(legacyId);
+    if (!legacyResult.activity) return legacyResult;
+
+    const legacySlug = `${eventSlug(legacyResult.activity, locale)}-${legacyResult.activity.legacyId}`;
+    if (decoded === legacySlug) return legacyResult;
+
+    return { activity: null, status: result.status === 'error' ? 'error' : 'not_found' };
+  }
+
+  return { activity: null, status: result.status === 'error' ? 'error' : 'not_found' };
+}
+
+export function eventSlugMatches(slugParam: string, activity: Activity, locale: Locale): boolean {
+  return decodeSlugParam(slugParam) === eventSlug(activity, locale);
 }
 
 export function eventAlternateLanguages(

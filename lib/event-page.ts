@@ -1,7 +1,6 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import {
   fetchActivitySchedule,
-  getActivity,
   getActivityTitle,
   type ScheduleDj,
   type SchedulePerformance,
@@ -16,7 +15,7 @@ import {
 import { groupByBroadGenre, otherGenreLabel } from "./lineup-genre";
 import { buildFeaturedArtists, buildStageLabels } from "./lineup-preview";
 import { getActivityContinent } from "./activity-continent";
-import { eventPath, eventSlugMatches, parseEventLegacyId } from "./event-slug";
+import { eventPath, eventSlugMatches, resolveActivityBySlug } from "./event-slug";
 import { getContinentLabel, localizeActivity, type Locale } from "./i18n";
 import type { Activity } from "./types";
 
@@ -47,10 +46,7 @@ export async function loadEventPageData(
   slug: string,
   options?: { weekend?: "w1" | "w2" },
 ): Promise<EventPageData | "error" | "not_found"> {
-  const legacyId = parseEventLegacyId(slug);
-  if (!legacyId) notFound();
-
-  const activityResult = await getActivity(legacyId);
+  const activityResult = await resolveActivityBySlug(slug, locale);
   if (activityResult.status === "error") return "error";
   if (activityResult.status === "not_found" || !activityResult.activity)
     return "not_found";
