@@ -19,6 +19,14 @@ export type RavenJourneyStayOption = {
   source: PriceSource;
 };
 
+export type RavenJourneyStayArea = {
+  area: string;
+  score: number;
+  tags: string[];
+  reason: string;
+  estimate?: string;
+};
+
 export type RavenJourneyFlightOption = {
   badge: string;
   route: string;
@@ -85,6 +93,7 @@ export type RavenJourneyView = {
     areaHeadline: string;
     areaReasons: string[];
     options: RavenJourneyStayOption[];
+    recommendedAreas?: RavenJourneyStayArea[];
   };
   flightStrategy: {
     recommendation: string;
@@ -208,7 +217,7 @@ function localizeFlightLabel(
     .replace(/\/人/g, "/ person");
 }
 
-/** Prefer English-safe prose for EN locale; drop Chinese-dominated lines. */
+/** EN render boundaries never allow CJK copy from legacy cached plans. */
 export function englishSafeLines(
   lines: string[] | undefined,
   locale: Locale,
@@ -216,8 +225,8 @@ export function englishSafeLines(
   if (!lines?.length) return [];
   if (locale !== "en") return lines.filter(Boolean);
   return lines
-    .map((line) => localizeFlightLabel(line, locale)?.trim() || "")
-    .filter((line) => line && !looksLikeChineseCopy(line));
+    .map((line) => englishSafeText(line, locale))
+    .filter(Boolean);
 }
 
 function englishSafeText(
@@ -244,7 +253,7 @@ function englishSystemPlace(
 ): string {
   if (locale !== "en") return value;
   const normalized = value.trim();
-  if (!looksLikeChineseCopy(normalized)) return normalized;
+  if (!/[\u3400-\u9fff]/.test(normalized)) return normalized;
   return airportCode
     ? `${airportCode.toUpperCase()} Airport`
     : "Festival destination";
@@ -465,53 +474,131 @@ export function buildRavenJourneyView(input: {
   const tripNights = remote?.accommodationNights ?? 0;
   const origin = remote?.departure?.trim() || "—";
   const displayDestination = englishSystemPlace(destination, locale);
+  const safeFestivalName = englishSafeText(
+    remote?.activityName,
+    locale,
+    festivalName,
+  );
+  const safeFestivalDates = englishSafeText(
+    remote?.eventDates,
+    locale,
+    festivalDates,
+  );
+  const safeFavoriteArtists = favoriteArtists
+    .map((artist) => englishSafeText(artist, locale, en ? "Featured artist" : artist))
+    .filter(Boolean);
 
-  const tipItems = remote?.tips.items?.filter(Boolean) ?? local.experiences;
+  const rawTipItems = remote?.tips.items?.filter(Boolean) ?? local.experiences;
+  // Older cached English plans can contain a mixed-language LLM sentence.
+  // Filter it once at the boundary so it cannot leak into any journey scene.
+  const tipItems =
+    locale === "en"
+      ? rawTipItems.map((tip) => englishSafeText(tip, locale)).filter(Boolean)
+      : rawTipItems;
   const summary =
     tipItems[0] ||
-    local.vibe ||
+    englishSafeText(local.vibe, locale) ||
     (en
       ? `A personalized festival journey built around how you want to travel, stay, and experience the lineup.`
       : `围绕你的出行、住宿与阵容偏好，为你组装的专属电音节旅程。`);
 
   const hotels = remote?.accommodation.hotels ?? [];
   const schemes = remote?.accommodation.schemes ?? [];
+  const guidedAreas = remote?.stayGuide?.recommendedAreas ?? [];
+  const guideRange = remote?.stayGuide?.estimatedNightlyRange;
+  const guideEstimate = guideRange
+    ? `${formatGuideMoney(guideRange.min, guideRange.currency, locale)}–${formatGuideMoney(guideRange.max, guideRange.currency, locale)}${en ? " / night" : "/晚"}`
+    : undefined;
+  const recommendedAreas = guidedAreas.slice(0, 3).map((area) => ({
+    area: englishSafeText(area.area, locale, en ? "Festival area" : area.area),
+    score: area.score,
+    tags:
+      locale === "en"
+        ? area.tags
+            .map((tag) => englishSafeText(tag, locale))
+            .filter(Boolean)
+        : area.tags,
+    reason: conciseText(
+      englishSafeText(
+        area.reason,
+        locale,
+        en ? "A practical base for the festival weekend." : area.reason,
+      ),
+      150,
+    ),
+    estimate: guideEstimate,
+  }));
   const stayOptionsSource =
     schemes.length > 0
       ? schemes.slice(0, 3).map((scheme, index) => ({
-          badge: scheme.label || stayBadges[index] || stayBadges[0],
-          name: scheme.name,
+          badge:
+            englishSafeText(scheme.label, locale) ||
+            stayBadges[index] ||
+            stayBadges[0],
+          name: englishSafeText(
+            scheme.name,
+            locale,
+            en ? "Festival stay" : scheme.name,
+          ),
           note: conciseHotelDetail(
-            localizeMoneyText(
-              localizeHotelCopy(scheme.note, locale) || scheme.note,
+            englishSafeText(
+              localizeMoneyText(
+                localizeHotelCopy(scheme.note, locale) || scheme.note,
+                locale,
+              ),
               locale,
             ),
           ),
           reason: conciseText(
-            localizeMoneyText(localizeHotelCopy(scheme.reason, locale), locale),
+            englishSafeText(
+              localizeMoneyText(
+                localizeHotelCopy(scheme.reason, locale),
+                locale,
+              ),
+              locale,
+            ),
             130,
           ),
-          bookingHint: localizeMoneyText(
-            localizeHotelCopy(scheme.bookingHint, locale),
+          bookingHint: englishSafeText(
+            localizeMoneyText(
+              localizeHotelCopy(scheme.bookingHint, locale),
+              locale,
+            ),
             locale,
           ),
           source: detectPriceSource(scheme.note),
         }))
       : hotels.slice(0, 3).map((hotel, index) => ({
           badge: stayBadges[index] || stayBadges[0],
-          name: hotel.name,
+          name: englishSafeText(
+            hotel.name,
+            locale,
+            en ? "Festival stay" : hotel.name,
+          ),
           note: conciseHotelDetail(
-            localizeMoneyText(
-              localizeHotelCopy(hotel.note, locale) || hotel.note,
+            englishSafeText(
+              localizeMoneyText(
+                localizeHotelCopy(hotel.note, locale) || hotel.note,
+                locale,
+              ),
               locale,
             ),
           ),
           reason: conciseText(
-            localizeMoneyText(localizeHotelCopy(hotel.reason, locale), locale),
+            englishSafeText(
+              localizeMoneyText(
+                localizeHotelCopy(hotel.reason, locale),
+                locale,
+              ),
+              locale,
+            ),
             130,
           ),
-          bookingHint: localizeMoneyText(
-            localizeHotelCopy(hotel.bookingHint, locale),
+          bookingHint: englishSafeText(
+            localizeMoneyText(
+              localizeHotelCopy(hotel.bookingHint, locale),
+              locale,
+            ),
             locale,
           ),
           source: detectPriceSource(hotel.note),
@@ -555,10 +642,16 @@ export function buildRavenJourneyView(input: {
           price:
             formatMoney(offer.pricePerAdult, offer.currency, locale) +
             (en ? " / person" : "/人"),
-          cabin: localizeFlightLabel(offer.cabinLabel, locale),
+          cabin: englishSafeText(
+            localizeFlightLabel(offer.cabinLabel, locale),
+            locale,
+          ),
           source: "live" as const,
           tradeoff: flightTradeoff(offer, recommendedOffer, locale),
-          recommendationReason: offer.recommendationReason,
+          recommendationReason: englishSafeText(
+            offer.recommendationReason,
+            locale,
+          ),
         }))
       : transportLinesSafe.length
         ? [
@@ -594,27 +687,47 @@ export function buildRavenJourneyView(input: {
     locale,
     flightOffers[0]?.outbound.arrAirport,
   );
-  const flightRecommendation =
+  const flightRecommendation = englishSafeText(
     primaryFlightOption?.route ||
-    transportLinesSafe[0] ||
-    localFlightSafe ||
-    (en ? "Route still assembling" : "航线组装中");
+      transportLinesSafe[0] ||
+      localFlightSafe ||
+      (en ? "Route still assembling" : "航线组装中"),
+    locale,
+    en ? "Route still assembling" : "航线组装中",
+  );
   const flightReasons = primaryFlightOption?.recommendationReason
-    ? [primaryFlightOption.recommendationReason]
+    ? [englishSafeText(primaryFlightOption.recommendationReason, locale)].filter(
+        Boolean,
+      )
     : [];
 
-  const budgetItemsRaw = remote?.budget?.items ?? [];
+  const budgetItemsRaw = (remote?.budget?.items ?? []).filter(
+    (item) =>
+      locale !== "en" ||
+      Boolean(
+        englishSafeText(
+          `${item.label} ${item.range} ${item.note ?? ""}`,
+          locale,
+        ),
+      ),
+  );
   const budgetItems: RavenJourneyBudgetItem[] =
     budgetItemsRaw.length > 0
       ? budgetItemsRaw.map((item) => ({
-          label: item.label,
-          amount: localizeMoneyText(item.range, locale) || item.range,
-          note: localizeMoneyText(item.note, locale),
+          label: englishSafeText(item.label, locale, "Estimated cost"),
+          amount: englishSafeText(
+            localizeMoneyText(item.range, locale) || item.range,
+            locale,
+          ),
+          note: englishSafeText(localizeMoneyText(item.note, locale), locale),
           source: detectPriceSource(item.note, item.range),
         }))
       : local.budget.items.map((item) => ({
-          label: item.label,
-          amount: localizeMoneyText(item.amount, locale) || item.amount,
+          label: englishSafeText(item.label, locale, "Estimated cost"),
+          amount: englishSafeText(
+            localizeMoneyText(item.amount, locale) || item.amount,
+            locale,
+          ),
           source: "estimated" as const,
           share: item.share,
         }));
@@ -628,23 +741,27 @@ export function buildRavenJourneyView(input: {
     ? totalRow.amount
     : usedRemoteBudget
       ? ""
-      : localizeMoneyText(local.budget.total, locale) || local.budget.total;
+      : englishSafeText(
+          localizeMoneyText(local.budget.total, locale) || local.budget.total,
+          locale,
+        );
 
   const dailyFlow =
     hasTimedSchedule && scheduleDays.length > 0
       ? scheduleDays.map((day) => ({
-          label: day.label,
+          label: englishSafeText(day.label, locale, en ? "Festival day" : day.label),
           sets: day.sets.map((set) => ({
             time: set.time,
-            artist: set.artist,
-            stage: set.stage,
+            artist: englishSafeText(set.artist, locale, en ? "Featured artist" : set.artist),
+            stage: englishSafeText(set.stage, locale, en ? "Festival stage" : set.stage),
             highlight: set.highlight,
           })),
         }))
       : [];
 
   const mustSee =
-    favoriteArtists[0] || dailyFlow[0]?.sets.find((s) => s.highlight)?.artist;
+    safeFavoriteArtists[0] ||
+    dailyFlow[0]?.sets.find((s) => s.highlight)?.artist;
 
   const timeline: RavenJourneyTimelineDay[] = remote?.itinerary?.days?.length
     ? remote.itinerary.days.map((day, index) => {
@@ -670,15 +787,22 @@ export function buildRavenJourneyView(input: {
                 : city
                   ? `温柔收束这个周末 — 在 ${city} 留下最后一夜。`
                   : "温柔收束这个周末，给最后一夜留白。"
-              : local.experiences[index] ||
+              : englishSafeText(local.experiences[index], locale) ||
                 (mustSee && index === 1
                   ? en
                     ? `Build the day toward ${mustSee}.`
                     : `这一天的节奏朝向 ${mustSee}。`
                   : tipItems[index + 1]);
+        const lines = en
+          ? englishSafeLines(day.lines, locale)
+          : day.lines.filter(Boolean);
         return {
-          label: day.label,
-          lines: day.lines.filter(Boolean),
+          label: englishSafeText(
+            day.label,
+            locale,
+            en ? "Festival day" : day.label,
+          ),
+          lines,
           feeling: feeling || undefined,
         };
       })
@@ -689,32 +813,43 @@ export function buildRavenJourneyView(input: {
     if (remote.essentials.network.length) {
       essentials.push({
         title: en ? "Network" : "网络",
-        items: remote.essentials.network,
+        items: englishSafeLines(remote.essentials.network, locale),
       });
     }
     if (remote.essentials.payment.length) {
       essentials.push({
         title: en ? "Payment" : "支付",
-        items: remote.essentials.payment,
+        items: englishSafeLines(remote.essentials.payment, locale),
       });
     }
     if (remote.essentials.apps.length) {
       essentials.push({
         title: en ? "Apps" : "应用",
-        items: remote.essentials.apps,
+        items: englishSafeLines(remote.essentials.apps, locale),
       });
     }
   }
   if (remote?.documents?.items.length) {
     essentials.push({
-      title: remote.documents.title || (en ? "Documents" : "证件"),
-      items: remote.documents.items,
+      title: englishSafeText(
+        remote.documents.title,
+        locale,
+        en ? "Documents" : "证件",
+      ),
+      items: englishSafeLines(remote.documents.items, locale),
     });
   }
   if (remote?.tickets?.channels.length) {
     essentials.push({
-      title: remote.tickets.title || (en ? "Tickets" : "门票"),
-      items: remote.tickets.channels.map((ch) => `${ch.name} — ${ch.note}`),
+      title: englishSafeText(
+        remote.tickets.title,
+        locale,
+        en ? "Tickets" : "门票",
+      ),
+      items: englishSafeLines(
+        remote.tickets.channels.map((ch) => `${ch.name} — ${ch.note}`),
+        locale,
+      ),
     });
   }
 
@@ -729,7 +864,9 @@ export function buildRavenJourneyView(input: {
 
   const primaryStay = stayOptionsSource[0];
   const ravenPicks = [
-    ...local.experiences.slice(0, 2),
+    ...local.experiences
+      .slice(0, 2)
+      .map((experience) => englishSafeText(experience, locale)),
     ...(remote?.nightlife.spots ?? [])
       .slice(0, 2)
       .map((spot) =>
@@ -738,7 +875,8 @@ export function buildRavenJourneyView(input: {
           : spot.note
             ? `${spot.name} — ${spot.note}`
             : spot.name,
-      ),
+      )
+      .map((spot) => englishSafeText(spot, locale)),
   ]
     .filter(Boolean)
     .slice(0, 4);
@@ -749,8 +887,9 @@ export function buildRavenJourneyView(input: {
       : [];
 
   const areaHeadline = conciseStayHeadline(
-    local.travel.stay,
-    destination,
+    recommendedAreas[0]?.area ||
+      englishSafeText(local.travel.stay, locale, en ? "Festival stay" : local.travel.stay),
+    displayDestination,
     locale,
   );
 
@@ -761,20 +900,29 @@ export function buildRavenJourneyView(input: {
     detail: primaryFlightOption?.price || primaryFlightOption?.detail || "",
     reason: flightReasons[0],
   };
-  const glanceStay = {
-    headline:
-      primaryStay?.name ||
-      local.travel.stay ||
-      (en ? "Stay still assembling" : "住宿组装中"),
-    detail: primaryStay?.note || "",
-    reason: primaryStay?.reason,
-  };
+  // Festival Stay Intelligence establishes the base; hotel inventory is only
+  // an optional way to browse availability inside that recommended area.
+  const primaryRecommendedArea = recommendedAreas[0];
+  const glanceStay = primaryRecommendedArea
+    ? {
+        headline: primaryRecommendedArea.area,
+        detail: primaryRecommendedArea.estimate || "",
+        reason: primaryRecommendedArea.reason,
+      }
+    : {
+        headline:
+          primaryStay?.name ||
+          englishSafeText(local.travel.stay, locale) ||
+          (en ? "Stay still assembling" : "住宿组装中"),
+        detail: primaryStay?.note || "",
+        reason: primaryStay?.reason,
+      };
   const glanceFestival = {
     headline:
       favoriteArtists.length > 0
         ? en
-          ? `${favoriteArtists.length} artists locked in`
-          : `${favoriteArtists.length} 位已锁定艺人`
+        ? `${safeFavoriteArtists.length} artists locked in`
+          : `${safeFavoriteArtists.length} 位已锁定艺人`
         : en
           ? "Your festival nights"
           : "你的电音节之夜",
@@ -832,14 +980,15 @@ export function buildRavenJourneyView(input: {
           line,
         ),
     )
+    .map((spot) => englishSafeText(spot, locale))
     .slice(0, 3);
 
   return {
-    festivalName: remote?.activityName || festivalName,
+    festivalName: safeFestivalName,
     // Prefer page/city destination over venue name (e.g. "Antwerp, Belgium" vs "De Schorre").
     destination:
       systemDestination || englishSystemPlace(remote?.venue || "", locale),
-    festivalDates: remote?.eventDates || festivalDates,
+    festivalDates: safeFestivalDates,
     tripNights,
     travelers,
     origin: systemOrigin,
@@ -852,7 +1001,7 @@ export function buildRavenJourneyView(input: {
       budget: glanceBudget,
     },
     festivalExperience: {
-      nonNegotiables: favoriteArtists.slice(0, 6),
+      nonNegotiables: safeFavoriteArtists.slice(0, 6),
       ravenPicks,
       conflicts,
       dailyFlow,
@@ -864,14 +1013,15 @@ export function buildRavenJourneyView(input: {
     stayStrategy: {
       areaHeadline,
       areaReasons: [
-        primaryStay?.reason,
+        englishSafeText(primaryStay?.reason, locale),
         remote?.venueTransport?.options[0]?.label
           ? en
-            ? `Transfer: ${remote.venueTransport.options[0].label}`
+            ? `Transfer: ${englishSafeText(remote.venueTransport.options[0].label, locale)}`
             : `接驳：${remote.venueTransport.options[0].label}`
           : undefined,
       ].filter((value): value is string => Boolean(value)),
       options: stayOptionsSource,
+      recommendedAreas,
     },
     flightStrategy: {
       recommendation: flightRecommendation,
@@ -892,13 +1042,75 @@ export function buildRavenJourneyView(input: {
   };
 }
 
+function formatGuideMoney(
+  amount: number,
+  currency: "CNY" | "USD" | "EUR",
+  locale: Locale,
+): string {
+  return new Intl.NumberFormat(locale === "zh" ? "zh-CN" : "en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 export function journeyLooksChinese(view: RavenJourneyView): boolean {
-  return looksLikeChineseCopy(
-    [
+  const sample = [
+      view.festivalName,
+      view.destination,
+      view.festivalDates,
+      view.origin,
       view.summary,
+      ...view.breath,
       view.glance.flight.headline,
+      view.glance.flight.detail,
+      view.glance.flight.reason,
       view.glance.stay.headline,
+      view.glance.stay.detail,
+      view.glance.stay.reason,
+      view.glance.festival.headline,
+      view.glance.festival.detail,
+      view.glance.budget.headline,
+      view.glance.budget.detail,
       ...view.insights,
-    ].join(" "),
-  );
+      view.stayStrategy.areaHeadline,
+      ...view.stayStrategy.areaReasons,
+      ...view.stayStrategy.recommendedAreas?.flatMap((area) => [
+        area.area,
+        ...area.tags,
+        area.reason,
+        area.estimate,
+      ]) ?? [],
+      ...view.stayStrategy.options.flatMap((option) => [
+        option.name,
+        option.note,
+        option.reason,
+        option.bookingHint,
+      ]),
+      ...view.flightStrategy.reasons,
+      ...view.flightStrategy.options.flatMap((option) => [
+        option.route,
+        option.detail,
+        option.recommendationReason,
+        option.tradeoff,
+      ]),
+      ...view.timeline.flatMap((day) => [day.label, day.feeling, ...day.lines]),
+      ...view.festivalExperience.nonNegotiables,
+      ...view.festivalExperience.conflicts,
+      ...view.festivalExperience.dailyFlow.flatMap((day) => [
+        day.label,
+        ...day.sets.flatMap((set) => [set.time, set.artist, set.stage]),
+      ]),
+      view.budget.total,
+      view.budget.insight,
+      ...view.budget.items.flatMap((item) => [
+        item.label,
+        item.amount,
+        item.note,
+      ]),
+      ...view.essentials.flatMap((group) => [group.title, ...group.items]),
+      ...view.festivalExperience.ravenPicks,
+    ].join(" ");
+  // This guards an EN render boundary, where even a single leaked CJK phrase is invalid.
+  return /[\u3400-\u9fff]/.test(sample) || looksLikeChineseCopy(sample);
 }

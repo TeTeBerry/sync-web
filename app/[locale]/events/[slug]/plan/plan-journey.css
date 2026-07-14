@@ -2240,12 +2240,192 @@ body:has(.plan-page-shell[data-journey-phase='generating']) .plan-gen {
 }
 
 .raven-journey__section--travel {
-  gap: 24px;
+  gap: 30px;
+  position: relative;
+  padding-block: clamp(20px, 4vw, 44px);
+}
+
+.raven-journey__stay-guide {
+  display: grid;
+  gap: 28px;
+  max-width: 780px;
+}
+
+.raven-journey__stay-area {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+}
+
+.raven-journey__stay-area--base {
+  position: relative;
+  isolation: isolate;
+  padding: clamp(24px, 4vw, 38px) 0 clamp(28px, 4vw, 42px);
+  border-block: 1px solid rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.28);
+}
+
+.raven-journey__stay-area--base::before {
+  content: '';
+  position: absolute;
+  inset: -26% -18% -36%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 18% 48%,
+    rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.16),
+    transparent 67%
+  );
+}
+
+.raven-journey__stay-kicker,
+.raven-journey__stay-tags,
+.raven-journey__stay-estimate {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(var(--festival-accent-rgb), 0.9);
+}
+
+.raven-journey__stay-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 42px);
+  letter-spacing: var(--festival-title-tracking);
+}
+
+.raven-journey__stay-reason {
+  max-width: 50ch;
+  margin: 0;
+  font-size: clamp(17px, 2.1vw, 20px);
+  line-height: 1.55;
+  color: rgba(244, 241, 234, 0.9);
+}
+
+.raven-journey__stay-estimate {
+  color: rgba(244, 241, 234, 0.58);
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.raven-journey__stay-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin-top: 4px;
+  color: rgba(244, 241, 234, 0.96);
+  font-size: 14px;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(var(--festival-accent-rgb), 0.65);
+  padding-bottom: 4px;
+}
+
+.raven-journey__stay-link:hover {
+  color: rgb(var(--festival-accent-rgb));
+}
+
+.raven-journey__stay-alternatives {
+  display: grid;
+  gap: 14px;
+  max-width: 620px;
+}
+
+.raven-journey__stay-alternatives-label {
+  margin: 0;
+  color: rgba(244, 241, 234, 0.52);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.raven-journey__stay-alternatives ul {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.raven-journey__stay-alternatives li {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-left: 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.raven-journey__stay-alternatives li > div {
+  display: grid;
+  gap: 4px;
+}
+
+.raven-journey__stay-alternatives a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  color: rgba(244, 241, 234, 0.92);
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.5vw, 23px);
+  text-decoration: none;
+}
+
+.raven-journey__stay-alternatives a:hover {
+  color: rgb(var(--festival-accent-rgb));
+}
+
+.raven-journey__stay-alternatives p,
+.raven-journey__stay-alternatives span {
+  margin: 0;
+  color: rgba(244, 241, 234, 0.56);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.raven-journey__stay-alternatives p {
+  max-width: 46ch;
+}
+
+.raven-journey__stay-alternatives span {
+  flex: 0 0 auto;
+  padding-top: 4px;
+  text-align: right;
 }
 
 .raven-journey__section--budget {
-  gap: 14px;
-  padding-block: clamp(8px, 2vw, 20px) 0;
+  gap: 20px;
+  position: relative;
+  padding-block: clamp(16px, 3vw, 32px);
+}
+
+.raven-journey__budget-confidence-scene {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+  padding: clamp(28px, 5vw, 52px) clamp(22px, 5vw, 56px);
+  border-block: 1px solid rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.25);
+}
+
+.raven-journey__budget-confidence-scene::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 86% 12%, rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.2), transparent 42%),
+    linear-gradient(100deg, rgba(255, 255, 255, 0.035), transparent 55%);
+}
+
+.raven-journey__budget-kicker {
+  margin: 0;
+  color: rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.88);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 .raven-journey__section--budget .raven-journey__budget-total {
@@ -2254,6 +2434,14 @@ body:has(.plan-page-shell[data-journey-phase='generating']) .plan-gen {
   letter-spacing: var(--festival-title-tracking, -0.04em);
   color: rgba(244, 241, 234, 0.98);
   line-height: 1;
+}
+
+.raven-journey__budget-confidence-scene .raven-journey__budget-caption {
+  color: rgba(244, 241, 234, 0.7);
+}
+
+.raven-journey__budget-confidence-scene .raven-journey__insight-line {
+  margin-top: 6px;
 }
 
 .raven-journey__section--essentials {
@@ -2370,8 +2558,18 @@ body:has(.plan-page-shell[data-journey-phase='generating']) .plan-gen {
 .raven-journey__travel-flight {
   display: grid;
   gap: 14px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  max-width: 620px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.raven-journey__travel-flight-kicker {
+  margin: 0;
+  color: rgba(244, 241, 234, 0.5);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .raven-journey__timeline-feeling {
@@ -2643,8 +2841,26 @@ body:has(.plan-page-shell[data-journey-phase='generating']) .plan-gen {
 }
 
 .raven-journey__finale {
-  padding-top: clamp(24px, 4vw, 40px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(36px, 6vw, 68px) clamp(22px, 5vw, 56px);
+  border: 1px solid rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.22);
+  background: linear-gradient(135deg, rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.1), rgba(6, 6, 10, 0.2) 58%);
+}
+
+.raven-journey__finale::before {
+  content: '';
+  position: absolute;
+  inset: auto -10% -75% 30%;
+  z-index: -1;
+  height: 170%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.23), transparent 62%);
+  filter: blur(12px);
+}
+
+.raven-journey__finale {
   gap: 18px;
 }
 
@@ -2680,8 +2896,8 @@ body:has(.plan-page-shell[data-journey-phase='generating']) .plan-gen {
   margin: 0;
   padding: 14px 22px;
   border: 1px solid rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.45);
-  border-radius: 0;
-  background: rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.14);
+  border-radius: 999px;
+  background: rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.24);
   color: rgba(244, 241, 234, 0.98);
   font: inherit;
   font-size: 15px;
@@ -2689,6 +2905,46 @@ body:has(.plan-page-shell[data-journey-phase='generating']) .plan-gen {
   letter-spacing: 0.01em;
   cursor: pointer;
   transition: background 180ms var(--festival-motion-ease, ease), border-color 180ms var(--festival-motion-ease, ease);
+}
+
+.raven-journey__continue {
+  display: grid;
+  gap: 24px;
+  padding-top: 4px;
+}
+
+.raven-journey__continue > summary {
+  width: fit-content;
+  cursor: pointer;
+  list-style: none;
+  color: rgba(244, 241, 234, 0.65);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.raven-journey__continue > summary::-webkit-details-marker {
+  display: none;
+}
+
+.raven-journey__continue > summary:focus-visible {
+  outline: 2px solid rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.8);
+  outline-offset: 4px;
+}
+
+.raven-journey__continue > summary::after {
+  content: '+';
+  margin-left: 8px;
+  color: rgba(var(--festival-accent-rgb, var(--primary-rgb)), 0.9);
+}
+
+.raven-journey__continue[open] > summary::after {
+  content: '–';
+}
+
+.raven-journey__continue-body {
+  display: grid;
+  gap: clamp(44px, 7vw, 76px);
+  padding-top: 8px;
 }
 
 .raven-journey__cta:hover {
@@ -2716,6 +2972,18 @@ body:has(.plan-page-shell[data-journey-phase='generating']) .plan-gen {
   .raven-journey__options,
   .raven-journey__essentials {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .raven-journey__stay-alternatives li {
+    display: grid;
+    gap: 6px;
+  }
+
+  .raven-journey__stay-alternatives span {
+    padding-top: 0;
+    text-align: left;
   }
 }
 

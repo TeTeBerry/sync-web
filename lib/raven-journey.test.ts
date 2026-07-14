@@ -6,6 +6,7 @@ import {
   buildRavenJourneyView,
   detectPriceSource,
   isBudgetTotalLabel,
+  journeyLooksChinese,
 } from "./raven-journey";
 
 const localPlan: PlannerPlan = {
@@ -545,5 +546,189 @@ describe("buildRavenJourneyView", () => {
     });
     expect(view.insights.some((tip) => /book early/i.test(tip))).toBe(false);
     expect(view.insights[0]).toMatch(/Sharing a room/i);
+  });
+
+  it("uses Festival Stay Intelligence ahead of hotel inventory", () => {
+    const view = buildRavenJourneyView({
+      remote: makeRemote({
+        stayGuide: {
+          festivalId: "edc-thailand",
+          recommendedAreas: [
+            {
+              area: "Bang Tao",
+              score: 95,
+              tags: ["best_balance", "festival_commute", "first_timer"],
+              reason:
+                "Best balance between festival access and an easy late-night return.",
+            },
+          ],
+          estimatedNightlyRange: { min: 100, max: 200, currency: "USD" },
+        },
+      }),
+      local: localPlan,
+      locale: "en",
+      festivalName: "EDC Thailand",
+      destination: "Phuket, Thailand",
+      festivalDates: "Jan 16–18",
+      favoriteArtists: [],
+    });
+
+    expect(view.stayStrategy.areaHeadline).toBe("Bang Tao");
+    expect(view.stayStrategy.recommendedAreas?.[0]).toMatchObject({
+      area: "Bang Tao",
+      estimate: "$100–$200 / night",
+    });
+    expect(view.glance.stay).toMatchObject({
+      headline: "Bang Tao",
+      reason: "Best balance between festival access and an easy late-night return.",
+    });
+  });
+
+  it("drops mixed-language English plan tips before rendering the journey", () => {
+    const view = buildRavenJourneyView({
+      remote: makeRemote({
+        tips: {
+          title: "Tips",
+          items: [
+            "Wake near the festival rhythm — 同档位内距离、评分与价位综合最优。",
+            "Stay area: Odaiba — Stay close to the bay for the smoothest arrival and exit each day.",
+          ],
+        },
+      }),
+      local: localPlan,
+      locale: "en",
+      festivalName: "Ultra Japan",
+      destination: "Tokyo, Japan",
+      festivalDates: "Sep 19–20",
+      favoriteArtists: [],
+    });
+
+    expect(view.summary).toBe(
+      "Stay area: Odaiba — Stay close to the bay for the smoothest arrival and exit each day.",
+    );
+    expect(view.summary).not.toMatch(/[\u3400-\u9fff]/);
+  });
+
+  it("keeps cached English plan scenes free of Chinese prose", () => {
+    const view = buildRavenJourneyView({
+      remote: makeRemote({
+        budget: {
+          title: "Budget",
+          items: [{ label: "住宿", range: "约 ¥800", note: "同档位首选" }],
+        },
+        itinerary: {
+          title: "Itinerary",
+          days: [{ label: "抵达日", lines: ["先办理入住再去会场"] }],
+        },
+        essentials: {
+          title: "Essentials",
+          network: ["准备 eSIM"],
+          payment: ["携带现金"],
+          apps: ["下载打车软件"],
+        },
+        nightlife: {
+          title: "Nightlife",
+          spots: [{ name: "Club", note: "散场后可去", reason: "距离会场近" }],
+        },
+      }),
+      local: localPlan,
+      locale: "en",
+      festivalName: "Ultra Japan",
+      destination: "Tokyo, Japan",
+      festivalDates: "Sep 19–20",
+      favoriteArtists: [],
+    });
+
+    expect(journeyLooksChinese(view)).toBe(false);
+  });
+
+  it("removes mixed-language legacy values from every English journey surface", () => {
+    const view = buildRavenJourneyView({
+      remote: makeRemote({
+        departure: "Shanghai, China",
+        tips: {
+          title: "Tips",
+          items: [
+            "Recommended flight: SHA→MAN (Few stops · Balanced price). Explain this pick only.",
+          ],
+        },
+        stayGuide: {
+          festivalId: "creamfields-2026",
+          estimatedNightlyRange: { min: 120, max: 180, currency: "USD" },
+          recommendedAreas: [
+            {
+              area: "Warrington",
+              score: 95,
+              tags: ["best_balance", "festival_commute"],
+              reason: "The most practical town base for shuttles and a lower-stress return.",
+            },
+            {
+              area: "英国场馆周边酒店",
+              score: 80,
+              tags: ["夜生活"],
+              reason: "更适合想住在市区的人。",
+            },
+          ],
+        },
+      }),
+      local: {
+        ...localPlan,
+        vibe: "舒适档首推",
+        experiences: ["中文体验文案"],
+        travel: {
+          ...localPlan.travel,
+          stay: "英国场馆周边酒店",
+        },
+      },
+      locale: "en",
+      festivalName: "Creamfields",
+      destination: "Cheshire, United Kingdom",
+      festivalDates: "Aug 2026",
+      favoriteArtists: ["中文艺人"],
+      hasTimedSchedule: true,
+      scheduleDays: [
+        {
+          label: "第一天",
+          sets: [
+            {
+              time: "22:00",
+              artist: "中文艺人",
+              stage: "主舞台",
+              highlight: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(journeyLooksChinese(view)).toBe(false);
+    expect(JSON.stringify(view)).not.toMatch(/[\u3400-\u9fff]/);
+  });
+
+  it("removes even a single CJK character from English utility copy", () => {
+    const view = buildRavenJourneyView({
+      remote: makeRemote({
+        itinerary: {
+          title: "Itinerary",
+          days: [{ label: "Day 1", lines: ["Keep your pass ready at 北京 gate"] }],
+        },
+        essentials: {
+          title: "Essentials",
+          network: ["Install the transit app for 北京"],
+          payment: ["Bring a backup card"],
+          apps: ["Use the official festival app"],
+        },
+      }),
+      local: localPlan,
+      locale: "en",
+      festivalName: "Ultra Japan",
+      destination: "Tokyo, Japan",
+      festivalDates: "Sep 19–20",
+      favoriteArtists: [],
+    });
+
+    expect(JSON.stringify(view)).not.toMatch(/[\u3400-\u9fff]/);
+    expect(view.timeline[0]?.lines).toEqual([]);
+    expect(view.essentials[0]?.items).toEqual([]);
   });
 });

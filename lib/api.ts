@@ -419,6 +419,20 @@ export type RavenTravelGuidePlan = {
       bookingHint?: string;
     }>;
   };
+  stayGuide?: {
+    festivalId: string;
+    recommendedAreas: Array<{
+      area: string;
+      score: number;
+      tags: string[];
+      reason: string;
+    }>;
+    estimatedNightlyRange?: {
+      min: number;
+      max: number;
+      currency: "CNY" | "USD" | "EUR";
+    };
+  };
   parking?: { title: string; lines: string[] };
   nightlife: {
     title: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { EventImage } from "../EventImage";
 import { FestivalSquadJourneyCta } from "../festival-squad/FestivalSquadJourneyCta";
 import { JourneyShareSection } from "../journey-share";
@@ -9,7 +9,7 @@ import {
   isBudgetTotalLabel,
   type PriceSource,
   type RavenJourneyFlightOption,
-  type RavenJourneyStayOption,
+  type RavenJourneyStayArea,
   type RavenJourneyView,
 } from "../../lib/raven-journey";
 import { buildJourneyShareFromView } from "../../lib/journey-share";
@@ -41,35 +41,83 @@ type RavenJourneyResultProps = {
   hasRevealed?: boolean;
 };
 
-function TravelStay({
-  option,
-  areaHeadline,
-  areaReasons,
-  whyLabel,
+function FestivalStayGuide({
+  areas,
+  festivalName,
+  locale,
 }: {
-  option: RavenJourneyStayOption;
-  areaHeadline: string;
-  areaReasons: string[];
-  whyLabel: string;
+  areas: RavenJourneyStayArea[];
+  festivalName: string;
+  locale: Locale;
 }) {
-  const why = option.reason?.trim() || areaReasons[0];
+  const isEnglish = locale === "en";
+  const [primaryArea, ...alternateAreas] = areas;
+  const hotelSearchHref = (area: RavenJourneyStayArea) => {
+    const search = new URLSearchParams({
+      q: `${area.area} ${festivalName} hotels`,
+    });
+    return `https://www.google.com/travel/search?${search.toString()}`;
+  };
+
+  if (!primaryArea) return null;
 
   return (
-    <article className="raven-journey__story">
-      {areaHeadline ? (
-        <p className="raven-journey__story-context">{areaHeadline}</p>
-      ) : null}
-      <h4 className="raven-journey__story-title">{option.name}</h4>
-      {why ? (
-        <p className="raven-journey__story-why">
-          <span className="raven-journey__story-why-label">{whyLabel}</span>
-          {why}
+    <div className="raven-journey__stay-guide">
+      <article className="raven-journey__stay-area raven-journey__stay-area--base">
+        <p className="raven-journey__stay-kicker">
+          {isEnglish ? "Raven's base for the weekend" : "Raven 推荐的周末落脚点"}
         </p>
+        <h4 className="raven-journey__stay-name">{primaryArea.area}</h4>
+        {primaryArea.tags.length ? (
+          <p className="raven-journey__stay-tags">
+            {primaryArea.tags
+              .slice(0, 3)
+              .map((tag) => tag.replaceAll("_", " "))
+              .join(" · ")}
+          </p>
+        ) : null}
+        <p className="raven-journey__stay-reason">{primaryArea.reason}</p>
+        {primaryArea.estimate ? (
+          <p className="raven-journey__stay-estimate">{primaryArea.estimate}</p>
+        ) : null}
+        <a
+          className="raven-journey__stay-link"
+          href={hotelSearchHref(primaryArea)}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {isEnglish ? "Find hotels in this area" : "在这个区域找酒店"}{" "}
+          <ArrowUpRight size={15} aria-hidden />
+        </a>
+      </article>
+
+      {alternateAreas.length ? (
+        <aside
+          className="raven-journey__stay-alternatives"
+          aria-label={isEnglish ? "Other stay areas" : "其他住宿区域"}
+        >
+          <p className="raven-journey__stay-alternatives-label">
+            {isEnglish ? "If your weekend leans another way" : "如果你的周末想走另一种节奏"}
+          </p>
+          <ul>
+            {alternateAreas.slice(0, 2).map((area) => (
+              <li key={area.area}>
+                <div>
+                  <a href={hotelSearchHref(area)} target="_blank" rel="noreferrer">
+                    {area.area}
+                    <ArrowUpRight size={13} aria-hidden />
+                  </a>
+                  <p>{area.reason}</p>
+                </div>
+                {area.tags.length ? (
+                  <span>{area.tags.slice(0, 2).map((tag) => tag.replaceAll("_", " ")).join(" · ")}</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </aside>
       ) : null}
-      {option.note ? (
-        <p className="raven-journey__story-note">{option.note}</p>
-      ) : null}
-    </article>
+    </div>
   );
 }
 
@@ -147,6 +195,7 @@ export function RavenJourneyResult({
   const t = getMessages(locale);
   const copy = t.aiPlanner.journeyResult;
   const shareCopy = t.aiPlanner.journeyShare;
+  const isEnglish = locale === "en";
   const metaBits = useMemo(
     () =>
       [
@@ -165,10 +214,10 @@ export function RavenJourneyResult({
 
   const showTravel =
     Boolean(journey.stayStrategy.areaHeadline) ||
+    (journey.stayStrategy.recommendedAreas?.length ?? 0) > 0 ||
     journey.stayStrategy.options.length > 0 ||
     journey.flightStrategy.options.length > 0;
 
-  const primaryStay = journey.stayStrategy.options[0];
   const alternateStays = journey.stayStrategy.options.slice(1);
   const primaryFlight = journey.flightStrategy.options[0];
   const alternateFlights = journey.flightStrategy.options.slice(1);
@@ -528,12 +577,11 @@ export function RavenJourneyResult({
               {copy.travelTitle}
             </p>
 
-            {primaryStay ? (
-              <TravelStay
-                option={primaryStay}
-                areaHeadline={journey.stayStrategy.areaHeadline}
-                areaReasons={journey.stayStrategy.areaReasons}
-                whyLabel={copy.whyStay}
+            {journey.stayStrategy.recommendedAreas?.length ? (
+              <FestivalStayGuide
+                areas={journey.stayStrategy.recommendedAreas}
+                festivalName={journey.festivalName}
+                locale={locale}
               />
             ) : journey.stayStrategy.areaHeadline ? (
               <p className="raven-journey__section-lead">
@@ -541,7 +589,8 @@ export function RavenJourneyResult({
               </p>
             ) : null}
 
-            {alternateStays.length ? (
+            {!journey.stayStrategy.recommendedAreas?.length &&
+            alternateStays.length ? (
               <details className="raven-journey__disclosure">
                 <summary>{copy.moreStayOptions}</summary>
                 <div className="raven-journey__options">
@@ -569,9 +618,9 @@ export function RavenJourneyResult({
 
             {primaryFlight ? (
               <div className="raven-journey__travel-flight">
-                <h4 className="raven-journey__block-title">
+                <p className="raven-journey__travel-flight-kicker">
                   {copy.flightStrategy}
-                </h4>
+                </p>
                 <TravelFlight
                   option={primaryFlight}
                   recommendation={journey.flightStrategy.recommendation}
@@ -629,34 +678,33 @@ export function RavenJourneyResult({
             aria-labelledby="raven-budget-heading"
             data-journey-reveal
           >
-            {journey.budget.total ? (
-              <p
-                className="raven-journey__budget-total"
-                id="raven-budget-heading"
-              >
-                {journey.budget.total}
-              </p>
-            ) : (
-              <h3
-                id="raven-budget-heading"
-                className="raven-journey__section-title"
-              >
-                {copy.budgetTitle}
-              </h3>
-            )}
-            {journey.budget.total ? (
-              <p className="raven-journey__budget-caption">
-                {copy.budgetTitle}
-              </p>
-            ) : null}
-            {confidenceLine ? (
-              <p className="raven-journey__budget-confidence">
-                {confidenceLine}
-              </p>
-            ) : null}
-            {budgetInsight ? (
-              <p className="raven-journey__insight-line">{budgetInsight}</p>
-            ) : null}
+            <div className="raven-journey__budget-confidence-scene">
+              <p className="raven-journey__budget-kicker">{copy.budgetKicker}</p>
+              {journey.budget.total ? (
+                <p
+                  className="raven-journey__budget-total"
+                  id="raven-budget-heading"
+                >
+                  {journey.budget.total}
+                </p>
+              ) : (
+                <h3
+                  id="raven-budget-heading"
+                  className="raven-journey__section-title"
+                >
+                  {copy.budgetTitle}
+                </h3>
+              )}
+              <p className="raven-journey__budget-caption">{copy.budgetTitle}</p>
+              {confidenceLine ? (
+                <p className="raven-journey__budget-confidence">
+                  {confidenceLine}
+                </p>
+              ) : null}
+              {budgetInsight ? (
+                <p className="raven-journey__insight-line">{budgetInsight}</p>
+              ) : null}
+            </div>
             {budgetLineItems.length ? (
               <details
                 className="raven-journey__disclosure"
@@ -708,57 +756,6 @@ export function RavenJourneyResult({
           </section>
         ) : null}
 
-        {squadHref ? (
-          <div
-            className="raven-journey__section raven-journey__section--squad"
-            data-journey-reveal
-          >
-            <FestivalSquadJourneyCta
-              squadHref={squadHref}
-              labels={t.festivalSquad.journeyCta}
-              journeySignals={[
-                journey.origin && journey.origin !== "—"
-                  ? t.festivalSquad.journeyCta.fromOrigin.replace(
-                      "{origin}",
-                      journey.origin,
-                    )
-                  : "",
-                journey.glance.stay.headline,
-                journey.glance.budget.headline,
-                ...journey.festivalExperience.ravenPicks.slice(0, 2),
-              ].filter(Boolean)}
-              eventProperties={{
-                event:
-                  eventLegacyId != null
-                    ? String(eventLegacyId)
-                    : journey.festivalName,
-                locale,
-                source: "journey-result",
-              }}
-            />
-          </div>
-        ) : null}
-
-        {journeyShareData ? (
-          <JourneyShareSection
-            data={journeyShareData}
-            copy={{
-              kicker: shareCopy.kicker,
-              title: shareCopy.title,
-              description: shareCopy.description,
-              primaryCta: shareCopy.primaryCta,
-              secondaryCta: shareCopy.secondaryCta,
-              previewTitle: shareCopy.previewTitle,
-              aspectLabel: shareCopy.aspectLabel,
-              closePreview: shareCopy.closePreview,
-              card: shareCopy.card,
-              actions: shareCopy.actions,
-            }}
-            eventLegacyId={eventLegacyId}
-            locale={locale}
-          />
-        ) : null}
-
         <footer className="raven-journey__finale" data-journey-reveal>
           <p className="raven-journey__finale-lead">{copy.finaleLead}</p>
           <p className="raven-journey__finale-festival">
@@ -800,6 +797,59 @@ export function RavenJourneyResult({
             <p className="raven-journey__persist">{copy.persistenceNotice}</p>
           ) : null}
         </footer>
+
+        {(squadHref || journeyShareData) && (
+          <details className="raven-journey__continue" data-journey-reveal>
+            <summary>{isEnglish ? "Bring this journey with you" : "把这趟旅程带上"}</summary>
+            <div className="raven-journey__continue-body">
+              {squadHref ? (
+                <FestivalSquadJourneyCta
+                  squadHref={squadHref}
+                  labels={t.festivalSquad.journeyCta}
+                  journeySignals={[
+                    journey.origin && journey.origin !== "—"
+                      ? t.festivalSquad.journeyCta.fromOrigin.replace(
+                          "{origin}",
+                          journey.origin,
+                        )
+                      : "",
+                    journey.glance.stay.headline,
+                    journey.glance.budget.headline,
+                    ...journey.festivalExperience.ravenPicks.slice(0, 2),
+                  ].filter(Boolean)}
+                  eventProperties={{
+                    event:
+                      eventLegacyId != null
+                        ? String(eventLegacyId)
+                        : journey.festivalName,
+                    locale,
+                    source: "journey-result",
+                  }}
+                />
+              ) : null}
+
+              {journeyShareData ? (
+                <JourneyShareSection
+                  data={journeyShareData}
+                  copy={{
+                    kicker: shareCopy.kicker,
+                    title: shareCopy.title,
+                    description: shareCopy.description,
+                    primaryCta: shareCopy.primaryCta,
+                    secondaryCta: shareCopy.secondaryCta,
+                    previewTitle: shareCopy.previewTitle,
+                    aspectLabel: shareCopy.aspectLabel,
+                    closePreview: shareCopy.closePreview,
+                    card: shareCopy.card,
+                    actions: shareCopy.actions,
+                  }}
+                  eventLegacyId={eventLegacyId}
+                  locale={locale}
+                />
+              ) : null}
+            </div>
+          </details>
+        )}
       </div>
     </section>
   );
