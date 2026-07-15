@@ -15,6 +15,7 @@ import {
   DEFAULT_SQUAD_FILTERS,
   getSquadMatches,
   getSquadProfile,
+  getMockTravelers,
   localizeMatchReasonCodes,
   readLineupArtistNames,
   readLineupArtistIds,
@@ -86,6 +87,13 @@ export function FestivalSquadExperience({
   const [loginOpen, setLoginOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<AuthIntendedAction | null>(null);
   const [resumeComposeMatchId, setResumeComposeMatchId] = useState<string | null>(null);
+  const developmentTravelers = useMemo(
+    () =>
+      process.env.NODE_ENV === 'development'
+        ? getMockTravelers(eventId, festivalDateRange)
+        : [],
+    [eventId, festivalDateRange],
+  );
 
   useEffect(() => {
     void (async () => {
@@ -161,6 +169,8 @@ export function FestivalSquadExperience({
     copy.matchReasons,
   ]);
   const travelers = matches.map((match) => match.profile);
+  // Let the unsigned development view feel populated without masking live matches in production.
+  const arrivalTravelers = !profile && developmentTravelers.length ? developmentTravelers : travelers;
   const ranked = matches;
 
   const filtered = useMemo(() => {
@@ -431,7 +441,7 @@ export function FestivalSquadExperience({
       {!profileOpen && !profile ? (
         <SquadArrivalScene
           locale={locale}
-          travelers={travelers}
+          travelers={arrivalTravelers}
           copy={copy}
           onJoin={() => handleProtectedProfileOpen('create')}
         />

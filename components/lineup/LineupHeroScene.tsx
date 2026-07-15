@@ -24,6 +24,7 @@ type LineupHeroSceneProps = {
   eventTitle: string;
   atmosphere: FestivalAtmosphere;
   invite?: string;
+  worldPremise?: string;
   image?: string;
   artistCount: number;
   stageCount: number;
@@ -48,6 +49,7 @@ export function LineupHeroScene({
   eventTitle,
   atmosphere,
   invite,
+  worldPremise,
   image,
   artistCount,
   breadcrumbsAriaLabel,
@@ -90,6 +92,9 @@ export function LineupHeroScene({
               {eventTitle}
             </h1>
             <p className="lineup-hero__invite">{invite?.trim() || copy.lead}</p>
+            {worldPremise ? (
+              <p className="lineup-hero__world">{worldPremise}</p>
+            ) : null}
             {artistCount > 0 ? (
               <p className="lineup-hero__whisper">
                 {artistCount} {labels.artistsUnit}

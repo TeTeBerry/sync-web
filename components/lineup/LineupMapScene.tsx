@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import type { FestivalFlowDay, FestivalFlowStop } from '../../lib/lineup-flow';
 import type { Locale } from '../../lib/i18n';
 import type { ScheduleDj } from '../../lib/api';
+import type { FestivalAtmosphere } from '../../lib/festival-atmosphere';
 import { resolveLineupStageLabel } from '../../lib/lineup-display';
 import type { LineupGenreGroup } from './lineup-types';
 import { SelectableArtistName } from './SelectableArtistName';
@@ -16,11 +17,13 @@ import { isGenrePlaceholder } from '../../lib/lineup-display';
 import {
   artistDiscoveryLabel,
   discoveryLabelText,
+  moodExplorationCopy,
 } from '../../lib/lineup-discovery';
 import { trackLineupDiscovery } from '../../lib/lineup-analytics';
 import { getLineupClashCopy } from '../../lib/lineup-clash-copy';
 import { LineupScheduleBadge } from './LineupScheduleBadge';
 import { LineupAiDiscoveryScene } from './LineupAiDiscoveryScene';
+import { LineupSelectionBar } from './LineupSelectionBar';
 
 export type LineupMapLabels = {
   flowEyebrow: string;
@@ -68,8 +71,55 @@ type LineupMapSceneProps = {
     activityLegacyId: number;
     weekend?: 'w1' | 'w2';
     djs: ScheduleDj[];
+    atmosphere?: FestivalAtmosphere;
+  };
+  /** A quiet recap belongs after the route, never before the night's entrance. */
+  journeySelection?: {
+    hint: string;
+    count: string;
+    clear: string;
   };
 };
+
+function routeThroughDoorway(
+  day: FestivalFlowDay,
+  artistIds: Set<string>,
+  locale: Locale,
+): FestivalFlowStop[] {
+  if (!artistIds.size) return day.route;
+  const seen = new Set<string>();
+  const stops = day.stages
+    .flatMap((stage) =>
+      stage.slots
+        .filter((slot) => artistIds.has(slot.artistId))
+        .map((slot) => ({
+          artistId: slot.artistId,
+          artistName: slot.artistName,
+          stageLabel: stage.stageLabel,
+          genreLabel: slot.genreLabel,
+          genreColor: slot.genreColor,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          startMinutes: slot.startMinutes,
+          timeLabel: formatLineupTimeRange(slot.startTime, slot.endTime),
+          role: 'rise' as const,
+          why:
+            locale === 'zh'
+              ? `这扇门把你带向 ${stage.stageLabel}。`
+              : `This doorway pulls you toward ${stage.stageLabel}.`,
+        })),
+    )
+    .sort((a, b) => a.startMinutes - b.startMinutes)
+    .filter((stop) => {
+      const key = `${stop.artistId}-${stop.startMinutes}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 4);
+
+  return stops.length ? stops : day.route;
+}
 
 function discoveryStageMeta(
   locale: Locale,
@@ -88,9 +138,12 @@ const DISCOVERY_PREVIEW = 6;
 function FlowStopRow({
   stop,
   showWhy,
+  doorway,
 }: {
   stop: FestivalFlowStop;
   showWhy?: boolean;
+  /** The selected doorway changes which moments feel like the night's pull. */
+  doorway?: boolean;
 }) {
   const { isSelected, toggle } = useLineupSelection();
   const selectionId = timetableSlotSelectionId(stop.artistId, stop.startMinutes);
@@ -103,6 +156,7 @@ function FlowStopRow({
         'lineup-flow__stop',
         `lineup-flow__stop--${stop.role}`,
         selected ? 'is-selected' : '',
+        doorway ? 'is-doorway' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -147,6 +201,7 @@ function DiscoveryChapter({
   labels,
   showDiscoveryLabels,
   scheduleFilter,
+  showScheduleStatus = false,
 }: {
   genreLabel: string;
   color: string;
@@ -156,6 +211,7 @@ function DiscoveryChapter({
   labels: LineupMapLabels;
   showDiscoveryLabels?: boolean;
   scheduleFilter: 'all' | 'fits' | 'conflicts' | 'pending';
+  showScheduleStatus?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const { bundle } = useLineupDiscovery();
@@ -199,7 +255,9 @@ function DiscoveryChapter({
                 accent={color}
                 meta={discoveryStageMeta(locale, dj, stagesPublished)}
               />
-              <LineupScheduleBadge locale={locale} status={status} />
+              {showScheduleStatus ? (
+                <LineupScheduleBadge locale={locale} status={status} />
+              ) : null}
               {discovery ? (
                 <span
                   className="lineup-map__discovery-tag"
@@ -254,6 +312,7 @@ export function LineupMapScene({
   scheduleAware = false,
   progressive = false,
   journeyDiscovery,
+  journeySelection,
 }: LineupMapSceneProps) {
   const isFlow = mode === 'flow';
   const title = isFlow
@@ -263,6 +322,7 @@ export function LineupMapScene({
     ? voice?.flowLead ?? labels.flowLead
     : voice?.discoveryLead ?? labels.discoveryLead;
   const clashCopy = getLineupClashCopy(locale);
+  const { bundle, mood } = useLineupDiscovery();
   const [scheduleFilter, setScheduleFilter] = useState<
     'all' | 'fits' | 'conflicts' | 'pending'
   >('all');
@@ -270,6 +330,19 @@ export function LineupMapScene({
   const [archiveOpen, setArchiveOpen] = useState(!progressive);
   const previewGroups = progressive ? genreGroups.slice(0, 1) : genreGroups;
   const archiveGroups = progressive ? genreGroups.slice(1) : [];
+  const doorwayArtistIds = useMemo(
+    () =>
+      new Set(
+        mood
+          ? [
+              ...bundle.picked,
+              ...bundle.discoveries,
+              ...(bundle.wildcard ? [bundle.wildcard] : []),
+            ].map((artist) => artist.id)
+          : [],
+      ),
+    [bundle, mood],
+  );
 
   const discoveryBody = (
     <div className="lineup-map__discovery">
@@ -331,6 +404,7 @@ export function LineupMapScene({
               stagesPublished={stagesPublished}
               labels={labels}
               showDiscoveryLabels={showDiscoveryLabels && archiveOpen}
+              showScheduleStatus={scheduleAware && archiveOpen}
               scheduleFilter={
                 scheduleAware && archiveOpen ? scheduleFilter : 'all'
               }
@@ -383,6 +457,11 @@ export function LineupMapScene({
           {isFlow && routeIntelligence ? (
             <p className="lineup-map__intelligence">{routeIntelligence}</p>
           ) : null}
+          {isFlow && mood ? (
+            <p className="lineup-map__night-whisper">
+              {moodExplorationCopy(mood, locale)}
+            </p>
+          ) : null}
         </header>
 
         {isFlow ? (
@@ -393,11 +472,19 @@ export function LineupMapScene({
                 activityLegacyId={journeyDiscovery.activityLegacyId}
                 weekend={journeyDiscovery.weekend}
                 djs={journeyDiscovery.djs}
+                atmosphere={journeyDiscovery.atmosphere}
                 variant="journey"
               />
             ) : null}
             <div className="lineup-map__flow">
-            {flowDays.map((day) => (
+            {flowDays.map((day) => {
+              const doorwayRoute = routeThroughDoorway(
+                day,
+                doorwayArtistIds,
+                locale,
+              );
+              const followsDoorway = Boolean(mood && doorwayRoute !== day.route);
+              return (
               <article className="lineup-flow__day" key={day.dateKey}>
                 <header className="lineup-flow__day-header">
                   <p className="lineup-flow__day-eyebrow">{day.label}</p>
@@ -417,25 +504,37 @@ export function LineupMapScene({
                     <ol className="lineup-flow__list">
                       {day.peaks.map((stop) => (
                         <li key={`peak-${stop.artistId}-${stop.startMinutes}`}>
-                          <FlowStopRow stop={stop} showWhy />
+                          <FlowStopRow
+                            stop={stop}
+                            showWhy
+                            doorway={doorwayArtistIds.has(stop.artistId)}
+                          />
                         </li>
                       ))}
                     </ol>
                   </div>
                 ) : null}
 
-                {day.route.length ? (
+                {doorwayRoute.length ? (
                   <div className="lineup-flow__chapter lineup-flow__chapter--route">
                     <h4 className="lineup-flow__chapter-title">
-                      {labels.routeLabel}
+                      {followsDoorway
+                        ? locale === 'zh'
+                          ? '从这扇门走下去'
+                          : 'Follow this doorway'
+                        : labels.routeLabel}
                     </h4>
                     <ol className="lineup-flow__route">
-                      {day.route.map((stop, index) => (
+                      {doorwayRoute.map((stop, index) => (
                         <li key={`route-${stop.artistId}-${stop.startMinutes}`}>
                           <span className="lineup-flow__step" aria-hidden="true">
                             {String(index + 1).padStart(2, '0')}
                           </span>
-                          <FlowStopRow stop={stop} showWhy />
+                          <FlowStopRow
+                            stop={stop}
+                            showWhy
+                            doorway={doorwayArtistIds.has(stop.artistId)}
+                          />
                         </li>
                       ))}
                     </ol>
@@ -483,6 +582,7 @@ export function LineupMapScene({
                                     role: 'rise',
                                     why: '',
                                   }}
+                                  doorway={doorwayArtistIds.has(slot.artistId)}
                                 />
                               </li>
                             ))}
@@ -493,8 +593,17 @@ export function LineupMapScene({
                   </details>
                 ) : null}
               </article>
-            ))}
+              );
+            })}
             </div>
+            {journeySelection ? (
+              <LineupSelectionBar
+                locale={locale}
+                hint={journeySelection.hint}
+                countLabel={journeySelection.count}
+                clearLabel={journeySelection.clear}
+              />
+            ) : null}
           </div>
         ) : (
           discoveryBody

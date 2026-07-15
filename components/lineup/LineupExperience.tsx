@@ -7,12 +7,12 @@ import type { FestivalAtmosphere } from "../../lib/festival-atmosphere";
 import type { Locale } from "../../lib/i18n";
 import { getLineupDiscoveryCopy } from "../../lib/i18n";
 import type { LineupGenreGroup } from "./lineup-types";
-import { LineupSelectionBar } from "./LineupSelectionBar";
 import { LineupSelectionProvider } from "./LineupSelectionContext";
 import { LineupDiscoveryProvider } from "./LineupDiscoveryContext";
 import { LineupHeroScene } from "./LineupHeroScene";
 import { LineupMapScene, type LineupMapLabels } from "./LineupMapScene";
 import { LineupAiDiscoveryScene } from "./LineupAiDiscoveryScene";
+import { LineupSelectionBar } from "./LineupSelectionBar";
 import {
   LineupSetPlannerCta,
   type LineupSetPlannerLabels,
@@ -127,6 +127,7 @@ export function LineupExperience({
             eventTitle={eventTitle}
             atmosphere={atmosphere}
             invite={invite}
+            worldPremise={voice.spotlightLead}
             image={image}
             artistCount={artistCount}
             stageCount={stageCount}
@@ -136,15 +137,6 @@ export function LineupExperience({
             weekendContext={weekendContext}
             labels={labels.hero}
           />
-
-          <div className="container lineup-experience-page__selection">
-            <LineupSelectionBar
-              locale={locale}
-              hint={labels.selection.hint}
-              countLabel={labels.selection.count}
-              clearLabel={labels.selection.clear}
-            />
-          </div>
 
           {hasFlow ? (
             <LineupMapScene
@@ -156,12 +148,7 @@ export function LineupExperience({
               stageLabels={stageLabels}
               stagesPublished={stagesPublished}
               routeIntelligence={voice.routeIntelligence}
-              voice={{
-                flowTitle: copy.journey.title,
-                flowLead: copy.journey.lead,
-                discoveryTitle: copy.full.title,
-                discoveryLead: copy.full.lead,
-              }}
+              voice={voice}
               labels={{
                 ...labels.map,
                 flowEyebrow: copy.journey.eyebrow,
@@ -173,15 +160,28 @@ export function LineupExperience({
                 activityLegacyId,
                 weekend,
                 djs,
+                atmosphere,
               }}
+              journeySelection={labels.selection}
             />
           ) : (
-            <LineupAiDiscoveryScene
-              locale={locale}
-              activityLegacyId={activityLegacyId}
-              weekend={weekend}
-              djs={djs}
-            />
+            <>
+              <LineupAiDiscoveryScene
+                locale={locale}
+                activityLegacyId={activityLegacyId}
+                weekend={weekend}
+                djs={djs}
+                atmosphere={atmosphere}
+              />
+              <div className="container lineup-experience-page__route-recap">
+                <LineupSelectionBar
+                  locale={locale}
+                  hint={labels.selection.hint}
+                  countLabel={labels.selection.count}
+                  clearLabel={labels.selection.clear}
+                />
+              </div>
+            </>
           )}
 
           <LineupMapScene
@@ -192,12 +192,7 @@ export function LineupExperience({
             genres={genres}
             stageLabels={stageLabels}
             stagesPublished={stagesPublished}
-            voice={{
-              flowTitle: copy.journey.title,
-              flowLead: copy.journey.lead,
-              discoveryTitle: copy.full.title,
-              discoveryLead: copy.full.lead,
-            }}
+            voice={voice}
             labels={{
               ...labels.map,
               discoveryEyebrow: copy.full.eyebrow,
@@ -205,8 +200,6 @@ export function LineupExperience({
               discoveryLead: copy.full.lead,
             }}
             headingId="lineup-full-heading"
-            showDiscoveryLabels
-            scheduleAware
             progressive
           />
 

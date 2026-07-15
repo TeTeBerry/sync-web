@@ -74,7 +74,10 @@ export function LineupDiscoveryProvider({
   }, [hydrated, activityLegacyId, savedIds.length]);
 
   useEffect(() => {
-    if (!hydrated) return;
+    // A doorway must answer immediately. Server discovery is the calm default
+    // state; a chosen mood is always shaped from the local roster so a late
+    // response can never replace or flash the visible route.
+    if (!hydrated || mood) return;
     let cancelled = false;
     const anonymousId = getOrCreateAnonymousId();
     void (async () => {
@@ -109,7 +112,10 @@ export function LineupDiscoveryProvider({
     [djs, activityLegacyId, locale, mood, savedIds],
   );
 
-  const bundle = serverBundle ?? localBundle;
+  // Keep mood-driven cards and the highlighted route on one deterministic
+  // source of truth. The server bundle remains valuable before a doorway is
+  // chosen, when no interactive transition is in progress.
+  const bundle = mood ? localBundle : serverBundle ?? localBundle;
 
   function setMood(next: DiscoveryMood | null) {
     setMoodState(next);

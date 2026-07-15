@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { ScheduleDj } from "../../lib/api";
+import type { FestivalAtmosphere } from "../../lib/festival-atmosphere";
+import { formatLineupTimeRange } from "../../lib/lineup-timetable";
 import {
   DISCOVERY_MOODS,
   discoveryLabelText,
@@ -36,12 +38,24 @@ const DNA_COLORS: Record<string, string> = {
   mainstage: "#fbbf24",
 };
 
-const PRIMARY_MOODS: DiscoveryMood[] = [
-  "euphoric",
-  "dreamy",
-  "heavy",
-  "underground",
-];
+function primaryMoodsFor(atmosphere?: FestivalAtmosphere): DiscoveryMood[] {
+  switch (atmosphere) {
+    case "amber":
+      return ["euphoric", "dreamy", "emotional", "peak"];
+    case "electric":
+      return ["peak", "euphoric", "heavy", "dark"];
+    case "neon":
+      return ["euphoric", "groovy", "dreamy", "peak"];
+    case "ember":
+      return ["heavy", "peak", "dark", "underground"];
+    case "steel":
+      return ["underground", "dark", "dreamy", "groovy"];
+    case "lime":
+      return ["euphoric", "groovy", "peak", "dreamy"];
+    default:
+      return ["euphoric", "dreamy", "heavy", "underground"];
+  }
+}
 
 function intensityFromStrength(strength: number): DnaIntensity {
   if (strength >= 0.45) return "dominant";
@@ -54,14 +68,18 @@ function ArtistSpotlight({
   locale,
   activityLegacyId,
   featured,
+  journey,
+  mood,
 }: {
   artist: DiscoveryArtist;
   locale: Locale;
   activityLegacyId: number;
   weekend?: "w1" | "w2";
   featured?: boolean;
+  journey?: boolean;
+  mood?: DiscoveryMood | null;
 }) {
-  const { isSelected, toggle, scheduleStatusFor } = useLineupSelection();
+  const { isSelected, toggle, scheduleStatusFor, slotForArtist } = useLineupSelection();
   const selected = isSelected(artist.id);
   const copy = getLineupDiscoveryCopy(locale).ai;
   const clashCopy = getLineupClashCopy(locale);
@@ -70,6 +88,24 @@ function ArtistSpotlight({
     status === "fits-route" || status === "not-selected"
       ? null
       : clashCopy.status[status];
+  const slot = slotForArtist(artist.id);
+  const moment = slot
+    ? `${formatLineupTimeRange(slot.startTime, slot.endTime)} · ${slot.stageLabel}`
+    : null;
+  const journeyLabel =
+    journey && mood
+      ? featured
+        ? locale === "zh"
+          ? "从这里入夜"
+          : "Enter the night here"
+        : artist.category === "wildcard"
+          ? locale === "zh"
+            ? "留给后半夜的转弯"
+            : "A turn for later"
+          : locale === "zh"
+            ? "顺着这条线往下走"
+            : "Follow this current"
+      : discoveryLabelText(artist.label, locale);
 
   return (
     <article
@@ -77,9 +113,12 @@ function ArtistSpotlight({
       style={{ "--artist-accent": artist.color } as CSSProperties}
     >
       <p className="lineup-paths__label">
-        {discoveryLabelText(artist.label, locale)}
+        {journeyLabel}
       </p>
       <h3 className="lineup-paths__name">{artist.name}</h3>
+      {journey && moment ? (
+        <p className="lineup-paths__moment">{moment}</p>
+      ) : null}
       {artist.genre ? (
         <p className="lineup-paths__genre">{artist.genre}</p>
       ) : null}
@@ -128,6 +167,7 @@ type LineupAiDiscoverySceneProps = {
   activityLegacyId: number;
   weekend?: "w1" | "w2";
   djs: ScheduleDj[];
+  atmosphere?: FestivalAtmosphere;
   /** Discovery stays inside the timetable chapter when a schedule is available. */
   variant?: "standalone" | "journey";
 };
@@ -141,6 +181,7 @@ export function LineupAiDiscoveryScene({
   activityLegacyId,
   weekend,
   djs,
+  atmosphere,
   variant = "standalone",
 }: LineupAiDiscoverySceneProps) {
   const copy = getLineupDiscoveryCopy(locale);
@@ -178,9 +219,9 @@ export function LineupAiDiscoveryScene({
   }, [activityLegacyId, weekend, localTraits]);
 
   const dnaLead = festivalDnaLead(traits, locale);
-  const dominant = traits.filter((t) => t.intensity !== "soft").slice(0, 3);
+  const primaryMoods = primaryMoodsFor(atmosphere);
   const secondaryMoods = DISCOVERY_MOODS.filter(
-    (item) => !PRIMARY_MOODS.includes(item),
+    (item) => !primaryMoods.includes(item),
   );
 
   const moodArtists = mood
@@ -264,34 +305,25 @@ export function LineupAiDiscoveryScene({
               {paths.title}
             </h2>
           ) : (
-            <p className="lineup-paths__kicker">{paths.title}</p>
+            <p className="lineup-paths__kicker">{moodCopy.eyebrow}</p>
           )}
           <p className="lineup-paths__lead">
             {bundle.hasSignals ? paths.leadSignals : paths.leadFresh}
           </p>
           {dnaLead ? <p className="lineup-paths__dna">{dnaLead}</p> : null}
-          {dominant.length ? (
-            <ul className="lineup-paths__currents" aria-label={paths.dnaAria}>
-              {dominant.map((trait) => (
-                <li
-                  key={trait.id}
-                  style={{ "--dna-color": trait.color } as CSSProperties}
-                >
-                  {trait.label}
-                </li>
-              ))}
-            </ul>
-          ) : null}
         </header>
 
         <div className="lineup-paths__doorway">
           <p className="lineup-paths__doorway-label">{moodCopy.title}</p>
+          {!mood ? (
+            <p className="lineup-paths__doorway-lead">{moodCopy.lead}</p>
+          ) : null}
           <div
             className="lineup-paths__doorway-words"
             role="group"
             aria-label={moodCopy.title}
           >
-            {PRIMARY_MOODS.map((item) => (
+            {primaryMoods.map((item) => (
               <button
                 key={item}
                 type="button"
@@ -367,13 +399,15 @@ export function LineupAiDiscoveryScene({
         {!hasContent ? (
           <p className="lineup-scene__empty">{paths.empty}</p>
         ) : (
-          <div className="lineup-paths__stage">
+          <div key={mood ?? "open"} className="lineup-paths__stage">
             {featured ? (
               <ArtistSpotlight
                 artist={featured}
                 locale={locale}
                 activityLegacyId={activityLegacyId}
                 featured
+                journey={variant === "journey"}
+                mood={mood}
               />
             ) : null}
 
@@ -385,6 +419,8 @@ export function LineupAiDiscoveryScene({
                     artist={artist}
                     locale={locale}
                     activityLegacyId={activityLegacyId}
+                    journey={variant === "journey"}
+                    mood={mood}
                   />
                 ))}
                 {restDiscoveries.map((artist) => (
@@ -393,6 +429,8 @@ export function LineupAiDiscoveryScene({
                     artist={artist}
                     locale={locale}
                     activityLegacyId={activityLegacyId}
+                    journey={variant === "journey"}
+                    mood={mood}
                   />
                 ))}
                 {showWildcard ? (
@@ -400,6 +438,8 @@ export function LineupAiDiscoveryScene({
                     artist={showWildcard}
                     locale={locale}
                     activityLegacyId={activityLegacyId}
+                    journey={variant === "journey"}
+                    mood={mood}
                   />
                 ) : null}
               </div>

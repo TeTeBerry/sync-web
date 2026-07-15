@@ -889,7 +889,7 @@ export const messages = {
         linkFestival: '电音节详情',
         linkLineup: '阵容',
         linkArtists: '艺人',
-        linkSquad: '节伴小队',
+        linkSquad: '搭子小队',
         seoAria: '行程规划详情',
         seoSummary: '规划详情与常见问题',
       },
@@ -1246,10 +1246,10 @@ export const messages = {
       backHome: '回首页',
     },
     festivalSquad: {
-      name: '节伴小队',
-      breadcrumb: '节伴小队',
+      name: '搭子小队',
+      breadcrumb: '搭子小队',
       preview: {
-        kicker: '节伴小队',
+        kicker: '搭子小队',
         title: '找到同行的人',
         lead: '谁和你一起走进现场，会改写这场周末。',
         travelers: '{count} 位旅行者',
@@ -1261,7 +1261,7 @@ export const messages = {
         mockNote: '示意数据，正式上线后将替换为实时统计',
       },
       journeyCta: {
-        kicker: '节伴小队',
+        kicker: '搭子小队',
         title: '行程已就绪。接下来，找到你的同行。',
         lead: '用你刚刚生成的旅程，遇见节奏相近的人。',
         matches: '有 {count} 位旅程相近的旅人',
@@ -1276,7 +1276,7 @@ export const messages = {
         cta: '遇见同行旅人',
       },
       hero: {
-        kicker: '节伴小队',
+        kicker: '搭子小队',
         travelersPlanning: '旅人已在路上，朝同一场节汇聚。',
         invite: '谁和你一起走进现场，会改写这场周末。',
         yourMatches: '有 {count} 位旅程与你相近的旅人。',
@@ -1478,7 +1478,7 @@ export const messages = {
         statusPlanning: '准备预订',
         statusRoommates: '在找室友',
         statusUndecided: '未定',
-        save: '加入节伴小队',
+        save: '加入搭子小队',
         saving: '保存中…',
         required: '必填',
         cancel: '取消',
@@ -1492,7 +1492,7 @@ export const messages = {
         noMatchesCta: '回到全部同行',
         noTravelersTitle: '成为第一批走进这场节的人',
         noTravelersLead: '这场节的同行节奏刚刚开始。',
-        noTravelersCta: '加入节伴小队',
+        noTravelersCta: '加入搭子小队',
         errorTitle: '暂时无法加载同行旅程',
         errorLead: '请稍后再试。',
         errorCta: '重试',
@@ -1578,7 +1578,7 @@ export const messages = {
           '先把沟通留在 Raven 内；独立核实预订，第一次在公共场合见面，确认对方身份前不要转账。',
       },
       page: {
-        seoTitle: '节伴小队 | {festival}',
+        seoTitle: '搭子小队 | {festival}',
         seoDescription: '为 {festival} 找到旅程相近的同行者——室友、伙伴与拼车。',
       },
     },
@@ -3360,9 +3360,9 @@ export const lineupDiscoveryCopy = {
     },
     ai: {
       eyebrow: '声音路径',
-      title: '先听这些',
-      leadSignals: '根据你已标记的艺人与这场阵容，画出此刻最该先走进的路。',
-      leadFresh: '先从这场的主导声音走进去——标记名字后，路径会更贴近你。',
+      title: '找一条进场的路',
+      leadSignals: '你留下的声音，在这场里有了新的去处。',
+      leadFresh: '先选一股想追的能量，今晚会从那里展开。',
       loading: '正在展开发现…',
       empty: '阵容还在聚集。稍后再来，会有更多路径。',
       picked: '为你挑选',
@@ -3380,7 +3380,7 @@ export const lineupDiscoveryCopy = {
     mood: {
       eyebrow: '今晚',
       title: '你想从哪扇门走进？',
-      lead: '心情只改变今晚的入口，不会改写你长久的偏好。',
+      lead: '选定今晚第一小时的能量。',
       moreAria: '更多心情入口',
       echo: '这条门廊下更近的名字：',
       labels: {
@@ -3417,7 +3417,7 @@ export const lineupDiscoveryCopy = {
     journey: {
       eyebrow: '今晚动线',
       title: '今日旅程',
-      lead: '高点与一条可走的路——把标记过的名字带进今晚。',
+      lead: '先跟着牵引你的名字走，整晚会慢慢显形。',
       cta: '把旅程收成可能',
       continueEyebrow: '出发之前',
       continueTitle: '这趟旅程已经说得通',
@@ -3426,7 +3426,7 @@ export const lineupDiscoveryCopy = {
     full: {
       eyebrow: '全部名字',
       title: '完整阵容',
-      lead: '需要时再展开。发现只是灯光，不会藏起任何人。',
+      lead: '路线之外，所有名字都在这里等你慢慢遇见。',
     },
   },
   en: {
@@ -3444,10 +3444,9 @@ export const lineupDiscoveryCopy = {
     },
     ai: {
       eyebrow: 'Sound paths',
-      title: 'Start here',
-      leadSignals: 'Drawn from artists you saved and the sound of this festival.',
-      leadFresh:
-        'Enter through this festival’s leading currents — save names and the path grows closer.',
+      title: 'Find your way in',
+      leadSignals: 'The sounds you saved, finding a new place in this festival.',
+      leadFresh: 'Choose the current that should open your night.',
       loading: 'Opening discovery…',
       empty: 'This lineup is still gathering. More paths will appear soon.',
       picked: 'Closest to you',
@@ -3465,7 +3464,7 @@ export const lineupDiscoveryCopy = {
     mood: {
       eyebrow: 'Tonight',
       title: 'Which door do you want tonight?',
-      lead: 'Mood changes tonight’s doorway — not your long-term taste.',
+      lead: 'Choose the energy that opens your first hour.',
       moreAria: 'More doorways',
       echo: 'Closer through this door:',
       labels: {
@@ -3502,7 +3501,7 @@ export const lineupDiscoveryCopy = {
     journey: {
       eyebrow: 'Tonight’s route',
       title: 'Today’s Journey',
-      lead: 'Peaks and a path you can walk — bring marked names into the night.',
+      lead: 'Follow the names pulling you forward; let the rest of the night unfold.',
       cta: 'Make the trip feel possible',
       continueEyebrow: 'Before you go',
       continueTitle: 'This trip already holds together',
@@ -3511,7 +3510,7 @@ export const lineupDiscoveryCopy = {
     full: {
       eyebrow: 'Every name',
       title: 'Full Lineup',
-      lead: 'Open when you need every name. Discovery is light — never a filter that hides.',
+      lead: 'Beyond the route, every name waits to be found in its own time.',
     },
   },
 } as const;
