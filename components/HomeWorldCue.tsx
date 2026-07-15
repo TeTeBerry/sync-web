@@ -22,7 +22,7 @@ export function HomeWorldCue({ locale, activity, eyebrow, exploreLabel }: HomeWo
   const atmosphere = getFestivalAtmosphere(localized);
 
   return (
-    <aside className="world-cue" data-atmosphere={atmosphere} data-reveal>
+    <aside className="world-cue" data-atmosphere={atmosphere}>
       <div className="world-cue__copy">
         <p className="world-cue__eyebrow">{eyebrow}</p>
         <Link className="world-cue__festival" href={eventPath(locale, localized)}>

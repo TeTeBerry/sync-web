@@ -28,7 +28,6 @@ export function FestivalSquadPreview({
     <section
       className="squad-preview"
       aria-labelledby="squad-preview-title"
-      data-reveal
     >
       <div className="squad-preview__atmosphere" aria-hidden>
         <div className="squad-preview__route" />
