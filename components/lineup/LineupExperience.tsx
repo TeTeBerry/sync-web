@@ -11,9 +11,8 @@ import { LineupSelectionBar } from "./LineupSelectionBar";
 import { LineupSelectionProvider } from "./LineupSelectionContext";
 import { LineupDiscoveryProvider } from "./LineupDiscoveryContext";
 import { LineupHeroScene } from "./LineupHeroScene";
-import { LineupAiDiscoveryScene } from "./LineupAiDiscoveryScene";
-import { ArtistConstellationScene } from "./ArtistConstellationScene";
 import { LineupMapScene, type LineupMapLabels } from "./LineupMapScene";
+import { LineupAiDiscoveryScene } from "./LineupAiDiscoveryScene";
 import {
   LineupSetPlannerCta,
   type LineupSetPlannerLabels,
@@ -75,8 +74,8 @@ type LineupExperienceProps = {
 
 /**
  * Continuous festival chapter:
- * Hero → Paths (doorway fused) → Sound Universe → Tonight’s Journey
- * → Full Lineup (progressive) → Continue the night
+ * Hero → one journey (sound + selections + timetable) → full lineup → plan.
+ * The archive is intentionally quieter than the route through the day.
  */
 export function LineupExperience({
   locale,
@@ -138,14 +137,7 @@ export function LineupExperience({
             labels={labels.hero}
           />
 
-          <LineupAiDiscoveryScene
-            locale={locale}
-            activityLegacyId={activityLegacyId}
-            weekend={weekend}
-            djs={djs}
-          />
-
-          <div className="container lineup-experience-page__selection lineup-experience-page__selection--after-paths">
+          <div className="container lineup-experience-page__selection">
             <LineupSelectionBar
               locale={locale}
               hint={labels.selection.hint}
@@ -153,12 +145,6 @@ export function LineupExperience({
               clearLabel={labels.selection.clear}
             />
           </div>
-
-          <ArtistConstellationScene
-            locale={locale}
-            activityLegacyId={activityLegacyId}
-            weekend={weekend}
-          />
 
           {hasFlow ? (
             <LineupMapScene
@@ -183,8 +169,20 @@ export function LineupExperience({
                 flowLead: copy.journey.lead,
               }}
               headingId="lineup-journey-heading"
+              journeyDiscovery={{
+                activityLegacyId,
+                weekend,
+                djs,
+              }}
             />
-          ) : null}
+          ) : (
+            <LineupAiDiscoveryScene
+              locale={locale}
+              activityLegacyId={activityLegacyId}
+              weekend={weekend}
+              djs={djs}
+            />
+          )}
 
           <LineupMapScene
             mode="discovery"

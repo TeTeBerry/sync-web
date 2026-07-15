@@ -434,7 +434,8 @@ export type RavenTravelGuidePlan = {
     };
   };
   parking?: { title: string; lines: string[] };
-  nightlife: {
+  /** Deprecated legacy field. Raven Plan no longer returns or renders afterparty picks. */
+  nightlife?: {
     title: string;
     spots: Array<{ name: string; note: string; reason?: string }>;
   };

@@ -60,6 +60,9 @@ export function SquadProfileForm({
   );
   const [saving, setSaving] = useState(false);
   const [displayNameError, setDisplayNameError] = useState(false);
+  const [journeyDetailsOpen, setJourneyDetailsOpen] = useState(
+    !originCity.trim() || !arrivalDate || !departureDate,
+  );
 
   const journeyPreview = useMemo(
     () =>
@@ -104,9 +107,6 @@ export function SquadProfileForm({
     !existing &&
     (prefill.originCity || prefill.arrivalDate || (prefill.favoriteArtists?.length ?? 0) > 0),
   );
-
-  const needsOrigin = !originCity.trim();
-  const needsDates = !arrivalDate || !departureDate;
 
   const canSave =
     originCity.trim().length > 0 &&
@@ -249,7 +249,11 @@ export function SquadProfileForm({
           )}
         </div>
 
-        <details className="squad-form__disclosure" open={needsOrigin || needsDates}>
+        <details
+          className="squad-form__disclosure"
+          open={journeyDetailsOpen}
+          onToggle={(event) => setJourneyDetailsOpen(event.currentTarget.open)}
+        >
           <summary>{copy.profile.adjustJourney}</summary>
           <div className="squad-form__disclosure-body">
             <div className="squad-form__row">

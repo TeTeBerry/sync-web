@@ -16,12 +16,11 @@ export function looksLikeChineseCopy(text: string): boolean {
 }
 
 export function remotePlanLooksChinese(plan: RavenTravelGuidePlan): boolean {
-  // Titles + tips only — hotel / nightlife proper nouns often stay Chinese on EN plans.
+  // Titles + tips only — hotel proper nouns often stay Chinese on EN plans.
   const sample = [
     plan.budgetLabel,
     plan.transport.title,
     plan.accommodation.title,
-    plan.nightlife.title,
     plan.tips.title,
     ...plan.tips.items,
     plan.budget?.title,
@@ -95,7 +94,7 @@ export function mapRemotePlan(
     vibe: [plan.activityName, plan.eventDates, plan.venue].filter(Boolean).join(' · '),
     experiences: plan.tips.items.length
       ? plan.tips.items
-      : plan.nightlife.spots.map((spot) => spot.name),
+      : [],
     artistTimeline: remoteTimeline.length ? { days: remoteTimeline } : fallbackTimeline,
     travel: {
       stay: listJoin(locale, hotels) || plan.accommodation.title,

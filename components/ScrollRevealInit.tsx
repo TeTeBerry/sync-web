@@ -25,6 +25,7 @@ function shouldSkipReveal(el: Element): boolean {
   if (el.classList.contains('detail-insights')) return true;
   if (el.classList.contains('detail-travel')) return true;
   if (el.classList.contains('detail-plan-cta')) return true;
+  if (el.classList.contains('detail-squad')) return true;
   if (el.classList.contains('detail-related')) return true;
   if (el.classList.contains('section--detail-body')) return true;
   if (el.classList.contains('section--detail-tight')) return true;

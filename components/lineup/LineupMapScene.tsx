@@ -20,6 +20,7 @@ import {
 import { trackLineupDiscovery } from '../../lib/lineup-analytics';
 import { getLineupClashCopy } from '../../lib/lineup-clash-copy';
 import { LineupScheduleBadge } from './LineupScheduleBadge';
+import { LineupAiDiscoveryScene } from './LineupAiDiscoveryScene';
 
 export type LineupMapLabels = {
   flowEyebrow: string;
@@ -62,6 +63,12 @@ type LineupMapSceneProps = {
   scheduleAware?: boolean;
   /** Full lineup starts quiet — open the archive on demand. */
   progressive?: boolean;
+  /** The compact discovery entrance is part of the journey when schedule data exists. */
+  journeyDiscovery?: {
+    activityLegacyId: number;
+    weekend?: 'w1' | 'w2';
+    djs: ScheduleDj[];
+  };
 };
 
 function discoveryStageMeta(
@@ -246,6 +253,7 @@ export function LineupMapScene({
   showDiscoveryLabels = false,
   scheduleAware = false,
   progressive = false,
+  journeyDiscovery,
 }: LineupMapSceneProps) {
   const isFlow = mode === 'flow';
   const title = isFlow
@@ -378,7 +386,17 @@ export function LineupMapScene({
         </header>
 
         {isFlow ? (
-          <div className="lineup-map__flow">
+          <div className="lineup-map__journey-body">
+            {journeyDiscovery ? (
+              <LineupAiDiscoveryScene
+                locale={locale}
+                activityLegacyId={journeyDiscovery.activityLegacyId}
+                weekend={journeyDiscovery.weekend}
+                djs={journeyDiscovery.djs}
+                variant="journey"
+              />
+            ) : null}
+            <div className="lineup-map__flow">
             {flowDays.map((day) => (
               <article className="lineup-flow__day" key={day.dateKey}>
                 <header className="lineup-flow__day-header">
@@ -476,6 +494,7 @@ export function LineupMapScene({
                 ) : null}
               </article>
             ))}
+            </div>
           </div>
         ) : (
           discoveryBody

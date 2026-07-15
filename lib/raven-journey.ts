@@ -867,16 +867,6 @@ export function buildRavenJourneyView(input: {
     ...local.experiences
       .slice(0, 2)
       .map((experience) => englishSafeText(experience, locale)),
-    ...(remote?.nightlife.spots ?? [])
-      .slice(0, 2)
-      .map((spot) =>
-        spot.reason
-          ? `${spot.name} — ${spot.reason}`
-          : spot.note
-            ? `${spot.name} — ${spot.note}`
-            : spot.name,
-      )
-      .map((spot) => englishSafeText(spot, locale)),
   ]
     .filter(Boolean)
     .slice(0, 4);

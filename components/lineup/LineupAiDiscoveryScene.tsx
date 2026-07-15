@@ -128,6 +128,8 @@ type LineupAiDiscoverySceneProps = {
   activityLegacyId: number;
   weekend?: "w1" | "w2";
   djs: ScheduleDj[];
+  /** Discovery stays inside the timetable chapter when a schedule is available. */
+  variant?: "standalone" | "journey";
 };
 
 /**
@@ -139,6 +141,7 @@ export function LineupAiDiscoveryScene({
   activityLegacyId,
   weekend,
   djs,
+  variant = "standalone",
 }: LineupAiDiscoverySceneProps) {
   const copy = getLineupDiscoveryCopy(locale);
   const paths = copy.ai;
@@ -208,6 +211,14 @@ export function LineupAiDiscoveryScene({
     .map((artist) => artist.name);
 
   if (!hydrated) {
+    if (variant === "journey") {
+      return (
+        <div className="lineup-paths lineup-paths--journey" aria-busy="true">
+          <p className="lineup-scene__lead">{paths.loading}</p>
+        </div>
+      );
+    }
+
     return (
       <section
         className="lineup-scene lineup-paths"
@@ -234,17 +245,27 @@ export function LineupAiDiscoveryScene({
       : null;
   const hasContent = Boolean(featured);
 
+  const Wrapper = variant === "journey" ? "div" : "section";
+
   return (
-    <section
-      className="lineup-scene lineup-paths"
-      aria-labelledby="lineup-paths-heading"
-      data-reveal
+    <Wrapper
+      className={
+        variant === "journey"
+          ? "lineup-paths lineup-paths--journey"
+          : "lineup-scene lineup-paths"
+      }
+      aria-labelledby={variant === "standalone" ? "lineup-paths-heading" : undefined}
+      data-reveal={variant === "standalone" ? true : undefined}
     >
-      <div className="container">
+      <div className={variant === "standalone" ? "container" : undefined}>
         <header className="lineup-paths__header">
-          <h2 id="lineup-paths-heading" className="lineup-paths__title">
-            {paths.title}
-          </h2>
+          {variant === "standalone" ? (
+            <h2 id="lineup-paths-heading" className="lineup-paths__title">
+              {paths.title}
+            </h2>
+          ) : (
+            <p className="lineup-paths__kicker">{paths.title}</p>
+          )}
           <p className="lineup-paths__lead">
             {bundle.hasSignals ? paths.leadSignals : paths.leadFresh}
           </p>
@@ -386,6 +407,6 @@ export function LineupAiDiscoveryScene({
           </div>
         )}
       </div>
-    </section>
+    </Wrapper>
   );
 }
