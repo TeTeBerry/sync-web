@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import {
   formatClashTemplate,
   getLineupClashCopy,
@@ -22,19 +23,27 @@ export function LineupClashToast({ locale }: LineupClashToastProps) {
     openConflictCenter,
   } = useLineupSelection();
   const copy = getLineupClashCopy(locale);
+  const hasClash = (toast?.newConflictCount ?? 0) > 0;
+
+  useEffect(() => {
+    if (!toast || hasClash) return;
+    const timeout = window.setTimeout(dismissToast, 4200);
+    return () => window.clearTimeout(timeout);
+  }, [dismissToast, hasClash, toast]);
 
   if (!toast) return null;
 
-  const hasClash = toast.newConflictCount > 0;
-
   return (
-    <div
+    <aside
       className={`lineup-clash-toast${hasClash ? ' lineup-clash-toast--clash' : ''}`}
       role="status"
-      aria-live="assertive"
+      aria-live="polite"
     >
       <div className="lineup-clash-toast__body">
-        <p className="lineup-clash-toast__title">{copy.addedTitle}</p>
+        <p className="lineup-clash-toast__eyebrow">{copy.addedTitle}</p>
+        {toast.artistName ? (
+          <p className="lineup-clash-toast__title">{toast.artistName}</p>
+        ) : null}
         <p className="lineup-clash-toast__lead">
           {hasClash
             ? formatClashTemplate(copy.addedClash, {
@@ -64,12 +73,8 @@ export function LineupClashToast({ locale }: LineupClashToastProps) {
               {copy.keepForLater}
             </button>
           </>
-        ) : (
-          <button type="button" className="button button--secondary" onClick={dismissToast}>
-            {copy.toastDismiss}
-          </button>
-        )}
+        ) : null}
       </div>
-    </div>
+    </aside>
   );
 }

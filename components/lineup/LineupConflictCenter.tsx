@@ -213,7 +213,7 @@ export function LineupConflictCenter({
             </button>
           </header>
 
-          {routeArtists.length ? (
+          {!hasDecision && routeArtists.length ? (
             <section
               className={`lineup-route-sheet__route${hasDecision ? ' is-quiet' : ''}`}
               aria-label={copy.myLineup}
@@ -276,9 +276,9 @@ export function LineupConflictCenter({
                 </div>
               ) : null}
             </section>
-          ) : (
+          ) : !hasDecision ? (
             <p className="lineup-route-sheet__empty">{copy.routeEmpty}</p>
-          )}
+          ) : null}
 
           {activeDecision ? (
             <section className="lineup-route-sheet__moment" aria-live="polite">
