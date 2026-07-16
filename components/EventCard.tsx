@@ -22,6 +22,7 @@ type EventCardProps = {
   featured?: boolean;
   variant?: 'standard' | 'poster' | 'list';
   priorityImage?: boolean;
+  reason?: string;
   style?: CSSProperties;
 };
 
@@ -35,6 +36,7 @@ export function EventCard({
   featured = false,
   variant = 'standard',
   priorityImage = false,
+  reason,
   style,
 }: EventCardProps) {
   const t = getMessages(locale);
@@ -49,7 +51,7 @@ export function EventCard({
   const isComparison = variant === 'list';
   const imageSizes =
     variant === 'poster'
-      ? '(max-width: 760px) 80vw, 326px'
+      ? '(max-width: 760px) 100vw, (max-width: 1100px) 50vw, 48vw'
       : variant === 'list'
         ? '(max-width: 760px) 100vw, 28vw'
         : featured
@@ -99,6 +101,7 @@ export function EventCard({
         <p className="event-card__location">
           {localizedActivity.location ?? localizedActivity.area ?? t.eventCard.locationFallback}
         </p>
+        {reason && variant === 'poster' ? <p className="event-card__reason">{reason}</p> : null}
         <div className="event-card__footer">
           <span className="event-card__city">
             {localizedActivity.city ?? localizedActivity.area ?? t.eventCard.cityFallback}

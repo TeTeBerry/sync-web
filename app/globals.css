@@ -1505,6 +1505,337 @@ h3 {
   padding-bottom: clamp(96px, 13vw, 156px);
 }
 
+/* One canonical festival field: the hero carries one world, the atlas carries
+   every other world exactly once. Mood changes the lens, never the page. */
+.events-atlas {
+  padding-top: clamp(58px, 8vw, 104px);
+}
+
+.events-atlas__intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: clamp(24px, 6vw, 72px);
+}
+
+.events-atlas__intro > div {
+  display: grid;
+  gap: 12px;
+  max-width: 650px;
+}
+
+.events-atlas__intro > div > p,
+.events-atlas__lens-note > span {
+  margin: 0;
+  color: var(--secondary);
+  font-size: var(--type-meta);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.events-atlas__intro h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(36px, 5vw, 66px);
+  font-weight: var(--fw-medium);
+  letter-spacing: -0.047em;
+  line-height: 0.96;
+  text-wrap: balance;
+}
+
+.events-atlas__intro > p {
+  max-width: 34ch;
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: var(--type-body-sm);
+  line-height: 1.62;
+}
+
+.events-atlas__lenses {
+  display: flex;
+  gap: 4px clamp(16px, 2.8vw, 34px);
+  margin-top: clamp(34px, 5vw, 52px);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-soft);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.events-atlas__lenses::-webkit-scrollbar {
+  display: none;
+}
+
+.events-atlas__lens {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--type-small);
+  font-weight: var(--fw-semibold);
+  text-align: left;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.events-atlas__lens::after {
+  position: absolute;
+  right: 0;
+  bottom: -13px;
+  left: 0;
+  height: 1px;
+  background: var(--secondary);
+  content: "";
+  opacity: 0;
+  transform: scaleX(0.35);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.events-atlas__lens:hover,
+.events-atlas__lens:focus-visible,
+.events-atlas__lens.is-active {
+  color: var(--foreground);
+}
+
+.events-atlas__lens:focus-visible {
+  outline: 2px solid rgba(var(--secondary-rgb), 0.72);
+  outline-offset: 4px;
+}
+
+.events-atlas__lens.is-active::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.events-atlas__lens-note {
+  display: grid;
+  gap: 8px;
+  max-width: 51ch;
+  min-height: 84px;
+  padding-top: clamp(22px, 3vw, 30px);
+}
+
+.events-atlas__lens-note p {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: var(--type-body-sm);
+  line-height: 1.6;
+}
+
+.events-atlas__opening,
+.events-atlas__season {
+  margin-top: clamp(56px, 9vw, 124px);
+}
+
+.events-atlas__chapter-copy {
+  display: grid;
+  max-width: 46rem;
+  gap: 10px;
+}
+
+.events-atlas__chapter-copy > p {
+  margin: 0;
+  color: var(--secondary);
+  font-size: var(--type-meta);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.events-atlas__chapter-copy h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: var(--fw-medium);
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.events-atlas__chapter-copy > span {
+  max-width: 48ch;
+  color: var(--ink-dim);
+  font-size: var(--type-body-sm);
+  line-height: 1.62;
+}
+
+.events-atlas__opening-posters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(14px, 2vw, 24px);
+  margin-top: clamp(28px, 4vw, 46px);
+}
+
+.events-atlas__opening-posters .event-card--poster {
+  min-height: clamp(390px, 35vw, 500px);
+}
+
+.events-atlas__chapter-copy--season {
+  max-width: 38rem;
+}
+
+.events-atlas__chapters {
+  display: grid;
+  gap: clamp(66px, 10vw, 142px);
+  margin-top: clamp(44px, 7vw, 86px);
+}
+
+.events-atlas__chapter {
+  --chapter-accent-rgb: var(--secondary-rgb);
+  position: relative;
+  display: grid;
+  gap: clamp(20px, 3vw, 34px);
+  isolation: isolate;
+}
+
+.events-atlas__chapter::before {
+  position: absolute;
+  z-index: -1;
+  top: -52px;
+  right: -5vw;
+  left: -5vw;
+  height: 250px;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(var(--chapter-accent-rgb), 0.1),
+    transparent 68%
+  );
+  content: "";
+  pointer-events: none;
+}
+
+.events-atlas__month-mark {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.events-atlas__month-mark > span {
+  width: clamp(28px, 4vw, 52px);
+  height: 1px;
+  background: rgb(var(--chapter-accent-rgb));
+  box-shadow: 0 0 16px rgba(var(--chapter-accent-rgb), 0.4);
+}
+
+.events-atlas__month-mark h4 {
+  margin: 0;
+  color: var(--ink-faint);
+  font-family: var(--font-display);
+  font-size: clamp(24px, 2.8vw, 36px);
+  font-weight: var(--fw-medium);
+  letter-spacing: -0.035em;
+}
+
+.events-atlas__chapter-posters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(14px, 2vw, 28px);
+}
+
+.events-atlas__chapter-posters .event-card--poster {
+  min-height: clamp(440px, 48vw, 620px);
+}
+
+.events-atlas__chapter[data-atmosphere="amber"] {
+  --chapter-accent-rgb: 241, 180, 74;
+}
+
+.events-atlas__chapter[data-atmosphere="electric"] {
+  --chapter-accent-rgb: 50, 202, 255;
+}
+
+.events-atlas__chapter[data-atmosphere="neon"] {
+  --chapter-accent-rgb: 255, 45, 149;
+}
+
+.events-atlas__chapter[data-atmosphere="ember"] {
+  --chapter-accent-rgb: 237, 103, 41;
+}
+
+.events-atlas__chapter[data-atmosphere="steel"] {
+  --chapter-accent-rgb: 172, 179, 188;
+}
+
+.events-atlas__chapter[data-atmosphere="lime"] {
+  --chapter-accent-rgb: 188, 239, 66;
+}
+
+.events-atlas__handoff {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  margin-top: clamp(86px, 13vw, 176px);
+  padding: clamp(34px, 5vw, 64px) 0 clamp(10px, 2vw, 18px);
+  border-top: 1px solid var(--border-soft);
+  overflow: hidden;
+}
+
+.events-atlas__handoff::after {
+  position: absolute;
+  top: -120px;
+  right: 8%;
+  width: min(420px, 55vw);
+  height: 260px;
+  background: radial-gradient(circle, rgba(var(--secondary-rgb), 0.14), transparent 70%);
+  content: "";
+  pointer-events: none;
+}
+
+.events-atlas__handoff > p {
+  margin: 0;
+  color: var(--secondary);
+  font-size: var(--type-meta);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.events-atlas__handoff h3 {
+  max-width: 18ch;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(36px, 5vw, 68px);
+  font-weight: var(--fw-medium);
+  letter-spacing: -0.045em;
+  line-height: 0.96;
+  text-wrap: balance;
+}
+
+.events-atlas__handoff > span {
+  max-width: 48ch;
+  color: var(--ink-dim);
+  font-size: var(--type-body-sm);
+  line-height: 1.6;
+}
+
+.events-atlas__handoff-link {
+  display: inline-flex;
+  position: relative;
+  z-index: 1;
+  align-items: center;
+  gap: 9px;
+  width: fit-content;
+  margin-top: 8px;
+  color: var(--foreground);
+  font-size: var(--type-body-sm);
+  font-weight: var(--fw-semibold);
+}
+
+.events-atlas__handoff-link svg {
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.events-atlas__handoff-link:hover svg,
+.events-atlas__handoff-link:focus-visible svg {
+  transform: translateX(4px);
+}
+
 .events-featured {
   margin-bottom: clamp(78px, 11vw, 140px);
 }
@@ -1941,18 +2272,23 @@ h3 {
 }
 
 .event-card--poster .event-card__location,
+.event-card--poster .event-card__reason,
 .event-card--poster .event-card__footer {
   position: relative;
   z-index: 2;
   color: rgba(255, 255, 255, 0.72);
 }
 
-.event-card--poster .event-card__footer {
-  padding-top: 10px;
+.event-card--poster .event-card__reason {
+  max-width: 34ch;
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: var(--type-small);
+  line-height: 1.45;
 }
 
-.event-card--poster .event-card__action {
-  color: rgb(var(--festival-accent-rgb));
+.event-card--poster .event-card__footer {
+  display: none;
 }
 
 .event-card--poster[data-atmosphere="amber"] .event-card__photo,
@@ -17803,9 +18139,53 @@ h3 {
 
 @media (max-width: 760px) {
   .events-hero__inner,
-  .events-chapter-heading {
+  .events-chapter-heading,
+  .events-atlas__intro {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .events-atlas {
+    padding-top: clamp(48px, 12vw, 68px);
+  }
+
+  .events-atlas__intro > p {
+    max-width: 42ch;
+  }
+
+  .events-atlas__lenses {
+    margin-inline: calc(var(--page-gutter) * -1);
+    padding-inline: var(--page-gutter);
+  }
+
+  .events-atlas__opening,
+  .events-atlas__season {
+    margin-top: clamp(52px, 15vw, 72px);
+  }
+
+  .events-atlas__opening-posters,
+  .events-atlas__chapter-posters {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .events-atlas__opening-posters .event-card--poster,
+  .events-atlas__chapter-posters .event-card--poster {
+    min-height: min(128vw, 510px);
+  }
+
+  .events-atlas__opening-posters .event-card--poster h3,
+  .events-atlas__chapter-posters .event-card--poster h3 {
+    font-size: clamp(28px, 8vw, 38px);
+  }
+
+  .events-atlas__chapters {
+    gap: clamp(58px, 16vw, 88px);
+    margin-top: clamp(38px, 11vw, 56px);
+  }
+
+  .events-atlas__handoff {
+    margin-top: clamp(72px, 20vw, 112px);
   }
 
   .events-hero__signal {

@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import { EventsToolbar } from '../../../components/EventsToolbar';
 import { EventCard } from '../../../components/EventCard';
+import { EventsFestivalAtlas } from '../../../components/EventsFestivalAtlas';
 import { EventImage } from '../../../components/EventImage';
 import { EventsEmptyState } from '../../../components/states/EventsEmptyState';
 import { SearchSuccessBanner } from '../../../components/states/SearchSuccessBanner';
@@ -40,7 +41,6 @@ import type { Activity } from '../../../lib/types';
 export const revalidate = 300;
 
 type SortOption = 'popular' | 'upcoming' | 'name';
-type MoodPath = 'ready' | 'lineup' | 'soon';
 
 type EventsPageProps = {
   params: Promise<{ locale: string }>;
@@ -55,11 +55,6 @@ type EventsPageProps = {
 
 function isSortOption(value: string | undefined): value is SortOption {
   return value === 'popular' || value === 'upcoming' || value === 'name';
-}
-
-function normalizeMoodPath(value: string | undefined): MoodPath | undefined {
-  if (value === 'ready' || value === 'lineup' || value === 'soon') return value;
-  return value === 'lights' ? 'ready' : undefined;
 }
 
 function activitySearchText(activity: Activity): string {
@@ -138,24 +133,6 @@ function featuredReason(
   return labels.season;
 }
 
-function activitiesForMood(activities: Activity[], mood: MoodPath): Activity[] {
-  if (mood === 'ready') {
-    const journeyReady = activities.filter(
-      (activity) => activity.travelGuideSupported || (activity.lineupPublished && artistCount(activity) > 0),
-    );
-    return sortForFeaturedJourney(journeyReady.length > 0 ? journeyReady : activities);
-  }
-
-  if (mood === 'lineup') {
-    const withLineup = activities.filter((activity) => artistCount(activity) > 0);
-    return [...(withLineup.length > 0 ? withLineup : activities)].sort(
-      (left, right) => artistCount(right) - artistCount(left),
-    );
-  }
-
-  return sortActivities(activities, mood === 'soon' ? 'upcoming' : 'popular');
-}
-
 export async function generateMetadata({ params }: EventsPageProps): Promise<Metadata> {
   const { locale: rawLocale } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
@@ -193,8 +170,6 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
   const continent: ActivityContinent | '' = isActivityContinent(rawContinent) ? rawContinent : '';
   const rawSort = queryParams.sort?.trim();
   const sort: SortOption = isSortOption(rawSort) ? rawSort : 'popular';
-  const rawMood = queryParams.mood?.trim();
-  const mood = normalizeMoodPath(rawMood);
   const cityGroups = listCityGroups(rawActivities, locale).slice(0, 12);
   const eventsPath = localizedPath(locale, '/events');
   const countries = [...new Set(activities.map((item) => item.area).filter(Boolean))] as string[];
@@ -207,50 +182,45 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
     }),
     sort,
   );
-  // Mood paths should feel like a curated shelf, not a 4-card dead end.
-  const filtered = mood ? activitiesForMood(utilityFiltered, mood).slice(0, 12) : utilityFiltered;
+  const filtered = utilityFiltered;
   const hasUtilityFilters = Boolean(query || country || continent || sort !== 'popular');
-  const hasActiveFilters = hasUtilityFilters || Boolean(mood);
+  const hasActiveFilters = hasUtilityFilters;
   const emptyVariant =
     fetchStatus === 'error' ? 'error' : activities.length === 0 ? 'catalog' : 'search';
-  const featuredActivity = mood ? filtered[0] : sortForFeaturedJourney(utilityFiltered)[0];
-  const collectionActivities = featuredActivity
-    ? filtered.filter((activity) => activity.legacyId !== featuredActivity.legacyId).slice(0, 8)
-    : [];
-  const seasonActivities = sortActivities(filtered, 'upcoming')
-    .filter((activity) => activity.legacyId !== featuredActivity?.legacyId)
-    .slice(0, 5);
+  const featuredActivity = sortForFeaturedJourney(utilityFiltered)[0];
   const moodDefinitions = [
     {
       id: 'ready' as const,
       title: t.events.pathReady,
       lead: t.events.pathReadyLead,
       eyebrow: t.events.pathReadyEyebrow,
+      chapterTitle: t.events.pathReadyChapterTitle,
+      chapterLead: t.events.pathReadyChapterLead,
+      seasonTitle: t.events.pathReadySeasonTitle,
     },
     {
       id: 'lineup' as const,
       title: t.events.pathLineup,
       lead: t.events.pathLineupLead,
       eyebrow: t.events.pathLineupEyebrow,
+      chapterTitle: t.events.pathLineupChapterTitle,
+      chapterLead: t.events.pathLineupChapterLead,
+      seasonTitle: t.events.pathLineupSeasonTitle,
     },
     {
       id: 'soon' as const,
       title: t.events.pathSoonest,
       lead: t.events.pathSoonestLead,
       eyebrow: t.events.pathSoonestEyebrow,
+      chapterTitle: t.events.pathSoonestChapterTitle,
+      chapterLead: t.events.pathSoonestChapterLead,
+      seasonTitle: t.events.pathSoonestSeasonTitle,
     },
   ];
-  const usedMoodActivities = new Set<number>(featuredActivity ? [featuredActivity.legacyId] : []);
-  const moodJourneys = moodDefinitions.flatMap((definition) => {
-    const activity = activitiesForMood(utilityFiltered, definition.id).find(
-      (candidate) => !usedMoodActivities.has(candidate.legacyId),
-    );
-    if (!activity) return [];
-    usedMoodActivities.add(activity.legacyId);
-    return [{ ...definition, activity }];
-  });
-  const activeMood = moodDefinitions.find((definition) => definition.id === mood);
   const heroActivity = !hasUtilityFilters ? featuredActivity : undefined;
+  const atlasActivities = heroActivity
+    ? filtered.filter((activity) => activity.legacyId !== heroActivity.legacyId)
+    : filtered;
   const heroReason = heroActivity
     ? featuredReason(heroActivity, {
         travel: t.events.featuredReasonTravel,
@@ -324,7 +294,7 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
             </div>
             {heroActivity ? (
               <Link className="events-hero__festival" href={eventPath(locale, heroActivity)}>
-                <p>{activeMood?.eyebrow ?? t.events.featuredEyebrow}</p>
+                <p>{t.events.featuredEyebrow}</p>
                 <h2>{getActivityTitle(heroActivity)}</h2>
                 <span>{activityMeta(heroActivity)}</span>
                 {heroReason ? <em className="events-hero__reason">{heroReason}</em> : null}
@@ -354,7 +324,6 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
                     country={country}
                     continent={continent}
                     sort={sort}
-                    mood={mood}
                     countries={countries}
                     labels={toolbarLabels}
                     compactControls
@@ -391,132 +360,38 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
                   ))}
                 </div>
               </section>
-            ) : mood && activeMood ? (
-              <section className="events-mood-results" aria-labelledby="events-mood-results-heading">
-                <div className="events-chapter-heading" data-reveal>
-                  <div>
-                    <p>{activeMood.eyebrow}</p>
-                    <h2 id="events-mood-results-heading">{activeMood.title}</h2>
-                  </div>
-                  <Link className="events-mood-results__back" href={eventsPath}>
-                    {t.events.allJourneys}
-                    <ArrowRight size={15} strokeWidth={2} aria-hidden />
-                  </Link>
-                </div>
-                <p className="events-mood-results__lead" data-reveal>{activeMood.lead}</p>
-                <div className="events-poster-rail" data-reveal-stagger>
-                  {filtered.map((activity, index) => (
-                    <EventCard
-                      activity={activity}
-                      locale={locale}
-                      variant="poster"
-                      priorityImage={index === 0}
-                      key={activity.legacyId}
-                      style={{ '--card-index': index } as CSSProperties}
-                    />
-                  ))}
-                </div>
-              </section>
             ) : (
-              <>
-                {collectionActivities.length > 0 ? (
-                  <section className="events-collection" aria-labelledby="events-collection-heading">
-                    <div className="events-chapter-heading" data-reveal>
-                      <div>
-                        <p>{t.events.collectionEyebrow}</p>
-                        <h2 id="events-collection-heading">{t.events.collectionTitle}</h2>
-                      </div>
-                      <span>{t.events.collectionLead}</span>
-                    </div>
-                    <div className="events-poster-rail" data-reveal-stagger>
-                      {collectionActivities.map((activity, index) => (
-                        <EventCard
-                          activity={activity}
-                          locale={locale}
-                          variant="poster"
-                          priorityImage={false}
-                          key={activity.legacyId}
-                          style={{ '--card-index': index } as CSSProperties}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                ) : null}
-
-                {moodJourneys.length > 0 ? (
-                  <section className="events-mood" aria-labelledby="events-mood-heading">
-                    <div className="events-chapter-heading" data-reveal>
-                      <div>
-                        <p>{t.events.moodEyebrow}</p>
-                        <h2 id="events-mood-heading">{t.events.moodTitle}</h2>
-                      </div>
-                      <span>{t.events.moodChapterLead}</span>
-                    </div>
-                    <div className="events-mood__paths" data-reveal-stagger>
-                      {moodJourneys.map(({ activity, ...path }) => {
-                        const image = getActivityImage(activity);
-
-                        return (
-                          <Link
-                            className="events-mood__path"
-                            href={`${eventsPath}?mood=${path.id}`}
-                            key={activity.legacyId}
-                            data-atmosphere={getFestivalAtmosphere(activity)}
-                          >
-                            <div className="events-mood__media">
-                              {image ? (
-                                <EventImage
-                                  src={image}
-                                  alt={getActivityTitle(activity)}
-                                  className="events-mood__photo"
-                                  sizes="(max-width: 760px) 100vw, 33vw"
-                                />
-                              ) : null}
-                            </div>
-                            <div className="events-mood__shade" aria-hidden />
-                            <div className="events-mood__content">
-                              <span>{path.eyebrow}</span>
-                              <h3>{path.title}</h3>
-                              <p>{path.lead}</p>
-                              <strong>{getActivityTitle(activity)}</strong>
-                            </div>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </section>
-                ) : null}
-
-                {seasonActivities.length > 0 ? (
-                  <section className="events-season" aria-labelledby="events-season-heading">
-                    <div className="events-chapter-heading" data-reveal>
-                      <div>
-                        <p>{t.events.seasonEyebrow}</p>
-                        <h2 id="events-season-heading">{t.events.seasonTitle}</h2>
-                      </div>
-                      <span>{t.events.seasonLead}</span>
-                    </div>
-                    <ol className="events-season__timeline" data-reveal-stagger>
-                      {seasonActivities.map((activity, index) => (
-                        <li key={activity.legacyId}>
-                          <Link href={eventPath(locale, activity)}>
-                            <span className="events-season__number">0{index + 1}</span>
-                            <strong>{getActivityTitle(activity)}</strong>
-                            <span>
-                              {artistCount(activity) > 0
-                                ? t.events.signalArtists.replace('{count}', String(artistCount(activity)))
-                                : t.events.signalSoon}
-                              {' · '}
-                              {activityMeta(activity)}
-                            </span>
-                            <ArrowRight size={16} strokeWidth={1.8} aria-hidden />
-                          </Link>
-                        </li>
-                      ))}
-                    </ol>
-                  </section>
-                ) : null}
-              </>
+              <EventsFestivalAtlas
+                locale={locale}
+                activities={atlasActivities}
+                labels={{
+                  eyebrow: t.events.atlasEyebrow,
+                  title: t.events.atlasTitle,
+                  lead: t.events.atlasLead,
+                  all: t.events.atlasAll,
+                  allLead: t.events.atlasAllLead,
+                  openingEyebrow: t.events.atlasOpeningEyebrow,
+                  openingTitle: t.events.atlasOpeningTitle,
+                  openingLead: t.events.atlasOpeningLead,
+                  seasonEyebrow: t.events.atlasSeasonEyebrow,
+                  seasonTitle: t.events.atlasSeasonTitle,
+                  reasons: {
+                    travel: t.events.atlasReasonTravel,
+                    lineup: t.events.atlasReasonLineup,
+                    lineupCount: t.events.atlasReasonLineupCount,
+                    soon: t.events.atlasReasonSoon,
+                    default: t.events.atlasReasonDefault,
+                  },
+                  handoff: {
+                    eyebrow: t.events.atlasHandoffEyebrow,
+                    title: t.events.atlasHandoffTitle,
+                    lead: t.events.atlasHandoffLead,
+                    cta: t.events.atlasHandoffCta,
+                    href: localizedPath(locale, '/waitlist'),
+                  },
+                }}
+                moods={moodDefinitions}
+              />
             )
           ) : (
             <>
@@ -527,7 +402,6 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
                   country={country}
                   continent={continent}
                   sort={sort}
-                  mood={mood}
                   countries={countries}
                   labels={toolbarLabels}
                 />
@@ -576,14 +450,13 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
                 country={country}
                 continent={continent}
                 sort={sort}
-                mood={mood}
                 countries={countries}
                 labels={toolbarLabels}
               />
             </details>
           ) : null}
 
-          <div className="events-ai-bridge" data-reveal>
+          {hasActiveFilters ? <div className="events-ai-bridge" data-reveal>
             <p>{t.events.aiBridge}</p>
             <TrackedLink
               className="events-ai-bridge__link"
@@ -594,7 +467,7 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
               <span>{t.events.aiBridgeCta}</span>
               <ArrowRight size={14} strokeWidth={2.25} aria-hidden />
             </TrackedLink>
-          </div>
+          </div> : null}
         </div>
       </section>
     </main>
