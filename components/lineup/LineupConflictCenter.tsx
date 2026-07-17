@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import type { ScheduleDj } from '../../lib/api';
 import type { ClashResolutionOption, LineupConflict } from '../../lib/lineup-clash';
 import { artistIdFromSelection } from '../../lib/lineup-clash';
 import {
@@ -18,6 +19,7 @@ type LineupConflictCenterProps = {
   locale: Locale;
   atmosphere?: FestivalAtmosphere;
   festivalImage?: string;
+  djs: ScheduleDj[];
 };
 
 type NightPhase = 'dusk' | 'peak' | 'late' | 'open';
@@ -41,6 +43,7 @@ export function LineupConflictCenter({
   locale,
   atmosphere,
   festivalImage,
+  djs,
 }: LineupConflictCenterProps) {
   const {
     conflictCenterOpen,
@@ -64,6 +67,7 @@ export function LineupConflictCenter({
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const routeArtists = useMemo(() => {
+    const lineupNames = new Map(djs.map((artist) => [artist.id, artist.name]));
     const discoveryNames = new Map<string, string>();
     for (const artist of [
       ...bundle.picked,
@@ -82,7 +86,11 @@ export function LineupConflictCenter({
       const slot = slotForArtist(artistId);
       return {
         id: artistId,
-        name: slot?.artistName || discoveryNames.get(artistId) || artistId,
+        name:
+          slot?.artistName ||
+          lineupNames.get(artistId) ||
+          discoveryNames.get(artistId) ||
+          artistId,
         status: scheduleStatusFor(artistId),
         startTime: slot?.startTime,
         stageLabel: slot?.stageLabel,
@@ -100,7 +108,7 @@ export function LineupConflictCenter({
       if (b.startMinutes != null) return 1;
       return a.orderFallback - b.orderFallback;
     });
-  }, [bundle, conflicts, ids, scheduleStatusFor, slotForArtist]);
+  }, [bundle, conflicts, djs, ids, scheduleStatusFor, slotForArtist]);
 
   const actionable = useMemo(
     () => conflicts.filter(isActionable),

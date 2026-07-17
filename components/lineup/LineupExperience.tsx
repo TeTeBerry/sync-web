@@ -211,6 +211,7 @@ export function LineupExperience({
             locale={locale}
             atmosphere={atmosphere}
             festivalImage={image}
+            djs={djs}
           />
           <LineupSelectionBar
             locale={locale}
