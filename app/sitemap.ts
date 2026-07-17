@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
-import { listActivities } from '../lib/api';
+import { unstable_cache } from 'next/cache';
+import { fetchActivities } from '../lib/api';
 import { LOCALES, DEFAULT_LOCALE, alternateLanguages, localizedPath } from '../lib/i18n';
 import {
   eventAlternateLanguages,
@@ -33,8 +34,24 @@ function absoluteLanguages(
 }
 
 function getActivityLastModified(activity: Activity): Date | undefined {
-  return parseDate(activity.infoUpdatedAt) ?? parseDate(activity.date);
+  return (
+    parseDate(activity.updatedAt) ??
+    parseDate(activity.infoUpdatedAt) ??
+    parseDate(activity.date)
+  );
 }
+
+const getCachedSitemapActivities = unstable_cache(
+  async (): Promise<Activity[]> => {
+    const result = await fetchActivities();
+    if (result.status === 'error') {
+      throw new Error('Activity catalog unavailable while generating sitemap');
+    }
+    return result.activities;
+  },
+  ['sitemap-activities'],
+  { revalidate: 86_400 },
+);
 
 function buildCoreEntries(siteUrl: string, lastModified: Date): MetadataRoute.Sitemap {
   return LOCALES.flatMap((locale) => [
@@ -143,7 +160,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
 
   try {
-    const activities = await listActivities();
+    const activities = await getCachedSitemapActivities();
     if (!activities.length) {
       return buildCoreEntries(siteUrl, lastModified);
     }

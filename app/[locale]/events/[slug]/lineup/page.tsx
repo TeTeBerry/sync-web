@@ -4,7 +4,6 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { EventImage } from "../../../../../components/EventImage";
 import { LineupExperience } from "../../../../../components/lineup/LineupExperience";
 import { EventLoadError } from "../../../../../components/states/EventLoadError";
-import { EventUnavailableState } from "../../../../../components/states/EventUnavailableState";
 import { LineupEmptyState } from "../../../../../components/states/LineupEmptyState";
 import { LineupErrorState } from "../../../../../components/states/LineupErrorState";
 import { getActivityImage } from "../../../../../lib/api";
@@ -14,11 +13,13 @@ import { buildFestivalFlow } from "../../../../../lib/lineup-flow";
 import { buildLineupChapterVoice } from "../../../../../lib/lineup-voice";
 import {
   eventLineupPath,
+  eventSlug,
   eventPath,
   eventPlanPath,
   eventSlugMatches,
   resolveActivityBySlug,
 } from "../../../../../lib/event-slug";
+import { resolveFestivalTimeZone } from "../../../../../lib/lineup-schedule-export";
 import { buildLineupJsonLd, buildLineupMetadata } from "../../../../../lib/seo";
 import { getSiteUrl } from "../../../../../lib/site";
 import {
@@ -61,9 +62,7 @@ export default async function EventLineupPage({
     rawWeekend === "w1" || rawWeekend === "w2" ? rawWeekend : undefined;
   const activityResult = await resolveActivityBySlug(slug, locale);
   if (activityResult.status === "error") return <EventLoadError locale={locale} />;
-  if (activityResult.status === "not_found" || !activityResult.activity) {
-    return <EventUnavailableState locale={locale} />;
-  }
+  if (activityResult.status === "not_found" || !activityResult.activity) notFound();
   if (!eventSlugMatches(slug, activityResult.activity, locale)) {
     const canonical = eventLineupPath(locale, activityResult.activity);
     permanentRedirect(weekend ? `${canonical}?weekend=${weekend}` : canonical);
@@ -71,8 +70,7 @@ export default async function EventLineupPage({
   const pageData = await loadEventPageData(locale, slug, { weekend });
 
   if (pageData === "error") return <EventLoadError locale={locale} />;
-  if (pageData === "not_found")
-    return <EventUnavailableState locale={locale} />;
+  if (pageData === "not_found") notFound();
 
   const {
     activity,
@@ -279,6 +277,13 @@ export default async function EventLineupPage({
       stageLabels={stageLabels}
       stagesPublished={schedulePublished}
       performances={performances}
+      scheduleMeta={{
+        festivalName: eventTitle,
+        festivalSlug: eventSlug(activity, locale),
+        venue: activity.location ?? activity.city,
+        timeZone: resolveFestivalTimeZone(activity),
+        festivalDate: activity.startDate ?? activity.date,
+      }}
       schedulePublished={schedulePublished}
       voice={voice}
       planHref={planHref}

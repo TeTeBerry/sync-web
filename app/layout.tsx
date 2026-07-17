@@ -5,7 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Outfit, DM_Sans } from 'next/font/google';
 import { DEFAULT_LOCALE, getMessages, normalizeLocale } from '../lib/i18n';
 import { getSiteUrl } from '../lib/site';
-import { buildSocialMetadata } from '../lib/seo';
+import { buildSiteJsonLd, buildSocialMetadata } from '../lib/seo';
 import './globals.css';
 
 const outfit = Outfit({
@@ -61,6 +61,12 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           <div className="ambient-bg__orb ambient-bg__orb--blue" />
           <div className="ambient-bg__grid" />
         </div>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(buildSiteJsonLd(locale)).replace(/</g, '\\u003c'),
+          }}
+        />
         {children}
         <Analytics />
         <SpeedInsights />

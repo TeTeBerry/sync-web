@@ -3,7 +3,6 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { PlannerLandingContent } from "../../../../../components/planner/PlannerLandingContent";
 import { PlanPageShell } from "../../../../../components/planner/PlanPageShell";
 import { EventLoadError } from "../../../../../components/states/EventLoadError";
-import { EventUnavailableState } from "../../../../../components/states/EventUnavailableState";
 import {
   fetchActivitySchedule,
   getActivityImage,
@@ -80,9 +79,7 @@ export default async function AiPlannerPage({
     return <EventLoadError locale={locale} />;
   }
 
-  if (activityResult.status === "not_found" || !activityResult.activity) {
-    return <EventUnavailableState locale={locale} />;
-  }
+  if (activityResult.status === "not_found" || !activityResult.activity) notFound();
 
   const rawActivity = activityResult.activity;
   const activity = localizeActivity(rawActivity, locale);

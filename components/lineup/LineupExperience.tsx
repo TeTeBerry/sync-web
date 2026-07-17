@@ -5,6 +5,7 @@ import type { FestivalFlowDay } from "../../lib/lineup-flow";
 import type { LineupChapterVoice } from "../../lib/lineup-voice";
 import type { FestivalAtmosphere } from "../../lib/festival-atmosphere";
 import type { Locale } from "../../lib/i18n";
+import type { FestivalScheduleExportMeta } from "../../lib/lineup-schedule-export";
 import { getLineupDiscoveryCopy } from "../../lib/i18n";
 import type { LineupGenreGroup } from "./lineup-types";
 import { LineupSelectionProvider } from "./LineupSelectionContext";
@@ -17,8 +18,8 @@ import {
   LineupSetPlannerCta,
   type LineupSetPlannerLabels,
 } from "./LineupSetPlannerCta";
-import { LineupClashToast } from "./LineupClashToast";
 import { LineupConflictCenter } from "./LineupConflictCenter";
+import { LineupSavedSchedule, LineupSchedulePersistenceProvider } from './LineupSchedulePersistence';
 
 type BreadcrumbItem = {
   label: string;
@@ -44,6 +45,7 @@ type LineupExperienceProps = {
   stageLabels: string[];
   stagesPublished: boolean;
   performances: SchedulePerformance[];
+  scheduleMeta: FestivalScheduleExportMeta;
   schedulePublished: boolean;
   voice: LineupChapterVoice;
   planHref: string;
@@ -96,6 +98,7 @@ export function LineupExperience({
   stageLabels,
   stagesPublished,
   performances,
+  scheduleMeta,
   schedulePublished,
   voice,
   planHref,
@@ -115,6 +118,7 @@ export function LineupExperience({
       schedulePublished={schedulePublished}
       selectionScope={weekend}
     >
+      <LineupSchedulePersistenceProvider activityLegacyId={activityLegacyId} selectionScope={weekend}>
       <LineupDiscoveryProvider
         locale={locale}
         activityLegacyId={activityLegacyId}
@@ -139,30 +143,33 @@ export function LineupExperience({
           />
 
           {hasFlow ? (
-            <LineupMapScene
-              mode="flow"
-              locale={locale}
-              flowDays={flowDays}
-              genreGroups={genreGroups}
-              genres={genres}
-              stageLabels={stageLabels}
-              stagesPublished={stagesPublished}
-              routeIntelligence={voice.routeIntelligence}
-              voice={voice}
-              labels={{
-                ...labels.map,
-                flowEyebrow: copy.journey.eyebrow,
-                flowTitle: copy.journey.title,
-                flowLead: copy.journey.lead,
-              }}
-              headingId="lineup-journey-heading"
-              journeyDiscovery={{
-                activityLegacyId,
-                weekend,
-                djs,
-                atmosphere,
-              }}
-            />
+            <>
+              <LineupSavedSchedule locale={locale} djs={djs} performances={performances} />
+              <LineupMapScene
+                mode="flow"
+                locale={locale}
+                flowDays={flowDays}
+                genreGroups={genreGroups}
+                genres={genres}
+                stageLabels={stageLabels}
+                stagesPublished={stagesPublished}
+                routeIntelligence={voice.routeIntelligence}
+                voice={voice}
+                labels={{
+                  ...labels.map,
+                  flowEyebrow: copy.journey.eyebrow,
+                  flowTitle: copy.journey.title,
+                  flowLead: copy.journey.lead,
+                }}
+                headingId="lineup-journey-heading"
+                journeyDiscovery={{
+                  activityLegacyId,
+                  weekend,
+                  djs,
+                  atmosphere,
+                }}
+              />
+            </>
           ) : (
             <>
               <LineupAiDiscoveryScene
@@ -206,12 +213,14 @@ export function LineupExperience({
             subscribeEventProperties={subscribeEventProperties}
           />
 
-          <LineupClashToast locale={locale} />
           <LineupConflictCenter
             locale={locale}
             atmosphere={atmosphere}
             festivalImage={image}
             djs={djs}
+            performances={performances}
+            scheduleMeta={scheduleMeta}
+            activityLegacyId={activityLegacyId}
           />
           <LineupSelectionBar
             locale={locale}
@@ -221,6 +230,7 @@ export function LineupExperience({
           />
         </div>
       </LineupDiscoveryProvider>
+      </LineupSchedulePersistenceProvider>
     </LineupSelectionProvider>
   );
 }

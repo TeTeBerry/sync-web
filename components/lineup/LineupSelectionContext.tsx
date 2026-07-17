@@ -33,6 +33,7 @@ import {
 import {
   readLineupSelection,
   writeLineupSelection,
+  pruneOffBillLineupSelection,
 } from "../../lib/lineup-selection";
 import {
   getOrCreateAnonymousId,
@@ -75,6 +76,10 @@ type LineupSelectionContextValue = {
     conflict: LineupConflict,
     option: ClashResolutionOption,
   ) => void;
+  restoreSavedRoute: (input: {
+    selectedIds: string[];
+    clashState: LineupClashState;
+  }) => void;
   performancesReady: boolean;
 };
 
@@ -127,6 +132,42 @@ export function LineupSelectionProvider({
     },
     [activityLegacyId, selectionScope],
   );
+
+  // TML Belgium: drop cancelled acts (e.g. Dimitri Vegas & Like Mike) from saved picks
+  // once the official timetable is live — they must not sit in "Waiting on set time".
+  useEffect(() => {
+    if (!hydrated || !schedulePublished || performances.length === 0) return;
+
+    const { kept, removed } = pruneOffBillLineupSelection({
+      activityLegacyId,
+      selectedIds: [...selected],
+      performanceArtistIds: performances.map((row) => row.artistId),
+      schedulePublished,
+    });
+    if (!removed.length) return;
+
+    const next = new Set(kept);
+    setSelected(next);
+    persistSelection(next);
+
+    let nextClash = clashState;
+    for (const id of removed) {
+      nextClash = removeArtistFromClashState(
+        nextClash,
+        artistIdFromSelection(id),
+      );
+    }
+    persistClash(nextClash);
+  }, [
+    hydrated,
+    schedulePublished,
+    performances,
+    activityLegacyId,
+    selected,
+    clashState,
+    persistSelection,
+    persistClash,
+  ]);
 
   const ids = useMemo(() => [...selected], [selected]);
 
@@ -364,6 +405,17 @@ export function LineupSelectionProvider({
     [activityLegacyId, clashState, persistClash],
   );
 
+  const restoreSavedRoute = useCallback(
+    (input: { selectedIds: string[]; clashState: LineupClashState }) => {
+      const next = new Set(input.selectedIds);
+      setSelected(next);
+      persistSelection(next);
+      persistClash(input.clashState);
+      setToast(null);
+    },
+    [persistClash, persistSelection],
+  );
+
   const openConflictCenter = useCallback(
     (conflictId?: string) => {
       setFocusConflictId(conflictId ?? null);
@@ -437,6 +489,7 @@ export function LineupSelectionProvider({
       conflictCenterOpen,
       focusConflictId,
       resolveConflict,
+      restoreSavedRoute,
       performancesReady: clashPerformances.length > 0 || !schedulePublished,
     }),
     [
@@ -460,6 +513,7 @@ export function LineupSelectionProvider({
       conflictCenterOpen,
       focusConflictId,
       resolveConflict,
+      restoreSavedRoute,
       clashPerformances.length,
       schedulePublished,
     ],

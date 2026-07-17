@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { ScheduleDj } from '../../lib/api';
+import type { SchedulePerformance } from '../../lib/api';
 import type { ClashResolutionOption, LineupConflict } from '../../lib/lineup-clash';
 import { artistIdFromSelection } from '../../lib/lineup-clash';
 import {
@@ -14,12 +15,25 @@ import type { FestivalAtmosphere } from '../../lib/festival-atmosphere';
 import type { Locale } from '../../lib/i18n';
 import { useLineupDiscovery } from './LineupDiscoveryContext';
 import { useLineupSelection } from './LineupSelectionContext';
+import {
+  buildLineupArtistNameResolver,
+  isInternalArtistId,
+} from '../../lib/lineup-artist-name';
+import {
+  normalizeSelectedSchedule,
+  type FestivalScheduleExportMeta,
+} from '../../lib/lineup-schedule-export';
+import { TOMORROWLAND_BELGIUM_ACTIVITY_LEGACY_ID } from '../../lib/lineup-selection';
+import { LineupScheduleSave } from './LineupScheduleSave';
 
 type LineupConflictCenterProps = {
   locale: Locale;
   atmosphere?: FestivalAtmosphere;
   festivalImage?: string;
   djs: ScheduleDj[];
+  performances: SchedulePerformance[];
+  scheduleMeta: FestivalScheduleExportMeta;
+  activityLegacyId?: number;
 };
 
 type NightPhase = 'dusk' | 'peak' | 'late' | 'open';
@@ -44,6 +58,9 @@ export function LineupConflictCenter({
   atmosphere,
   festivalImage,
   djs,
+  performances,
+  scheduleMeta,
+  activityLegacyId,
 }: LineupConflictCenterProps) {
   const {
     conflictCenterOpen,
@@ -59,6 +76,15 @@ export function LineupConflictCenter({
   } = useLineupSelection();
   const { bundle } = useLineupDiscovery();
   const copy = getLineupClashCopy(locale);
+  const resolveArtistName = useMemo(
+    () =>
+      buildLineupArtistNameResolver(
+        djs,
+        performances,
+        locale === 'zh' ? '艺人名字待补充' : 'Artist name pending',
+      ),
+    [djs, locale, performances],
+  );
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
@@ -67,7 +93,6 @@ export function LineupConflictCenter({
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const routeArtists = useMemo(() => {
-    const lineupNames = new Map(djs.map((artist) => [artist.id, artist.name]));
     const discoveryNames = new Map<string, string>();
     for (const artist of [
       ...bundle.picked,
@@ -84,13 +109,12 @@ export function LineupConflictCenter({
     const steps = ids.map((rawId, index) => {
       const artistId = artistIdFromSelection(rawId);
       const slot = slotForArtist(artistId);
+      const discoveredName = discoveryNames.get(artistId);
       return {
         id: artistId,
-        name:
-          slot?.artistName ||
-          lineupNames.get(artistId) ||
-          discoveryNames.get(artistId) ||
-          artistId,
+        name: [discoveredName, slot?.artistName]
+          .find((name) => name && !isInternalArtistId(name)) ||
+          resolveArtistName(artistId),
         status: scheduleStatusFor(artistId),
         startTime: slot?.startTime,
         stageLabel: slot?.stageLabel,
@@ -108,7 +132,19 @@ export function LineupConflictCenter({
       if (b.startMinutes != null) return 1;
       return a.orderFallback - b.orderFallback;
     });
-  }, [bundle, conflicts, djs, ids, scheduleStatusFor, slotForArtist]);
+  }, [bundle, conflicts, ids, locale, resolveArtistName, scheduleStatusFor, slotForArtist]);
+
+  const normalizedSchedule = useMemo(
+    () =>
+      normalizeSelectedSchedule({
+        selectedIds: ids,
+        performances,
+        conflicts,
+        resolveArtistName,
+        dropOffBill: activityLegacyId === TOMORROWLAND_BELGIUM_ACTIVITY_LEGACY_ID,
+      }),
+    [activityLegacyId, conflicts, ids, performances, resolveArtistName],
+  );
 
   const actionable = useMemo(
     () => conflicts.filter(isActionable),
@@ -274,6 +310,12 @@ export function LineupConflictCenter({
               </ol>
               {!hasDecision ? (
                 <div className="lineup-route-sheet__route-tools">
+                  <LineupScheduleSave
+                    locale={locale}
+                    meta={scheduleMeta}
+                    items={normalizedSchedule}
+                    image={festivalImage}
+                  />
                   <button
                     type="button"
                     className="lineup-route-sheet__edit"

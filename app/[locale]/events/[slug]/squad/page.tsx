@@ -5,7 +5,6 @@ import { Breadcrumbs } from '../../../../../components/Breadcrumbs';
 import { FestivalSquadExperience } from '../../../../../components/festival-squad/FestivalSquadExperience';
 import { EventImage } from '../../../../../components/EventImage';
 import { EventLoadError } from '../../../../../components/states/EventLoadError';
-import { EventUnavailableState } from '../../../../../components/states/EventUnavailableState';
 import { getActivityImage, getActivityTitle } from '../../../../../lib/api';
 import { getActivityDateRange } from '../../../../../lib/activity-date';
 import { loadEventPageData } from '../../../../../lib/event-page';
@@ -82,16 +81,14 @@ export default async function EventSquadPage({ params }: SquadPageProps) {
   const t = getMessages(locale);
   const activityResult = await resolveActivityBySlug(slug, locale);
   if (activityResult.status === 'error') return <EventLoadError locale={locale} />;
-  if (activityResult.status === 'not_found' || !activityResult.activity) {
-    return <EventUnavailableState locale={locale} />;
-  }
+  if (activityResult.status === 'not_found' || !activityResult.activity) notFound();
   if (!eventSlugMatches(slug, activityResult.activity, locale)) {
     permanentRedirect(eventSquadPath(locale, activityResult.activity));
   }
   const pageData = await loadEventPageData(locale, slug);
 
   if (pageData === 'error') return <EventLoadError locale={locale} />;
-  if (pageData === 'not_found') return <EventUnavailableState locale={locale} />;
+  if (pageData === 'not_found') notFound();
 
   const { activity, eventTitle, featuredArtists, djs, aiSummary } = pageData;
   const siteUrl = getSiteUrl();

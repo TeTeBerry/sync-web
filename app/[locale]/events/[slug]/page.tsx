@@ -6,7 +6,6 @@ import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '../../../../components/Breadcrumbs';
 import { FestivalSquadPreview } from '../../../../components/festival-squad/FestivalSquadPreview';
 import { EventLoadError } from '../../../../components/states/EventLoadError';
-import { EventUnavailableState } from '../../../../components/states/EventUnavailableState';
 import { EmptyState } from '../../../../components/states/EmptyState';
 import { RelatedEventsError } from '../../../../components/states/RelatedEventsError';
 import { EventDetailActions } from '../../../../components/EventDetailActions';
@@ -66,7 +65,7 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
   const pageData = await loadEventPageData(locale, slug);
 
   if (pageData === 'error') return <EventLoadError locale={locale} />;
-  if (pageData === 'not_found') return <EventUnavailableState locale={locale} />;
+  if (pageData === 'not_found') notFound();
 
   const {
     activity,

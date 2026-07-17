@@ -20,6 +20,7 @@ import type { TravelFaqItem } from './event-travel';
 import { getSiteUrl } from './site';
 import {
   getActivityDateRange,
+  isActivityExpired,
   ymdToSchemaIsoDate,
 } from './activity-date';
 import type { Activity } from './types';
@@ -37,6 +38,39 @@ const OG_LOCALE: Record<Locale, string> = {
   zh: 'zh_CN',
   en: 'en_US',
 };
+
+export function buildSiteJsonLd(locale: Locale) {
+  const messages = getMessages(locale);
+  const homeUrl = absoluteLocalizedUrl(locale);
+  const eventsUrl = absoluteLocalizedUrl(locale, '/events');
+
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': `${siteUrl}/#organization`,
+        name: 'Raven',
+        url: siteUrl,
+        logo: `${siteUrl}/icon-512.png`,
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${siteUrl}/#website`,
+        name: 'Raven',
+        url: homeUrl,
+        description: messages.siteDescription,
+        inLanguage: messages.htmlLang,
+        publisher: { '@id': `${siteUrl}/#organization` },
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: `${eventsUrl}?q={search_term_string}`,
+          'query-input': 'required name=search_term_string',
+        },
+      },
+    ],
+  };
+}
 
 export function absoluteLocalizedUrl(locale: Locale, path = ''): string {
   return `${siteUrl}${localizedPath(locale, path)}`;
@@ -236,8 +270,8 @@ export function buildEventJsonLd(
   const image = absoluteAssetUrl(getActivityImage(localizedActivity));
   const performers = resolveEventPerformers(localizedActivity, djs);
   const { startDate, endDate } = resolveEventSchemaDates(localizedActivity, title);
-
   const locationName = localizedActivity.location || localizedActivity.city;
+  const hasEventCoreData = Boolean(startDate && locationName);
   const eventSchema = {
     '@type': 'Event',
     '@id': eventUrl,
@@ -248,13 +282,10 @@ export function buildEventJsonLd(
     image: image ? [image] : undefined,
     startDate,
     endDate,
-    eventStatus: 'https://schema.org/EventScheduled',
+    eventStatus: isActivityExpired(localizedActivity)
+      ? 'https://schema.org/EventCompleted'
+      : 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    organizer: {
-      '@type': 'Organization',
-      name: 'Raven',
-      url: siteUrl,
-    },
     location: locationName
       ? {
           '@type': 'Place',
@@ -268,16 +299,14 @@ export function buildEventJsonLd(
         }
       : undefined,
     performer: performers.length ? performers : undefined,
-    offers: {
-      '@type': 'Offer',
-      url: localizedActivity.externalUrl ?? eventUrl,
-      availability: 'https://schema.org/InStock',
-    },
   };
 
   return {
     '@context': 'https://schema.org',
-    '@graph': [eventSchema, buildBreadcrumbJsonLd(breadcrumbItems)],
+    '@graph': [
+      ...(hasEventCoreData ? [eventSchema] : []),
+      buildBreadcrumbJsonLd(breadcrumbItems),
+    ],
   };
 }
 
@@ -312,6 +341,7 @@ export function buildPlannerJsonLd(
   const performers = resolveEventPerformers(localizedActivity, djs);
   const { startDate, endDate } = resolveEventSchemaDates(localizedActivity, title);
   const locationName = localizedActivity.location || localizedActivity.city;
+  const hasEventCoreData = Boolean(startDate && locationName);
 
   const eventSchema = {
     '@type': 'Event',
@@ -323,13 +353,10 @@ export function buildPlannerJsonLd(
     image: image ? [image] : undefined,
     startDate,
     endDate,
-    eventStatus: 'https://schema.org/EventScheduled',
+    eventStatus: isActivityExpired(localizedActivity)
+      ? 'https://schema.org/EventCompleted'
+      : 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    organizer: {
-      '@type': 'Organization',
-      name: 'Raven',
-      url: siteUrl,
-    },
     location: locationName
       ? {
           '@type': 'Place',
@@ -343,11 +370,6 @@ export function buildPlannerJsonLd(
         }
       : undefined,
     performer: performers.length ? performers : undefined,
-    offers: {
-      '@type': 'Offer',
-      url: localizedActivity.externalUrl ?? eventUrl,
-      availability: 'https://schema.org/InStock',
-    },
   };
 
   const webPageSchema = {
@@ -367,7 +389,7 @@ export function buildPlannerJsonLd(
 
   const graph: Record<string, unknown>[] = [
     webPageSchema,
-    eventSchema,
+    ...(hasEventCoreData ? [eventSchema] : []),
     buildBreadcrumbJsonLd(breadcrumbItems),
   ];
 
@@ -495,6 +517,7 @@ function buildEventSubpageJsonLd(input: {
   const performers = resolveEventPerformers(localizedActivity, djs);
   const { startDate, endDate } = resolveEventSchemaDates(localizedActivity, title);
   const locationName = localizedActivity.location || localizedActivity.city;
+  const hasEventCoreData = Boolean(startDate && locationName);
 
   const eventSchema = {
     '@type': 'Event',
@@ -506,13 +529,10 @@ function buildEventSubpageJsonLd(input: {
     image: image ? [image] : undefined,
     startDate,
     endDate,
-    eventStatus: 'https://schema.org/EventScheduled',
+    eventStatus: isActivityExpired(localizedActivity)
+      ? 'https://schema.org/EventCompleted'
+      : 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    organizer: {
-      '@type': 'Organization',
-      name: 'Raven',
-      url: siteUrl,
-    },
     location: locationName
       ? {
           '@type': 'Place',
@@ -526,11 +546,6 @@ function buildEventSubpageJsonLd(input: {
         }
       : undefined,
     performer: performers.length ? performers : undefined,
-    offers: {
-      '@type': 'Offer',
-      url: localizedActivity.externalUrl ?? eventUrl,
-      availability: 'https://schema.org/InStock',
-    },
   };
 
   const webPageSchema = {
@@ -550,7 +565,7 @@ function buildEventSubpageJsonLd(input: {
 
   const graph: Record<string, unknown>[] = [
     webPageSchema,
-    eventSchema,
+    ...(hasEventCoreData ? [eventSchema] : []),
     buildBreadcrumbJsonLd(breadcrumbItems),
   ];
 
