@@ -23,7 +23,6 @@ import { trackLineupDiscovery } from '../../lib/lineup-analytics';
 import { getLineupClashCopy } from '../../lib/lineup-clash-copy';
 import { LineupScheduleBadge } from './LineupScheduleBadge';
 import { LineupAiDiscoveryScene } from './LineupAiDiscoveryScene';
-import { LineupSelectionBar } from './LineupSelectionBar';
 
 export type LineupMapLabels = {
   flowEyebrow: string;
@@ -72,12 +71,6 @@ type LineupMapSceneProps = {
     weekend?: 'w1' | 'w2';
     djs: ScheduleDj[];
     atmosphere?: FestivalAtmosphere;
-  };
-  /** A quiet recap belongs after the route, never before the night's entrance. */
-  journeySelection?: {
-    hint: string;
-    count: string;
-    clear: string;
   };
 };
 
@@ -312,7 +305,6 @@ export function LineupMapScene({
   scheduleAware = false,
   progressive = false,
   journeyDiscovery,
-  journeySelection,
 }: LineupMapSceneProps) {
   const isFlow = mode === 'flow';
   const title = isFlow
@@ -596,14 +588,6 @@ export function LineupMapScene({
               );
             })}
             </div>
-            {journeySelection ? (
-              <LineupSelectionBar
-                locale={locale}
-                hint={journeySelection.hint}
-                countLabel={journeySelection.count}
-                clearLabel={journeySelection.clear}
-              />
-            ) : null}
           </div>
         ) : (
           discoveryBody

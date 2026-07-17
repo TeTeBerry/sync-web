@@ -162,7 +162,6 @@ export function LineupExperience({
                 djs,
                 atmosphere,
               }}
-              journeySelection={labels.selection}
             />
           ) : (
             <>
@@ -173,14 +172,6 @@ export function LineupExperience({
                 djs={djs}
                 atmosphere={atmosphere}
               />
-              <div className="container lineup-experience-page__route-recap">
-                <LineupSelectionBar
-                  locale={locale}
-                  hint={labels.selection.hint}
-                  countLabel={labels.selection.count}
-                  clearLabel={labels.selection.clear}
-                />
-              </div>
             </>
           )}
 
@@ -220,6 +211,12 @@ export function LineupExperience({
             locale={locale}
             atmosphere={atmosphere}
             festivalImage={image}
+          />
+          <LineupSelectionBar
+            locale={locale}
+            hint={labels.selection.hint}
+            countLabel={labels.selection.count}
+            clearLabel={labels.selection.clear}
           />
         </div>
       </LineupDiscoveryProvider>

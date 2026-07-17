@@ -44,11 +44,11 @@ export function LineupSelectionBar({
     : formatClashTemplate(copy.routeCalm, { count });
 
   return (
-    <div
+    <aside
       className={`lineup-selection-bar lineup-selection-bar--active${hasIssues ? ' lineup-selection-bar--clash' : ''}`}
-      role="status"
-      aria-live="polite"
+      aria-label={copy.myLineup}
     >
+      <span className="lineup-selection-bar__glow" aria-hidden="true" />
       <div className="lineup-selection-bar__copy">
         <p className="lineup-selection-bar__title">{copy.myLineup}</p>
         <p className="lineup-selection-bar__meta">
@@ -76,6 +76,6 @@ export function LineupSelectionBar({
           {clearLabel}
         </button>
       </div>
-    </div>
+    </aside>
   );
 }

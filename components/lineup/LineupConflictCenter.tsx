@@ -50,6 +50,7 @@ export function LineupConflictCenter({
     resolveConflict,
     ids,
     removeArtist,
+    clear,
     scheduleStatusFor,
     slotForArtist,
   } = useLineupSelection();
@@ -273,6 +274,17 @@ export function LineupConflictCenter({
                   >
                     {editingRoute ? copy.doneEditingRoute : copy.editRoute}
                   </button>
+                  {editingRoute ? (
+                    <button
+                      type="button"
+                      className="lineup-route-sheet__clear"
+                      onClick={() => {
+                        if (window.confirm(copy.clearRouteConfirm)) clear();
+                      }}
+                    >
+                      {copy.clearRoute}
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
             </section>

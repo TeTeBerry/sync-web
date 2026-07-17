@@ -28,6 +28,8 @@ const zh = {
   nightHolding: '这些名字，已经是今晚的样子。',
   editRoute: '轻轻调整',
   doneEditingRoute: '好了',
+  clearRoute: '清除路线',
+  clearRouteConfirm: '要清除今晚路线里的所有名字吗？',
   remainingMoments: '夜还长 · 还有 {count} 个',
   nextMoment: '下一个',
   showDetails: '看看时间',
@@ -125,6 +127,8 @@ const en = {
   nightHolding: 'These names already shape the night.',
   editRoute: 'Tune lightly',
   doneEditingRoute: 'Done',
+  clearRoute: 'Clear route',
+  clearRouteConfirm: 'Clear every artist from tonight’s route?',
   remainingMoments: 'The night continues · {count} more',
   nextMoment: 'Next',
   showDetails: 'See the times',
@@ -222,6 +226,8 @@ export type LineupClashCopy = {
   nightHolding: string;
   editRoute: string;
   doneEditingRoute: string;
+  clearRoute: string;
+  clearRouteConfirm: string;
   remainingMoments: string;
   nextMoment: string;
   showDetails: string;
