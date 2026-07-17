@@ -24,6 +24,7 @@ import {
   ymdToSchemaIsoDate,
 } from './activity-date';
 import type { Activity } from './types';
+import { getFestivalOfficialData } from './festival-officials';
 
 const siteUrl = getSiteUrl();
 
@@ -206,6 +207,54 @@ function resolveEventPerformers(
   }));
 }
 
+function buildEventCommercialSchema(activity: Activity) {
+  const official = getFestivalOfficialData(activity);
+  const verifiedOffers = activity.ticketOffers
+    ?.map((offer) => {
+      const url = offer.url?.trim();
+      const hasPrice =
+        offer.price != null &&
+        Number.isFinite(offer.price) &&
+        offer.price > 0 &&
+        Boolean(offer.currency?.trim());
+      if (!url && !hasPrice) return null;
+
+      return {
+        '@type': 'Offer',
+        ...(offer.name ? { name: offer.name } : {}),
+        ...(url ? { url } : {}),
+        ...(hasPrice ? { price: offer.price, priceCurrency: offer.currency } : {}),
+        ...(offer.validFrom ? { validFrom: offer.validFrom } : {}),
+        ...(offer.validThrough ? { validThrough: offer.validThrough } : {}),
+      };
+    })
+    .filter(Boolean);
+  const ticketUrl = activity.externalUrl?.trim() || official?.ticketUrl;
+
+  return {
+    ...(official?.officialUrl ? { sameAs: [official.officialUrl] } : {}),
+    ...(official?.organizer
+      ? {
+          organizer: {
+            '@type': 'Organization',
+            name: official.organizer,
+            url: official.officialUrl || undefined,
+          },
+        }
+      : {}),
+    ...(verifiedOffers?.length
+      ? { offers: verifiedOffers }
+      : ticketUrl
+        ? {
+            offers: {
+              '@type': 'Offer',
+              url: ticketUrl,
+            },
+          }
+        : {}),
+  };
+}
+
 function toIsoDate(value?: string, title?: string): string | undefined {
   if (!value) return undefined;
   const explicitDate = value.match(/\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/);
@@ -293,12 +342,15 @@ export function buildEventJsonLd(
           address: {
             '@type': 'PostalAddress',
             addressLocality: localizedActivity.city,
-            addressCountry: localizedActivity.area,
+            addressCountry:
+              getFestivalOfficialData(localizedActivity)?.countryCode ??
+              localizedActivity.area,
             streetAddress: localizedActivity.location,
           },
         }
       : undefined,
     performer: performers.length ? performers : undefined,
+    ...buildEventCommercialSchema(localizedActivity),
   };
 
   return {
@@ -364,12 +416,15 @@ export function buildPlannerJsonLd(
           address: {
             '@type': 'PostalAddress',
             addressLocality: localizedActivity.city,
-            addressCountry: localizedActivity.area,
+            addressCountry:
+              getFestivalOfficialData(localizedActivity)?.countryCode ??
+              localizedActivity.area,
             streetAddress: localizedActivity.location,
           },
         }
       : undefined,
     performer: performers.length ? performers : undefined,
+    ...buildEventCommercialSchema(localizedActivity),
   };
 
   const webPageSchema = {
@@ -540,12 +595,15 @@ function buildEventSubpageJsonLd(input: {
           address: {
             '@type': 'PostalAddress',
             addressLocality: localizedActivity.city,
-            addressCountry: localizedActivity.area,
+            addressCountry:
+              getFestivalOfficialData(localizedActivity)?.countryCode ??
+              localizedActivity.area,
             streetAddress: localizedActivity.location,
           },
         }
       : undefined,
     performer: performers.length ? performers : undefined,
+    ...buildEventCommercialSchema(localizedActivity),
   };
 
   const webPageSchema = {

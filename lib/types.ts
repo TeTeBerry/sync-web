@@ -31,6 +31,15 @@ export type Activity = {
   lineupPublished?: boolean;
   travelGuideSupported?: boolean;
   externalUrl?: string;
+  /** Verified ticket offers supplied by the activity catalog; omit when unavailable. */
+  ticketOffers?: Array<{
+    name?: string;
+    url?: string;
+    price?: number;
+    currency?: string;
+    validFrom?: string;
+    validThrough?: string;
+  }>;
   infoSource?: string;
   infoUpdatedAt?: string;
   updatedAt?: string;

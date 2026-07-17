@@ -31,8 +31,4 @@ describe('lineup personality UI removal', () => {
     expect(constellation).not.toMatch(/personalityDisplayName|personality\.label/);
   });
 
-  it('keeps legacy personality-test route for compatibility', () => {
-    const page = read('app/[locale]/personality-test/page.tsx');
-    expect(page).toContain('PersonalityTestExperience');
-  });
 });

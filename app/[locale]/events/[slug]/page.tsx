@@ -12,6 +12,7 @@ import { EventDetailActions } from '../../../../components/EventDetailActions';
 import { TasteAwareLineup } from '../../../../components/TasteAwareLineup';
 import { TrackedLink } from '../../../../components/TrackedLink';
 import { EventImage } from '../../../../components/EventImage';
+import { OfficialFestivalLinks } from '../../../../components/OfficialFestivalLinks';
 import {
   fetchActivities,
   getActivity,
@@ -235,6 +236,8 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
           />
         </div>
       </section>
+
+      <OfficialFestivalLinks activity={activity} locale={locale} />
 
       {/* ── Plan chapter — arrival confidence into journey ─────────────────── */}
       <section

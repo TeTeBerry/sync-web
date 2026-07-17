@@ -192,6 +192,19 @@ function normalizeActivity(raw: Activity): Activity {
     lineupPublished: raw.lineupPublished,
     travelGuideSupported: raw.travelGuideSupported,
     externalUrl: getString(raw.externalUrl),
+    ticketOffers: Array.isArray(raw.ticketOffers)
+      ? raw.ticketOffers
+          .filter((offer) => offer && typeof offer === 'object')
+          .map((offer) => ({
+            name: getString((offer as { name?: unknown }).name),
+            url: getString((offer as { url?: unknown }).url),
+            price: getNumber((offer as { price?: unknown }).price),
+            currency: getString((offer as { currency?: unknown }).currency),
+            validFrom: getString((offer as { validFrom?: unknown }).validFrom),
+            validThrough: getString((offer as { validThrough?: unknown }).validThrough),
+          }))
+          .filter((offer) => Boolean(offer.url || offer.price != null))
+      : undefined,
     infoSource: getString(raw.infoSource),
     infoUpdatedAt: getString(raw.infoUpdatedAt),
     updatedAt: getString(raw.updatedAt),

@@ -39,7 +39,6 @@ Sessions and cookies are **per hostname**. Users signing in on the CN domain do 
 | `AUTH_MEMORY_FALLBACK` | `true` forces in-memory auth (dev only; not for prod). |
 | `WAITLIST_SOCIAL_PROOF_MIN` | Social-proof threshold override. |
 | `WAITLIST_HERO_PROOF_MIN` | Hero proof threshold override. |
-| `SITEMAP_INCLUDE_PLAN` | Set `true` to include plan URLs in sitemap. |
 | `TEMP_AUTH_LOGIN_IP_MAX` | Login rate limit per IP (default `20`). |
 | `TEMP_AUTH_LOGIN_IP_WINDOW_MS` | IP window ms (default `900000`). |
 | `TEMP_AUTH_LOGIN_EMAIL_MAX` | Per-email login max (default `10`). |

@@ -42,15 +42,17 @@ export const revalidate = 300;
 
 type SortOption = 'popular' | 'upcoming' | 'name';
 
+type EventsSearchParams = {
+  q?: string;
+  country?: string;
+  continent?: string;
+  sort?: string;
+  mood?: string;
+};
+
 type EventsPageProps = {
   params: Promise<{ locale: string }>;
-  searchParams?: Promise<{
-    q?: string;
-    country?: string;
-    continent?: string;
-    sort?: string;
-    mood?: string;
-  }>;
+  searchParams?: Promise<EventsSearchParams>;
 };
 
 function isSortOption(value: string | undefined): value is SortOption {
@@ -133,11 +135,13 @@ function featuredReason(
   return labels.season;
 }
 
-export async function generateMetadata({ params }: EventsPageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: EventsPageProps): Promise<Metadata> {
   const { locale: rawLocale } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
   const t = getMessages(locale);
   const url = absoluteLocalizedUrl(locale, '/events');
+  const queryParams = (await searchParams) ?? {};
+  const hasFilterParams = Object.values(queryParams).some((value) => Boolean(value?.trim()));
 
   return {
     title: { absolute: t.events.seoTitle },
@@ -145,6 +149,10 @@ export async function generateMetadata({ params }: EventsPageProps): Promise<Met
     alternates: {
       canonical: url,
       languages: absoluteAlternateLanguages('/events'),
+    },
+    robots: {
+      index: !hasFilterParams,
+      follow: true,
     },
     ...buildSocialMetadata({
       title: t.events.seoTitle,
