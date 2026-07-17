@@ -6,6 +6,9 @@ import {
   resolvePlatformClientIp,
   resolveRavenRateKey,
 } from '../../../../lib/raven-proxy-identity';
+import { auth } from '../../../../auth';
+import { isSecureRequest, rejectUnsafeMutation } from '../../../../lib/auth/http';
+import { mintNestTokenForAuthUser, RAVEN_BACKEND_TOKEN_COOKIE, setRavenBackendTokenCookie } from '../../../../lib/auth/raven-backend-token';
 
 type RavenProxyContext = {
   params: Promise<{ path: string[] }>;
@@ -27,7 +30,12 @@ function buildUpstreamHeaders(request: NextRequest, rateKey: string): Headers {
 }
 
 async function proxyRavenRequest(request: NextRequest, context: RavenProxyContext) {
-  const { path } = await context.params;
+  const requestedPath = (await context.params).path;
+  if (requestedPath.at(-1) === 'claim') {
+    const blocked = rejectUnsafeMutation(request);
+    if (blocked) return blocked;
+  }
+  const path = requestedPath;
   const upstreamPath = path.map(encodeURIComponent).join('/');
   const incomingUrl = new URL(request.url);
   const upstreamUrl = `${getApiBase()}/raven/${upstreamPath}${incomingUrl.search}`;
@@ -35,9 +43,18 @@ async function proxyRavenRequest(request: NextRequest, context: RavenProxyContex
   const body = method === 'GET' || method === 'HEAD' ? undefined : await request.text();
   const { key: rateKey, isNew } = resolveRavenRateKey(request);
 
+  const session = await auth();
+  const existingToken = request.cookies.get(RAVEN_BACKEND_TOKEN_COOKIE)?.value;
+  const minted = !existingToken && session?.user?.id && session.user.email
+    ? await mintNestTokenForAuthUser({ id: session.user.id, email: session.user.email, name: session.user.name, image: session.user.image })
+    : null;
+  if (minted && 'error' in minted) return minted.error;
+  const headersForUpstream = buildUpstreamHeaders(request, rateKey);
+  const backendToken = existingToken ?? (minted && 'token' in minted ? minted.token : undefined);
+  if (backendToken) headersForUpstream.set('authorization', `Bearer ${backendToken}`);
   const response = await fetch(upstreamUrl, {
     method,
-    headers: buildUpstreamHeaders(request, rateKey),
+    headers: headersForUpstream,
     body,
     cache: 'no-store',
   });
@@ -61,6 +78,9 @@ async function proxyRavenRequest(request: NextRequest, context: RavenProxyContex
       secure: process.env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 24 * 365,
     });
+  }
+  if (minted && 'token' in minted) {
+    setRavenBackendTokenCookie(outbound, minted.token, isSecureRequest(request));
   }
 
   return outbound;

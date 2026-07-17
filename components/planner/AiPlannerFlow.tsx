@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -25,6 +26,7 @@ import {
   getRavenFestivalWeather,
   getRavenPlanGenerationJob,
   getSavedRavenPlan,
+  claimRavenPlan,
   isRavenApiStatusError,
   type RavenPlaceSuggestion,
   type RavenPlanGenerationPayload,
@@ -33,6 +35,7 @@ import {
   type ScheduleDj,
   type SchedulePerformance,
 } from "../../lib/api";
+import { useAuthSession } from "../../hooks/useAuthSession";
 import { getMessages, type Locale } from "../../lib/i18n";
 import { readLineupSelection } from "../../lib/lineup-selection";
 import { resolveSelectedArtistNames } from "../../lib/planner-selection";
@@ -459,6 +462,37 @@ export function AiPlannerFlow({
 
   const [preferences, setPreferences] =
     useState<PlannerPreferences>(DEFAULT_PREFERENCES);
+  const auth = useAuthSession();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const saveJourney = useCallback(async () => {
+    if (!activeGuideId) return;
+    if (!auth.signedIn) {
+      window.localStorage.setItem('raven_pending_journey_claim', activeGuideId);
+      const callbackUrl = `${pathname}?guideId=${encodeURIComponent(activeGuideId)}`;
+      router.push(`/${locale}/auth/sign-in?intent=journey&callbackUrl=${encodeURIComponent(callbackUrl)}`);
+      return;
+    }
+    await claimRavenPlan(activeGuideId);
+    window.location.href = returnHref;
+  }, [activeGuideId, auth.signedIn, locale, pathname, returnHref, router]);
+
+  useEffect(() => {
+    if (!auth.signedIn || !activeGuideId) return;
+    if (window.localStorage.getItem('raven_pending_journey_claim') !== activeGuideId) return;
+    let active = true;
+    void claimRavenPlan(activeGuideId)
+      .then(() => {
+        if (!active) return;
+        window.localStorage.removeItem('raven_pending_journey_claim');
+        window.location.href = returnHref;
+      })
+      .catch(() => {
+        // Keep the journey open so the traveler can retry rather than losing it.
+      });
+    return () => { active = false; };
+  }, [activeGuideId, auth.signedIn, returnHref]);
 
   useEffect(() => {
     if (phase !== "result") {
@@ -1539,9 +1573,7 @@ export function AiPlannerFlow({
           squadHref={eventSquadPath(locale, activity)}
           eventLegacyId={activity.legacyId}
           weather={weather}
-          onSave={() => {
-            window.location.href = returnHref;
-          }}
+          onSave={() => { void saveJourney(); }}
           onEditPreferences={goBack}
           onRebuild={startGeneration}
           isRevealing={showJourneyReveal}

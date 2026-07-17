@@ -290,24 +290,6 @@ export function FestivalSquadExperience({
     }
   }
 
-  async function handleEmailLogin(email: string) {
-    const returnUrl =
-      typeof window !== 'undefined'
-        ? `${window.location.pathname}${window.location.search}${window.location.hash}`
-        : null;
-    const result = await auth.login({
-      email,
-      returnUrl,
-      intendedAction: pendingAction,
-    });
-    const authUserId = result.session.user.id;
-    void authUserId;
-    setLoginOpen(false);
-    const action = result.intendedAction ?? pendingAction;
-    setPendingAction(null);
-    if (action) resumeAction(action);
-  }
-
   if (!ready) {
     return (
       <div className="squad-page__state" role="status">
@@ -419,7 +401,6 @@ export function FestivalSquadExperience({
           setLoginOpen(false);
           setPendingAction(null);
         }}
-        onSubmitEmail={handleEmailLogin}
         intendedAction={pendingAction}
       />
 

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionFromCookie } from '../../../../lib/auth/service';
 import {
   ensureCsrfCookie,
   isSecureRequest,
-  withAuthCookies,
 } from '../../../../lib/auth/http';
-import { RAVEN_SESSION_COOKIE } from '../../../../lib/auth/sessions';
+import { auth } from '../../../../auth';
+import { buildAuthCapabilities, capabilitiesForAnonymous } from '../../../../lib/auth/capabilities';
 
 export const runtime = 'nodejs';
 
@@ -14,16 +13,14 @@ export const runtime = 'nodejs';
  * Mutations (login/logout/limits) require the CSRF cookie minted here.
  */
 export async function GET(request: NextRequest) {
-  const rawToken = request.cookies.get(RAVEN_SESSION_COOKIE)?.value;
-  const session = await getSessionFromCookie(rawToken);
+  const session = await auth();
+  const payload = session?.user?.email && session.user.id
+    ? { signedIn: true as const, user: { id: session.user.id, email: session.user.email, emailVerified: true, emailVerifiedAt: null }, capabilities: buildAuthCapabilities(new Date().toISOString()) }
+    : { signedIn: false as const, user: null, capabilities: capabilitiesForAnonymous() };
   const secure = isSecureRequest(request);
-  const response = NextResponse.json(session);
+  const response = NextResponse.json(payload);
 
   ensureCsrfCookie(request, response, secure);
-
-  if (!session.signedIn && rawToken) {
-    return withAuthCookies(response, { clearSession: true, secure });
-  }
 
   return response;
 }

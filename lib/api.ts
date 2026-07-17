@@ -1,5 +1,6 @@
 import type { Activity, ActivityListPage } from "./types";
 import { isActivityExpired } from "./activity-date";
+import { ensureAuthCsrf } from "./auth/client";
 
 const PRODUCTION_API_BASE =
   "https://sync-backend-prd-269371-9-1442514260.sh.run.tcloudbase.com/api";
@@ -548,6 +549,14 @@ export async function getSavedRavenPlan(
   if (!guideId.trim()) return null;
   return ravenApiRequest<RavenSavedPlan | null>(
     `/raven/plans/${encodeURIComponent(guideId)}`,
+  );
+}
+
+export async function claimRavenPlan(guideId: string) {
+  const csrf = await ensureAuthCsrf();
+  return ravenApiRequest<RavenSavedPlan>(
+    `/raven/plans/${encodeURIComponent(guideId)}/claim`,
+    { method: 'POST', headers: { 'x-csrf-token': csrf } },
   );
 }
 

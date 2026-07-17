@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { Bookmark, BookmarkCheck } from 'lucide-react';
 import { track } from '@vercel/analytics';
 import { ActionSuccessBanner } from './states/ActionSuccessBanner';
 import { useBookmarks } from '../hooks/useBookmarks';
+import { useAuthSession } from '../hooks/useAuthSession';
+import { ensureAuthCsrf } from '../lib/auth/client';
 import type { Locale } from '../lib/i18n';
 
 type BookmarkButtonProps = {
@@ -34,7 +37,10 @@ export function BookmarkButton({
   eventsPath,
   planPath,
 }: BookmarkButtonProps) {
-  const { hydrated, isBookmarked, toggleBookmark } = useBookmarks();
+  const { bookmarks, hydrated, isBookmarked, toggleBookmark } = useBookmarks();
+  const auth = useAuthSession();
+  const router = useRouter();
+  const pathname = usePathname();
   const [showSuccess, setShowSuccess] = useState(false);
   const saved = hydrated && isBookmarked(legacyId);
 
@@ -44,11 +50,46 @@ export function BookmarkButton({
     return () => clearTimeout(timer);
   }, [showSuccess]);
 
+  useEffect(() => {
+    if (!auth.signedIn || !hydrated) return;
+    const pending = Number(window.localStorage.getItem('raven_pending_festival_favorite'));
+    if (pending !== legacyId || isBookmarked(legacyId)) return;
+    void saveFavorite();
+  // The callback is intentionally replayed only for the matching festival.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.signedIn, hydrated, legacyId]);
+
+  async function saveFavorite() {
+    const added = toggleBookmark(legacyId);
+    const nextIds = added
+      ? [...bookmarks, legacyId]
+      : [...bookmarks].filter((id) => id !== legacyId);
+    try {
+      const csrf = await ensureAuthCsrf();
+      const response = await fetch('/api/me/profile', {
+        method: 'PATCH', credentials: 'same-origin',
+        headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
+        body: JSON.stringify({ favoriteFestivalIds: nextIds.map(String) }),
+      });
+      if (!response.ok) throw new Error('favorite failed');
+      window.localStorage.removeItem('raven_pending_festival_favorite');
+      if (added) setShowSuccess(true); else setShowSuccess(false);
+    } catch {
+      toggleBookmark(legacyId);
+    }
+  }
+
   function handleClick(event: React.MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
 
-    const added = toggleBookmark(legacyId);
+    if (!auth.signedIn) {
+      window.localStorage.setItem('raven_pending_festival_favorite', String(legacyId));
+      router.push(`/${locale}/auth/sign-in?intent=profile&callbackUrl=${encodeURIComponent(pathname)}`);
+      return;
+    }
+    void saveFavorite();
+    const added = !saved;
     track('event_bookmark_toggle', {
       event: String(legacyId),
       action: added ? 'add' : 'remove',
@@ -56,11 +97,7 @@ export function BookmarkButton({
       source: variant,
     });
 
-    if (added) {
-      setShowSuccess(true);
-    } else {
-      setShowSuccess(false);
-    }
+    if (!added) setShowSuccess(false);
   }
 
   return (

@@ -2,7 +2,6 @@
 
 import { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
-import { EmailLoginForm } from './EmailLoginForm';
 import { trackAuthEvent } from '../../lib/auth/analytics';
 import type { AuthIntendedAction } from '../../lib/auth/types';
 import { useFocusTrap } from '../../lib/festival-squad/use-focus-trap';
@@ -11,7 +10,6 @@ import { getMessages, type Locale } from '../../lib/i18n';
 type EmailLoginDialogProps = {
   open: boolean;
   onClose: () => void;
-  onSubmitEmail: (email: string) => Promise<void>;
   intendedAction?: AuthIntendedAction | null;
   locale: Locale;
 };
@@ -25,7 +23,6 @@ type EmailLoginDialogProps = {
 export function EmailLoginDialog({
   open,
   onClose,
-  onSubmitEmail,
   intendedAction,
   locale,
 }: EmailLoginDialogProps) {
@@ -91,7 +88,11 @@ export function EmailLoginDialog({
           </button>
         </div>
         <div className="squad-dialog__body">
-          <EmailLoginForm locale={locale} onSubmit={onSubmitEmail} />
+          <p>Save your festival profile and meet the people heading to the same place.</p>
+          <button type="button" className="button auth-email-form__submit" onClick={() => {
+            const callback = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+            window.location.assign(`/${locale}/auth/sign-in?intent=squad&callbackUrl=${encodeURIComponent(callback)}`);
+          }}>Continue with Google</button>
         </div>
       </div>
     </div>

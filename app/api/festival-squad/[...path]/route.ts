@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApiBase } from '../../../../lib/api';
 import {
-  getClientIp,
   isSecureRequest,
   rejectUnsafeMutation,
 } from '../../../../lib/auth/http';
 import {
-  mintNestAccessToken,
+  mintNestTokenForAuthUser,
   RAVEN_BACKEND_TOKEN_COOKIE,
   setRavenBackendTokenCookie,
 } from '../../../../lib/auth/raven-backend-token';
-import { getSessionFromCookie } from '../../../../lib/auth/service';
-import { RAVEN_SESSION_COOKIE } from '../../../../lib/auth/sessions';
+import { auth } from '../../../../auth';
 
 export const runtime = 'nodejs';
 export { RAVEN_BACKEND_TOKEN_COOKIE };
@@ -19,10 +17,8 @@ export { RAVEN_BACKEND_TOKEN_COOKIE };
 async function resolveBackendToken(
   request: NextRequest,
 ): Promise<{ token: string; minted?: string } | { error: NextResponse }> {
-  const session = await getSessionFromCookie(
-    request.cookies.get(RAVEN_SESSION_COOKIE)?.value,
-  );
-  if (!session.signedIn || !session.user?.email) {
+  const session = await auth();
+  if (!session?.user?.email || !session.user.id) {
     return {
       error: NextResponse.json({ message: 'Sign in required.' }, { status: 401 }),
     };
@@ -31,11 +27,7 @@ async function resolveBackendToken(
   const existing = request.cookies.get(RAVEN_BACKEND_TOKEN_COOKIE)?.value;
   if (existing) return { token: existing };
 
-  // Migrate older Raven sessions that predate the Nest JWT cookie.
-  const nest = await mintNestAccessToken({
-    email: session.user.email,
-    clientIp: getClientIp(request),
-  });
+  const nest = await mintNestTokenForAuthUser({ id: session.user.id, email: session.user.email, name: session.user.name, image: session.user.image });
   if ('error' in nest) {
     return {
       error: NextResponse.json(

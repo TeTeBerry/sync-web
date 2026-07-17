@@ -20,6 +20,7 @@ type SaveState = 'idle' | 'saving' | 'saved-local' | 'saved-cloud' | 'error';
 type SchedulePersistenceValue = {
   saved: SavedLineupSchedule | null;
   state: SaveState;
+  needsSignIn: boolean;
   save: () => Promise<void>;
 };
 
@@ -108,7 +109,7 @@ export function LineupSchedulePersistenceProvider({
     }
   }, [activityLegacyId, auth.signedIn, clashState, hydrated, ids, selectionScope]);
 
-  const value = useMemo(() => ({ saved, state, save }), [saved, save, state]);
+  const value = useMemo(() => ({ saved, state, needsSignIn: !auth.signedIn, save }), [auth.signedIn, saved, save, state]);
   return <SchedulePersistenceContext.Provider value={value}>{children}</SchedulePersistenceContext.Provider>;
 }
 

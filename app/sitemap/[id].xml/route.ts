@@ -6,6 +6,8 @@ import {
 } from '../../../lib/sitemap';
 
 export const revalidate = 86_400;
+// Shards depend on the runtime segment and remote festival catalog.
+export const dynamic = 'force-dynamic';
 
 type SitemapShardRouteProps = {
   params: Promise<Record<string, string | string[] | undefined>>;
@@ -13,9 +15,10 @@ type SitemapShardRouteProps = {
 
 export async function GET(
   _request: Request,
-  { params }: SitemapShardRouteProps,
+  context?: SitemapShardRouteProps,
 ): Promise<Response> {
-  const rawId = (await params).id;
+  // Static analysis may probe a dynamic route without its segment context.
+  const rawId = context ? (await context.params).id : undefined;
   if (Array.isArray(rawId)) {
     return new NextResponse('Not Found', { status: 404 });
   }

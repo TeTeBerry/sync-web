@@ -69,6 +69,22 @@ export default async function PrivacyPage({ params }: PrivacyPageProps) {
                 <p className="legal-page__block-body">{section.body}</p>
               </section>
             ))}
+            <section className="legal-page__block">
+              <h2>What Raven collects</h2>
+              <p>We collect the email and minimal sign-in profile supplied by Google or an email magic link, plus the schedules, plans, favorites, Squad profile and music preferences you choose to save. Home airport and city are optional; travel origin stays in the current plan unless you choose “Remember my home airport”. We do not ask for date of birth, gender, phone number, contacts, precise GPS, browser fingerprinting, or your Google Calendar, Drive, Gmail, or YouTube data.</p>
+            </section>
+            <section className="legal-page__block">
+              <h2>How Raven uses it</h2>
+              <p>We use this information to provide saved journeys, cross-device sync, festival matching and the features you request. Plan inputs may be sent to [AI providers] to generate a requested plan. We prefer structured plan inputs over retaining full free-text prompts.</p>
+            </section>
+            <section className="legal-page__block">
+              <h2>Service providers, analytics and international processing</h2>
+              <p>Raven uses Google for optional authentication and may use Vercel, [Analytics providers], [AI providers], email, hosting, maps, ticketing, flight or hotel providers where necessary. We only share data with service providers when necessary to operate Raven, provide requested features, secure the service, or comply with legal obligations. Data may be processed in [Hosting regions].</p>
+            </section>
+            <section className="legal-page__block">
+              <h2>Retention, cookies and your choices</h2>
+              <p>Necessary session cookies keep you signed in. Any non-essential analytics consent is handled according to your region. Saved data is retained for [Data retention period] unless you delete your account. You can permanently delete your account in Settings; questions can be sent to [Contact email].</p>
+            </section>
           </div>
         </div>
       </section>
