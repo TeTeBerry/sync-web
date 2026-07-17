@@ -4541,6 +4541,7 @@ h3 {
   backdrop-filter: blur(18px);
   isolation: isolate;
   transition: transform var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+  display: none;
 }
 
 .lineup-selection-bar:hover {
@@ -4689,6 +4690,7 @@ h3 {
     padding: 12px 14px;
     border-radius: 18px;
     box-shadow: 0 14px 42px rgba(0, 0, 0, 0.42);
+    display: grid;
   }
 
   .lineup-selection-bar__title {
