@@ -11,7 +11,6 @@ import { SelectableArtistName } from './SelectableArtistName';
 import { useLineupSelection } from './LineupSelectionContext';
 import { useLineupDiscovery } from './LineupDiscoveryContext';
 import { timetableSlotSelectionId } from '../../lib/lineup-selection';
-import { MISSING_GENRE_LABEL } from '../../lib/lineup-genre';
 import { formatLineupTimeRange } from '../../lib/lineup-timetable';
 import { isGenrePlaceholder } from '../../lib/lineup-display';
 import {
@@ -168,7 +167,7 @@ function FlowStopRow({
       <span className="lineup-flow__place">
         {[
           stop.stageLabel,
-          stop.genreLabel && stop.genreLabel !== MISSING_GENRE_LABEL && !isGenrePlaceholder(stop.genreLabel)
+          stop.genreLabel && !isGenrePlaceholder(stop.genreLabel)
             ? stop.genreLabel
             : null,
         ]

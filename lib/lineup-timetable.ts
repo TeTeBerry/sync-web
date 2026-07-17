@@ -2,7 +2,6 @@ import type { ActivitySchedule, SchedulePerformance } from './api';
 import {
   formatTimetableGenreLabel,
   genreColorForBroad,
-  MISSING_GENRE_LABEL,
   resolveCatalogGenreDisplay,
   resolveTimetableBroadGenre,
   sanitizeTimetableArtistName,
@@ -59,7 +58,7 @@ function toSlot(
     locale,
   );
   const genreLabel =
-    catalogGenre || formatTimetableGenreLabel(broadGenre) || MISSING_GENRE_LABEL;
+    catalogGenre || formatTimetableGenreLabel(broadGenre);
 
   return {
     artistId: performance.artistId,

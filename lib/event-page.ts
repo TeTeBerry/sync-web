@@ -12,7 +12,7 @@ import {
   countTimetableStats,
   hasLineupTimetable,
 } from "./lineup-timetable";
-import { groupByBroadGenre, otherGenreLabel } from "./lineup-genre";
+import { groupByBroadGenre } from "./lineup-genre";
 import { buildFeaturedArtists, buildStageLabels } from "./lineup-preview";
 import { getActivityContinent } from "./activity-continent";
 import { eventPath, eventSlugMatches, resolveActivityBySlug } from "./event-slug";
@@ -74,9 +74,6 @@ export async function loadEventPageData(
     : null;
   const genreGroups = groupByBroadGenre(djs, locale);
   const genreKeys = [...genreGroups.keys()].sort((a, b) => {
-    const otherLabel = otherGenreLabel(locale);
-    if (a === otherLabel) return 1;
-    if (b === otherLabel) return -1;
     return (
       (genreGroups.get(b)?.djs.length ?? 0) -
       (genreGroups.get(a)?.djs.length ?? 0)

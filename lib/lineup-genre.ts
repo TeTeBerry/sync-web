@@ -1,6 +1,6 @@
 import type { ScheduleDj, SchedulePerformance } from './api';
 import { getMessages, type Locale } from './i18n';
-import { genrePendingLabel, isGenrePlaceholder } from './lineup-display';
+import { isGenrePlaceholder } from './lineup-display';
 
 export const GENRE_BROAD: Record<string, string> = {
   House: 'House',
@@ -120,9 +120,6 @@ const GENRE_LEXICON_HINTS: Array<{ pattern: RegExp; broad: string }> = [
 
 const NAME_GENRE_HINTS = GENRE_LEXICON_HINTS;
 
-export const MISSING_GENRE_LABEL = '—';
-const GENRE_PLACEHOLDER = '风格待补充';
-
 function splitGenreLabelTokens(genreLabel?: string): string[] {
   if (!genreLabel?.trim()) return [];
   return genreLabel
@@ -218,7 +215,7 @@ export function resolveTimetableBroadGenre(performance: SchedulePerformance): st
 }
 
 export function formatTimetableGenreLabel(broadGenre: string): string {
-  return broadGenre.trim() || MISSING_GENRE_LABEL;
+  return broadGenre.trim();
 }
 
 function escapeRegExp(value: string): string {
@@ -268,7 +265,12 @@ export function groupByBroadGenre(
     if (seen.has(key)) continue;
     seen.add(key);
 
-    const broad = genreBroadKey(dj, locale);
+    const broad = resolveBroadGenreFromFields({
+      genre: dj.genre,
+      genreLabel: dj.genreLabel,
+      artistName: dj.name,
+    });
+    if (!broad) continue;
     const entry = groups.get(broad);
     if (entry) {
       entry.djs.push(dj);
