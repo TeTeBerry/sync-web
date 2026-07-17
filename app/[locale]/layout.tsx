@@ -9,7 +9,6 @@ import {
   localizedPath,
   type Locale,
 } from '../../lib/i18n';
-import { getWaitlistCount, getWaitlistSocialProofMin } from '../../lib/waitlist';
 
 type LocaleLayoutProps = {
   children: React.ReactNode;
@@ -27,14 +26,6 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   const locale = rawLocale as Locale;
   const t = getMessages(locale);
   const nextLocale: Locale = locale === 'zh' ? 'en' : 'zh';
-  const waitlistCount = await getWaitlistCount();
-  const waitlistMin = getWaitlistSocialProofMin();
-  const showWaitlistStat =
-    waitlistCount !== null && waitlistCount >= waitlistMin;
-  const formattedWaitlistCount =
-    waitlistCount !== null
-      ? waitlistCount.toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US')
-      : '';
 
   return (
     <div className="site-shell">
@@ -51,10 +42,9 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
             locale={locale}
             nextLocale={nextLocale}
             labels={{
-              howItWorks: t.nav.howItWorks,
-              festivals: t.nav.festivals,
-              waitlist: t.nav.waitlist,
-              language: t.nav.language,
+            howItWorks: t.nav.howItWorks,
+            festivals: t.nav.festivals,
+            language: t.nav.language,
               openMenu: t.nav.openMenu,
               closeMenu: t.nav.closeMenu,
               mainNav: t.nav.mainNav,
@@ -67,19 +57,13 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       <footer className="footer">
         <div className="container footer__inner">
           <div className="footer__brand">
-            <BrandLogo className="brand__logo brand__logo--footer" height={22} />
+          <BrandLogo className="brand__logo brand__logo--footer" height={22} />
           </div>
           <p>{t.footer.tagline}</p>
-          {showWaitlistStat ? (
-            <p className="footer__stat">
-              {t.footer.waitlistStat.replace('{count}', formattedWaitlistCount)}
-            </p>
-          ) : null}
           <nav className="footer__links" aria-label={t.nav.footerNav}>
             <Link href={`${localizedPath(locale)}#discovery-promise`}>{t.nav.howItWorks}</Link>
             <Link href={localizedPath(locale, '/events')}>{t.nav.festivals}</Link>
-            <Link href={localizedPath(locale, '/waitlist')}>{t.nav.waitlist}</Link>
-            <Link href={localizedPath(locale, '/privacy')}>{t.waitlist.privacyPolicy}</Link>
+            <Link href={localizedPath(locale, '/privacy')}>{t.privacy.title}</Link>
           </nav>
         </div>
       </footer>

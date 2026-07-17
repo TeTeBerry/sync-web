@@ -8,10 +8,9 @@ Ship a thin public web surface before mini program approval finishes, then measu
 
 | Route | Purpose | Primary Signal |
 | --- | --- | --- |
-| `/` | Explain value quickly and route users to event browsing or waitlist | CTA click |
+| `/` | Explain value quickly and route users to event browsing or trip planning | CTA click |
 | `/events` | Browse and filter activities | Detail click |
-| `/events/[id]` | Show event info, lineup, and public recruits | Waitlist / crew click |
-| `/waitlist` | Capture early interest via email or external contact flow | Contact intent |
+| `/events/[id]` | Show event info, lineup, and public trip planning | Plan / crew click |
 
 ## P1 Routes
 

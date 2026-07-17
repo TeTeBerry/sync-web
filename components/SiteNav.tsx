@@ -12,7 +12,6 @@ type SiteNavProps = {
   labels: {
     howItWorks: string;
     festivals: string;
-    waitlist: string;
     language: string;
     openMenu: string;
     closeMenu: string;
@@ -36,7 +35,6 @@ export function SiteNav({ locale, nextLocale, labels }: SiteNavProps) {
 
   const links = [
     { href: howItWorksHref, label: labels.howItWorks, secondary: false },
-    { href: localizedPath(locale, '/waitlist'), label: labels.waitlist, secondary: false },
     { href: localizedPath(locale, '/events'), label: labels.festivals, secondary: true },
     { href: localizedPath(nextLocale), label: labels.language, secondary: false },
   ];

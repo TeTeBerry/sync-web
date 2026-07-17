@@ -42,7 +42,7 @@ export function EventDetailActions({
           variant="hero"
           labels={t.states.bookmark}
           eventsPath={localizedPath(locale, '/events')}
-          waitlistPath={`${localizedPath(locale, '/waitlist')}?event=${encodeURIComponent(eventTitle)}`}
+          planPath={planHref}
         />
         {externalUrl ? (
           <a

@@ -8,7 +8,7 @@ Thin Next.js public web surface for validating Raven before the mini program rev
 - Activity list
 - Activity detail
 - Public recruit preview
-- Waitlist / update subscription intent
+- Festival discovery and trip planning
 
 ## Local Dev
 
@@ -43,12 +43,10 @@ Short version for both targets:
 | Variable | Role |
 |----------|------|
 | `API_BASE_URL` | Nest API root (`…/api`) |
-| `DATABASE_URL` or `POSTGRES_URL` | Waitlist + Raven auth Postgres |
+| `DATABASE_URL` or `POSTGRES_URL` | Raven auth/session Postgres |
 | `NEXT_PUBLIC_SITE_URL` | Canonical origin (required on CloudBase; optional on Vercel if `VERCEL_*` fallback is enough) |
 | `TEMP_EMAIL_ONLY_AUTH_ENABLED` (+ `NEXT_PUBLIC_…`) | Email login gate in production |
-| `RESEND_API_KEY` | Optional waitlist email |
-
-Waitlist / auth tables are created on first successful use when Postgres is configured. Vercel Analytics remains enabled on the Vercel deploy.
+Auth/session tables are created on first successful use when Postgres is configured. Vercel Analytics remains enabled on the Vercel deploy.
 
 Backend reads used by the app:
 

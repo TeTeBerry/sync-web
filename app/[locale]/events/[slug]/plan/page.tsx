@@ -100,7 +100,7 @@ export default async function AiPlannerPage({
   const metaLocation = metaLocationParts.join(" · ");
   const detailPath = eventPath(locale, activity);
   const lineupHref = eventLineupPath(locale, activity);
-  const waitlistHref = `${localizedPath(locale, "/waitlist")}?event=${encodeURIComponent(eventTitle)}`;
+  const returnHref = eventLineupPath(locale, activity);
   const landing = buildPlannerLandingData(activity, djs, performances, locale);
   const atmosphere = getFestivalAtmosphere(
     activity,
@@ -147,7 +147,7 @@ export default async function AiPlannerPage({
         djs={djs}
         performances={performances}
         image={activityImage}
-        waitlistHref={waitlistHref}
+        returnHref={returnHref}
         initialRemotePlan={initialRemotePlan}
         initialGuideId={resolvedSearch.guideId ?? null}
         initialOrigin={resolvedSearch.origin?.trim() ?? ""}

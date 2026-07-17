@@ -321,12 +321,9 @@ export default async function EventLineupPage({
       <div className="container">
         <LineupEmptyState
           locale={locale}
-          eventTitle={eventTitle}
-          subscribeEventProperties={subscribeEventProperties}
           labels={{
             title: t.eventDetail.lineupEmptyTitle,
             lead: t.eventDetail.lineupEmptyLead,
-            action: t.eventDetail.lineupEmptyAction,
             browseAction: t.eventDetail.lineupEmptyBrowse,
           }}
         />

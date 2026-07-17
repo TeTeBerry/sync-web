@@ -187,12 +187,12 @@ export default async function CityPage({ params }: CityPageProps) {
           </div>
 
           <div className="city-landing__footer">
-            <p>{t.city.waitlistPrompt}</p>
+            <p>{t.city.allEvents}</p>
             <Link
               className="button"
-              href={`${localizedPath(locale, '/waitlist')}?event=${encodeURIComponent(group.city)}`}
+              href={localizedPath(locale, '/events')}
             >
-              {t.nav.waitlist}
+              {t.nav.festivals}
             </Link>
           </div>
         </div>

@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { ArrowRight, MapPinOff } from 'lucide-react';
-import { TrackedLink } from '../TrackedLink';
 import { getMessages, localizedPath, type Locale } from '../../lib/i18n';
 
 type EventUnavailableStateProps = {
@@ -23,14 +22,6 @@ export function EventUnavailableState({ locale }: EventUnavailableStateProps) {
             {t.eventDetail.unavailableBrowse}
             <ArrowRight size={16} strokeWidth={2.25} aria-hidden />
           </Link>
-          <TrackedLink
-            className="button secondary"
-            href={localizedPath(locale, '/waitlist')}
-            eventName="home_plan_click"
-            eventProperties={{ locale, source: 'event-unavailable' }}
-          >
-            {t.eventDetail.unavailableWaitlist}
-          </TrackedLink>
         </div>
         <Link className="page-state__secondary" href={localizedPath(locale)}>
           {t.states.errorBackHome}

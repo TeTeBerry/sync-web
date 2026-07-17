@@ -216,11 +216,11 @@ export default async function HomePage({ params }: HomePageProps) {
             <div className="cta-band__actions">
               <TrackedLink
                 className="button button--glow cta-band__primary"
-                href={localizedPath(locale, '/waitlist')}
-                eventName="home_plan_click"
+                href={localizedPath(locale, '/events')}
+                eventName="home_events_click"
                 eventProperties={{ locale, source: 'footer-cta' }}
               >
-                {t.home.ctaButton}
+                {t.home.exploreCta}
                 <ArrowRight size={16} strokeWidth={2.25} aria-hidden />
               </TrackedLink>
             </div>

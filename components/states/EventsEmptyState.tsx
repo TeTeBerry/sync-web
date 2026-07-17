@@ -24,7 +24,6 @@ type EventsEmptyStateProps = {
     suggestionsLabel: string;
     suggestions: readonly string[];
     aiBridgeCta: string;
-    waitlistCta: string;
   };
 };
 
@@ -51,14 +50,9 @@ export function EventsEmptyState({
               <RefreshCw size={15} strokeWidth={2} aria-hidden />
               <span>{labels.errorRetry}</span>
             </RefreshRetryButton>
-            <TrackedLink
-              className="empty-state__secondary-link"
-              href={localizedPath(locale, '/waitlist')}
-              eventName="home_plan_click"
-              eventProperties={{ locale, source: 'events-error' }}
-            >
-              {labels.waitlistCta}
-            </TrackedLink>
+            <Link className="empty-state__secondary-link" href={eventsPath}>
+              {labels.searchAction}
+            </Link>
           </>
         }
       />
@@ -77,16 +71,11 @@ export function EventsEmptyState({
         graphic="glow"
         actions={
           <>
-            <TrackedLink
-              className="button button--glow"
-              href={localizedPath(locale, '/waitlist')}
-              eventName="home_plan_click"
-              eventProperties={{ locale, source: 'events-catalog-empty' }}
-            >
+            <Link className="button button--glow" href={eventsPath}>
               <Sparkles size={14} strokeWidth={2} aria-hidden />
-              <span>{labels.waitlistCta}</span>
+              <span>{labels.searchAction}</span>
               <ArrowRight size={14} strokeWidth={2.25} aria-hidden />
-            </TrackedLink>
+            </Link>
             <Link className="empty-state__secondary-link" href={localizedPath(locale)}>
               {labels.aiBridgeCta}
             </Link>
@@ -112,16 +101,11 @@ export function EventsEmptyState({
           <Link className="button" href={eventsPath}>
             {labels.searchAction}
           </Link>
-          <TrackedLink
-            className="events-empty__ai-link"
-            href={localizedPath(locale, '/waitlist')}
-            eventName="home_plan_click"
-            eventProperties={{ locale, source: 'events-empty' }}
-          >
+          <Link className="events-empty__ai-link" href={localizedPath(locale)}>
             <Sparkles size={14} strokeWidth={2} aria-hidden />
             <span>{labels.aiBridgeCta}</span>
             <ArrowRight size={14} strokeWidth={2.25} aria-hidden />
-          </TrackedLink>
+          </Link>
         </>
       }
     />

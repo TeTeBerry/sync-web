@@ -345,12 +345,10 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
                     continent={continent ? getContinentLabel(locale, continent) ?? '' : ''}
                     count={filtered.length}
                     eventsPath={eventsPath}
-                    waitlistPath={localizedPath(locale, '/waitlist')}
                     labels={{
                       title: t.events.searchSuccessTitle,
                       titleWithQuery: t.events.searchSuccessTitleWithQuery,
                       lead: t.events.searchSuccessLead,
-                      planCta: t.events.searchSuccessPlan,
                       clearCta: t.events.searchSuccessClear,
                     }}
                   />
@@ -395,7 +393,7 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
                     title: t.events.atlasHandoffTitle,
                     lead: t.events.atlasHandoffLead,
                     cta: t.events.atlasHandoffCta,
-                    href: localizedPath(locale, '/waitlist'),
+                    href: eventsPath,
                   },
                 }}
                 moods={moodDefinitions}
@@ -431,7 +429,6 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
                   suggestionsLabel: t.states.emptySuggestionsLabel,
                   suggestions: t.states.emptySuggestions,
                   aiBridgeCta: t.events.aiBridgeCta,
-                  waitlistCta: t.events.emptyWaitlistCta,
                 }}
               />
             </>
@@ -468,8 +465,8 @@ export default async function EventsPage({ params: routeParams, searchParams }: 
             <p>{t.events.aiBridge}</p>
             <TrackedLink
               className="events-ai-bridge__link"
-              href={localizedPath(locale, '/waitlist')}
-              eventName="home_plan_click"
+              href={eventsPath}
+              eventName="events_browse_click"
               eventProperties={{ locale, source: 'events-bridge' }}
             >
               <span>{t.events.aiBridgeCta}</span>

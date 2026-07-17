@@ -7,7 +7,7 @@ Raven (`sync-web`) ships the **same Next.js app** to two Node hosts:
 | **Vercel** | Platform SSR + Route Handlers | Overseas / brand URL |
 | **CloudBase 云托管** | Docker → `node server.js` (`output: 'standalone'`) | China / ICP domain |
 
-Do **not** use CloudBase 静态网站托管 — auth, waitlist, plan, lineup, and squad need Node.
+Do **not** use CloudBase 静态网站托管 — auth, plan, lineup, and squad need Node.
 
 Sessions and cookies are **per hostname**. Users signing in on the CN domain do not share cookies with the Vercel domain (expected).
 
@@ -20,7 +20,7 @@ Sessions and cookies are **per hostname**. Users signing in on the CN domain do 
 | Variable | When | Notes |
 |----------|------|--------|
 | `API_BASE_URL` | **Runtime** | Nest backend root ending in `/api`. Prod example: `https://sync-backend-prd-….sh.run.tcloudbase.com/api`. Used for SSR reads and BFF proxies. |
-| `DATABASE_URL` **or** `POSTGRES_URL` **or** `POSTGRES_PRISMA_URL` | **Runtime** | Postgres for waitlist + Raven auth/sessions/usage. First non-empty wins (`lib/db.ts`). Production must set one of these. |
+| `DATABASE_URL` **or** `POSTGRES_URL` **or** `POSTGRES_PRISMA_URL` | **Runtime** | Postgres for Raven auth/sessions/usage. First non-empty wins (`lib/db.ts`). Production must set one of these. |
 | `NEXT_PUBLIC_SITE_URL` | **Build + runtime** (see below) | Canonical site origin, no trailing slash. Used by metadata, sitemap, robots. |
 
 ### Strongly recommended (both)
@@ -29,7 +29,6 @@ Sessions and cookies are **per hostname**. Users signing in on the CN domain do 
 |----------|------|--------|
 | `TEMP_EMAIL_ONLY_AUTH_ENABLED` | Runtime | Production defaults **off** unless set to `true` / `1` / `yes`. |
 | `NEXT_PUBLIC_TEMP_EMAIL_ONLY_AUTH_ENABLED` | **Build** (and runtime on server) | Same flag for client UI. Set `true` on both targets if email login should show. |
-| `RESEND_API_KEY` | Runtime | Waitlist email notify after DB write. Omit to skip mail. |
 
 ### Optional (both)
 
@@ -37,8 +36,6 @@ Sessions and cookies are **per hostname**. Users signing in on the CN domain do 
 |----------|-------------------|
 | `NEXT_PUBLIC_API_BASE_URL` | Fallback if `API_BASE_URL` unset (prefer server-only `API_BASE_URL`). |
 | `AUTH_MEMORY_FALLBACK` | `true` forces in-memory auth (dev only; not for prod). |
-| `WAITLIST_SOCIAL_PROOF_MIN` | Social-proof threshold override. |
-| `WAITLIST_HERO_PROOF_MIN` | Hero proof threshold override. |
 | `TEMP_AUTH_LOGIN_IP_MAX` | Login rate limit per IP (default `20`). |
 | `TEMP_AUTH_LOGIN_IP_WINDOW_MS` | IP window ms (default `900000`). |
 | `TEMP_AUTH_LOGIN_EMAIL_MAX` | Per-email login max (default `10`). |
@@ -72,7 +69,6 @@ NEXT_PUBLIC_SITE_URL=https://raven-ashen-mu.vercel.app   # or custom domain
 DATABASE_URL=…   # or rely on integration POSTGRES_URL
 TEMP_EMAIL_ONLY_AUTH_ENABLED=true
 NEXT_PUBLIC_TEMP_EMAIL_ONLY_AUTH_ENABLED=true
-RESEND_API_KEY=…   # optional
 ```
 
 - If `NEXT_PUBLIC_SITE_URL` is omitted in production, `getSiteUrl()` falls back to `VERCEL_PROJECT_PRODUCTION_URL`.
@@ -99,14 +95,13 @@ API_BASE_URL=https://sync-backend-prd-….sh.run.tcloudbase.com/api
 NEXT_PUBLIC_SITE_URL=https://你的备案域名
 DATABASE_URL=…          # must be reachable from the CN container
 TEMP_EMAIL_ONLY_AUTH_ENABLED=true
-RESEND_API_KEY=…        # optional
 PORT=3000               # or whatever the service listens on
 ```
 
 Critical differences vs Vercel:
 
 1. **`NEXT_PUBLIC_SITE_URL` is required** — there is no `VERCEL_*` fallback; missing it yields `http://localhost:3002` in metadata.
-2. **Postgres must be reachable from China** — if Neon/overseas latency fails auth/waitlist, use a CN-reachable Postgres (or move those writes behind the existing CloudBase backend later).
+2. **Postgres must be reachable from China** — if Neon/overseas latency fails auth, use a CN-reachable Postgres (or move those writes behind the existing CloudBase backend later).
 3. Use **云托管 / Cloud Run**, not 静态网站托管. Image entrypoint: `node server.js` (standalone).
 
 ---
@@ -116,7 +111,7 @@ Critical differences vs Vercel:
 | Kind | Examples | Rule |
 |------|----------|------|
 | `NEXT_PUBLIC_*` | `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_TEMP_EMAIL_ONLY_AUTH_ENABLED` | Baked at **build**. Different CN vs Vercel values ⇒ separate builds (Vercel project env vs Docker `--build-arg`). |
-| Server-only | `API_BASE_URL`, `DATABASE_URL`, `RESEND_API_KEY`, `TEMP_EMAIL_ONLY_AUTH_ENABLED` | Safe to change at **runtime** without rebuild (CloudBase service env / Vercel env + redeploy). |
+| Server-only | `API_BASE_URL`, `DATABASE_URL`, `TEMP_EMAIL_ONLY_AUTH_ENABLED` | Safe to change at **runtime** without rebuild (CloudBase service env / Vercel env + redeploy). |
 
 ---
 
@@ -137,6 +132,5 @@ See also [TEMP_EMAIL_AUTH.md](./TEMP_EMAIL_AUTH.md).
 ## Smoke after deploy (each hostname)
 
 1. Home / events list load (SSR → `API_BASE_URL`)
-2. Waitlist submit (Postgres)
 3. Email login + session cookie
 4. Plan / lineup / squad flows that hit `app/api/*` and backend

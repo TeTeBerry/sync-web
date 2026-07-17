@@ -58,8 +58,8 @@ export function AiPlannerExperience({ locale, journey }: AiPlannerExperienceProp
         </p>
         <TrackedLink
           className="journey-scene__cta"
-          href={localizedPath(locale, '/waitlist')}
-          eventName="home_plan_click"
+          href={localizedPath(locale, '/events')}
+          eventName="home_events_click"
           eventProperties={{ locale, source: 'ai-journey-preview' }}
         >
           {journey.cta}

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Search, Sparkles } from 'lucide-react';
+import { Search } from 'lucide-react';
 import type { Locale } from '../../lib/i18n';
 
 type SearchSuccessBannerProps = {
@@ -9,12 +9,10 @@ type SearchSuccessBannerProps = {
   continent: string;
   count: number;
   eventsPath: string;
-  waitlistPath: string;
   labels: {
     title: string;
     titleWithQuery: string;
     lead: string;
-    planCta: string;
     clearCta: string;
   };
 };
@@ -30,7 +28,6 @@ export function SearchSuccessBanner({
   continent,
   count,
   eventsPath,
-  waitlistPath,
   labels,
 }: SearchSuccessBannerProps) {
   const filterSummary = buildFilterSummary(query, country, continent);
@@ -51,11 +48,6 @@ export function SearchSuccessBanner({
         </p>
       </div>
       <div className="search-success__actions">
-        <Link className="search-success__action search-success__action--primary" href={waitlistPath}>
-          <Sparkles size={14} strokeWidth={2} aria-hidden />
-          <span>{labels.planCta}</span>
-          <ArrowRight size={13} strokeWidth={2.25} aria-hidden />
-        </Link>
         <Link className="search-success__action" href={eventsPath}>
           {labels.clearCta}
         </Link>

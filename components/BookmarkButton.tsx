@@ -22,7 +22,7 @@ type BookmarkButtonProps = {
     dismiss: string;
   };
   eventsPath: string;
-  waitlistPath: string;
+  planPath: string;
 };
 
 export function BookmarkButton({
@@ -32,7 +32,7 @@ export function BookmarkButton({
   variant = 'hero',
   labels,
   eventsPath,
-  waitlistPath,
+  planPath,
 }: BookmarkButtonProps) {
   const { hydrated, isBookmarked, toggleBookmark } = useBookmarks();
   const [showSuccess, setShowSuccess] = useState(false);
@@ -88,7 +88,7 @@ export function BookmarkButton({
           lead={labels.successLead}
           actions={
             <>
-              <a className="action-success__link" href={waitlistPath}>
+              <a className="action-success__link" href={planPath}>
                 {labels.successPlan}
               </a>
               <a className="action-success__link action-success__link--muted" href={eventsPath}>

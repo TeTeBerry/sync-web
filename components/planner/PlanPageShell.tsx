@@ -22,7 +22,7 @@ type PlanPageShellProps = {
   djs: ScheduleDj[];
   performances: SchedulePerformance[];
   image?: string;
-  waitlistHref: string;
+  returnHref: string;
   initialRemotePlan?: RavenTravelGuidePlan | null;
   initialGuideId?: string | null;
   initialOrigin?: string;
@@ -39,7 +39,7 @@ export function PlanPageShell({
   djs,
   performances,
   image,
-  waitlistHref,
+  returnHref,
   initialRemotePlan = null,
   initialGuideId = null,
   initialOrigin = "",
@@ -93,7 +93,7 @@ export function PlanPageShell({
               djs={djs}
               performances={performances}
               image={image}
-              waitlistHref={waitlistHref}
+              returnHref={returnHref}
               hideHeader
               initialRemotePlan={initialRemotePlan}
               initialGuideId={initialGuideId}

@@ -128,7 +128,7 @@ type AiPlannerFlowProps = {
   djs: ScheduleDj[];
   performances: SchedulePerformance[];
   image?: string;
-  waitlistHref: string;
+  returnHref: string;
   hideHeader?: boolean;
   initialRemotePlan?: RavenTravelGuidePlan | null;
   initialGuideId?: string | null;
@@ -387,7 +387,7 @@ export function AiPlannerFlow({
   djs,
   performances,
   image,
-  waitlistHref,
+  returnHref,
   hideHeader = false,
   initialRemotePlan = null,
   initialGuideId = null,
@@ -1540,7 +1540,7 @@ export function AiPlannerFlow({
           eventLegacyId={activity.legacyId}
           weather={weather}
           onSave={() => {
-            window.location.href = waitlistHref;
+            window.location.href = returnHref;
           }}
           onEditPreferences={goBack}
           onRebuild={startGeneration}

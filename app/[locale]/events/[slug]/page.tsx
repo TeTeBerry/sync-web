@@ -359,8 +359,8 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
               actions={
                 <TrackedLink
                   className="button button--compact"
-                  href={`${localizedPath(locale, '/waitlist')}?event=${encodeURIComponent(eventTitle)}`}
-                  eventName="event_subscribe_click"
+                  href={localizedPath(locale, '/events')}
+                  eventName="events_browse_click"
                   eventProperties={{ ...subscribeEventProperties, source: 'related-empty' }}
                 >
                   <span>{t.eventDetail.relatedEmptyAction}</span>

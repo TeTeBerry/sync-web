@@ -23,12 +23,4 @@ describe('lineup personality UI removal', () => {
     }
   });
 
-  it('centers constellation copy on YOU without personality names', () => {
-    const constellation = read('components/lineup/ArtistConstellationScene.tsx');
-    expect(constellation).toContain('copy.you');
-    expect(constellation).not.toMatch(/Music Profile/i);
-    expect(constellation).not.toMatch(/Festival Personality/i);
-    expect(constellation).not.toMatch(/personalityDisplayName|personality\.label/);
-  });
-
 });

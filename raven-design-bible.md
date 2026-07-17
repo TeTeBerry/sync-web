@@ -674,7 +674,6 @@ Rules:
 Used for:
 
 - Generate Plan
-- Join Waitlist
 - Export Calendar
 - Browse Festivals
 
