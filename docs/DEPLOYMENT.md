@@ -22,6 +22,7 @@ Sessions and cookies are **per hostname**. Users signing in on the CN domain do 
 | `API_BASE_URL` | **Runtime** | Nest backend root ending in `/api`. Prod example: `https://sync-backend-prd-….sh.run.tcloudbase.com/api`. Used for SSR reads and BFF proxies. |
 | `DATABASE_URL` **or** `POSTGRES_URL` **or** `POSTGRES_PRISMA_URL` | **Runtime** | Postgres for Raven auth/sessions/usage. First non-empty wins (`lib/db.ts`). Production must set one of these. |
 | `NEXT_PUBLIC_SITE_URL` | **Build + runtime** (see below) | Canonical site origin, no trailing slash. Used by metadata, sitemap, robots. |
+| `AUTH_URL` | **Runtime** | Canonical Auth.js origin. Must exactly match a Google OAuth redirect URI host. |
 
 ### Strongly recommended (both)
 
@@ -66,6 +67,7 @@ Set in Project → Settings → Environment Variables (Production / Preview as n
 ```text
 API_BASE_URL=https://sync-backend-prd-….sh.run.tcloudbase.com/api
 NEXT_PUBLIC_SITE_URL=https://raven-ashen-mu.vercel.app   # or custom domain
+AUTH_URL=https://www.raventribe.tech                      # canonical Google OAuth host
 DATABASE_URL=…   # or rely on integration POSTGRES_URL
 TEMP_EMAIL_ONLY_AUTH_ENABLED=true
 NEXT_PUBLIC_TEMP_EMAIL_ONLY_AUTH_ENABLED=true

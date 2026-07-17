@@ -29,6 +29,7 @@ import { buildSocialMetadata } from '../../../../../lib/seo';
 
 type SquadPageProps = {
   params: Promise<{ locale: string; slug: string }>;
+  searchParams: Promise<{ view?: string }>;
 };
 
 export const dynamic = 'force-dynamic';
@@ -73,8 +74,9 @@ export async function generateMetadata({ params }: SquadPageProps): Promise<Meta
   };
 }
 
-export default async function EventSquadPage({ params }: SquadPageProps) {
+export default async function EventSquadPage({ params, searchParams }: SquadPageProps) {
   const { locale: rawLocale, slug } = await params;
+  const { view } = await searchParams;
   if (!isLocale(rawLocale)) notFound();
 
   const locale = rawLocale as Locale;
@@ -160,6 +162,7 @@ export default async function EventSquadPage({ params }: SquadPageProps) {
             artistNameById={artistNameById}
             copy={t.festivalSquad}
             heroEmbedded
+            initialView={view === 'create' || view === 'edit' || view === 'connections' ? view : undefined}
           />
         </div>
       </section>

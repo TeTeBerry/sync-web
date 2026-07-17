@@ -31,7 +31,7 @@ export function eventPath(locale: Locale, activity: Activity): string {
 export function eventPlanPath(
   locale: Locale,
   activity: Activity,
-  options?: { tab?: JourneyTab; from?: JourneyEntryFrom },
+  options?: { tab?: JourneyTab; from?: JourneyEntryFrom; guideId?: string },
 ): string {
   const base = `${eventPath(locale, activity)}/plan`;
   const params = new URLSearchParams();
@@ -39,6 +39,7 @@ export function eventPlanPath(
   // `tab` kept for backward-compatible deep links; scenes replace the old dashboard tabs.
   if (options?.tab) params.set('tab', options.tab);
   if (from) params.set('from', from);
+  if (options?.guideId?.trim()) params.set('guideId', options.guideId.trim());
   const query = params.toString();
   return query ? `${base}?${query}` : base;
 }

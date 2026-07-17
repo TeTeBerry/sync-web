@@ -53,6 +53,7 @@ type FestivalSquadExperienceProps = {
   artistNameById: Record<string, string>;
   copy: SquadCopy;
   heroEmbedded?: boolean;
+  initialView?: 'create' | 'edit' | 'connections';
 };
 
 const ECHO_VISIBLE = 4;
@@ -70,9 +71,11 @@ export function FestivalSquadExperience({
   artistNameById,
   copy,
   heroEmbedded = false,
+  initialView,
 }: FestivalSquadExperienceProps) {
   const auth = useAuthSession();
   const [ready, setReady] = useState(false);
+  const [profileResolved, setProfileResolved] = useState(false);
   const [error, setError] = useState(false);
   const [profile, setProfile] = useState<FestivalSquadProfile | null>(null);
   const [matches, setMatches] = useState<SquadMatch[]>([]);
@@ -96,10 +99,15 @@ export function FestivalSquadExperience({
   );
 
   useEffect(() => {
+    let active = true;
+    setReady(false);
+    setProfileResolved(false);
+    setProfile(null);
     void (async () => {
       try {
         if (auth.signedIn) {
           const current = await getSquadProfile(eventId);
+          if (!active) return;
           setProfile(current);
         }
         const preferences = readPlannerPreferences(eventId);
@@ -108,6 +116,7 @@ export function FestivalSquadExperience({
         for (const name of artistNames) {
           if (!mergedArtists.includes(name)) mergedArtists.push(name);
         }
+        if (!active) return;
         setPrefill(
           buildPrefillSquadProfile({
             eventId,
@@ -118,13 +127,17 @@ export function FestivalSquadExperience({
             favoriteArtists: mergedArtists,
           }),
         );
+        setProfileResolved(true);
         setReady(true);
         track('festival_squad_opened', { event: String(eventId), locale });
       } catch {
+        if (!active) return;
         setError(true);
+        setProfileResolved(true);
         setReady(true);
       }
     })();
+    return () => { active = false; };
   }, [
     eventId,
     locale,
@@ -137,11 +150,15 @@ export function FestivalSquadExperience({
   ]);
 
   useEffect(() => {
-    if (!auth.signedIn || !auth.user?.id || !ready) return;
-    void getSquadProfile(eventId)
-      .then((current) => setProfile(current))
-      .catch(() => setError(true));
-  }, [auth.signedIn, auth.user?.id, eventId, ready]);
+    if (!ready || !profileResolved || !initialView) return;
+    if (initialView === 'connections') {
+      if (profile) requestAnimationFrame(scrollToPath);
+      return;
+    }
+    if (!auth.signedIn) return;
+    if (initialView === 'create' && !profile) openProfileForm('create');
+    if (initialView === 'edit' && profile) openProfileForm('edit');
+  }, [auth.signedIn, initialView, profile, profileResolved, ready]);
 
   useEffect(() => {
     if (!profile || profile.matchingPaused || profile.visibility.hideProfile) {

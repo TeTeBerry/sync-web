@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X } from 'lucide-react';
+import { LogOut, Menu, UserRound, X } from 'lucide-react';
 import { useState } from 'react';
 import { localizedPath, type Locale } from '../lib/i18n';
+import { useAuthSession } from '../hooks/useAuthSession';
 
 type SiteNavProps = {
   locale: Locale;
@@ -13,6 +14,9 @@ type SiteNavProps = {
     howItWorks: string;
     festivals: string;
     language: string;
+    profile: string;
+    logout: string;
+    logoutFailed: string;
     openMenu: string;
     closeMenu: string;
     mainNav: string;
@@ -30,6 +34,9 @@ function isActive(pathname: string, href: string): boolean {
 export function SiteNav({ locale, nextLocale, labels }: SiteNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState(false);
+  const auth = useAuthSession();
   const homePath = localizedPath(locale);
   const howItWorksHref = `${homePath}#discovery-promise`;
 
@@ -38,6 +45,21 @@ export function SiteNav({ locale, nextLocale, labels }: SiteNavProps) {
     { href: localizedPath(locale, '/events'), label: labels.festivals, secondary: true },
     { href: localizedPath(nextLocale), label: labels.language, secondary: false },
   ];
+  const profileHref = localizedPath(locale, '/profile');
+
+  async function logout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setLogoutError(false);
+    try {
+      await auth.logout();
+      window.location.assign(homePath);
+    } catch {
+      setLogoutError(true);
+    } finally {
+      setLoggingOut(false);
+    }
+  }
 
   return (
     <>
@@ -63,6 +85,21 @@ export function SiteNav({ locale, nextLocale, labels }: SiteNavProps) {
             {link.label}
           </Link>
         ))}
+        {auth.signedIn ? (
+          <div className="site-nav__profile-menu">
+            <Link href={profileHref} className={`site-nav__profile${isActive(pathname, profileHref) ? ' is-active' : ''}`} aria-label={labels.profile}>
+              <UserRound size={16} strokeWidth={1.8} aria-hidden />
+              <span>{labels.profile}</span>
+            </Link>
+            <div className="site-nav__profile-popover">
+              <button type="button" onClick={() => void logout()} disabled={loggingOut}>
+                <LogOut size={15} strokeWidth={1.8} aria-hidden />
+                <span>{loggingOut ? '…' : labels.logout}</span>
+              </button>
+            </div>
+            {logoutError ? <p className="site-nav__logout-feedback" role="alert">{labels.logoutFailed}</p> : null}
+          </div>
+        ) : null}
       </nav>
 
       <button
@@ -93,6 +130,19 @@ export function SiteNav({ locale, nextLocale, labels }: SiteNavProps) {
               {link.label}
             </Link>
           ))}
+          {auth.signedIn ? (
+            <>
+              <Link href={profileHref} className="site-nav__profile" onClick={() => setOpen(false)}>
+                <UserRound size={17} strokeWidth={1.8} aria-hidden />
+                <span>{labels.profile}</span>
+              </Link>
+              <button className="site-nav__logout" type="button" onClick={() => void logout()} disabled={loggingOut}>
+                <LogOut size={17} strokeWidth={1.8} aria-hidden />
+                <span>{loggingOut ? '…' : labels.logout}</span>
+              </button>
+              {logoutError ? <p className="site-nav__logout-feedback" role="alert">{labels.logoutFailed}</p> : null}
+            </>
+          ) : null}
         </nav>
       </div>
     </>

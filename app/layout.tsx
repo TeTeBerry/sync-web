@@ -6,6 +6,7 @@ import { Outfit, DM_Sans } from 'next/font/google';
 import { DEFAULT_LOCALE, getMessages, normalizeLocale } from '../lib/i18n';
 import { getSiteUrl } from '../lib/site';
 import { buildSiteJsonLd, buildSocialMetadata } from '../lib/seo';
+import { AuthModalHost } from '../components/auth/AuthModalHost';
 import './globals.css';
 
 const outfit = Outfit({
@@ -68,6 +69,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           }}
         />
         {children}
+        <AuthModalHost />
         <Analytics />
         <SpeedInsights />
       </body>

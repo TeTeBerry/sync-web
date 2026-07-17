@@ -29,12 +29,15 @@ Set `API_BASE_URL` to the backend API root for server-rendered reads. Production
 
 ## Authentication
 
-Raven currently uses Auth.js with Google only (`openid email profile`). Copy `.env.example` to `.env.local`, set `MONGODB_URI`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and the shared `INTERNAL_API_KEY`. OAuth secrets are server-only. If the server network cannot reach Google's default token endpoint, set `AUTH_GOOGLE_TOKEN_URL` and `AUTH_GOOGLE_USERINFO_URL` to reachable Google-compatible endpoints.
+Raven currently uses Auth.js with Google only (`openid email profile`). Copy `.env.example` to `.env.local`, set `MONGODB_URI`, `AUTH_SECRET`, `AUTH_URL`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and the shared `INTERNAL_API_KEY`. `AUTH_URL` must be the canonical public origin, including `https://` and without a trailing slash. OAuth secrets are server-only. If the server network cannot reach Google's default token endpoint, set `AUTH_GOOGLE_TOKEN_URL` and `AUTH_GOOGLE_USERINFO_URL` to reachable Google-compatible endpoints.
+
+For local UI development, `AUTH_DEV_MOCK_LOGIN=true` makes the Google CTA establish a mock `Raven Dev` session. This provider is never registered in production; set it to `false` when testing the real local Google OAuth flow.
 
 In Google Cloud Console add these redirect URIs:
 
 - `http://localhost:3002/api/auth/callback/google`
 - `https://raventribe.tech/api/auth/callback/google`
+- `https://www.raventribe.tech/api/auth/callback/google`
 
 Use the actual production hostname if it differs. Do not add Calendar, Drive, Gmail, Contacts, YouTube, or location scopes.
 

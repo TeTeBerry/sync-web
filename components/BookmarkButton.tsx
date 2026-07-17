@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Bookmark, BookmarkCheck } from 'lucide-react';
 import { track } from '@vercel/analytics';
 import { ActionSuccessBanner } from './states/ActionSuccessBanner';
@@ -9,6 +9,7 @@ import { useBookmarks } from '../hooks/useBookmarks';
 import { useAuthSession } from '../hooks/useAuthSession';
 import { ensureAuthCsrf } from '../lib/auth/client';
 import type { Locale } from '../lib/i18n';
+import { openRavenAuthModal } from '../lib/auth/modal';
 
 type BookmarkButtonProps = {
   legacyId: number;
@@ -39,9 +40,10 @@ export function BookmarkButton({
 }: BookmarkButtonProps) {
   const { bookmarks, hydrated, isBookmarked, toggleBookmark } = useBookmarks();
   const auth = useAuthSession();
-  const router = useRouter();
   const pathname = usePathname();
   const [showSuccess, setShowSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const saveInFlight = useRef(false);
   const saved = hydrated && isBookmarked(legacyId);
 
   useEffect(() => {
@@ -60,6 +62,9 @@ export function BookmarkButton({
   }, [auth.signedIn, hydrated, legacyId]);
 
   async function saveFavorite() {
+    if (saveInFlight.current) return;
+    saveInFlight.current = true;
+    setSaving(true);
     const added = toggleBookmark(legacyId);
     const nextIds = added
       ? [...bookmarks, legacyId]
@@ -76,18 +81,28 @@ export function BookmarkButton({
       if (added) setShowSuccess(true); else setShowSuccess(false);
     } catch {
       toggleBookmark(legacyId);
+    } finally {
+      saveInFlight.current = false;
+      setSaving(false);
     }
   }
 
-  function handleClick(event: React.MouseEvent<HTMLButtonElement>) {
+  async function handleClick(event: React.MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
 
-    if (!auth.signedIn) {
+    if (saving) return;
+
+    // Auth.js loads client-side. In development, the mock session often
+    // resolves just after the first interaction; wait for that result instead
+    // of briefly opening a sign-in modal for an already authenticated raver.
+    const session = auth.loading ? await auth.refresh() : auth.session;
+    if (!session?.signedIn) {
       window.localStorage.setItem('raven_pending_festival_favorite', String(legacyId));
-      router.push(`/${locale}/auth/sign-in?intent=profile&callbackUrl=${encodeURIComponent(pathname)}`);
+      openRavenAuthModal('profile', pathname);
       return;
     }
+    window.localStorage.removeItem('raven_pending_festival_favorite');
     void saveFavorite();
     const added = !saved;
     track('event_bookmark_toggle', {
@@ -105,9 +120,11 @@ export function BookmarkButton({
       <button
         className={`bookmark-button${saved ? ' is-saved' : ''}`}
         type="button"
-        onClick={handleClick}
+        onClick={(event) => void handleClick(event)}
         aria-pressed={saved}
         aria-label={saved ? labels.saved : labels.save}
+        aria-busy={saving}
+        disabled={saving}
       >
         {saved ? (
           <BookmarkCheck size={variant === 'hero' ? 16 : 14} strokeWidth={2.25} aria-hidden />

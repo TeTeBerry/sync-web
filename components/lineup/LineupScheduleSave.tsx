@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { openRavenAuthModal } from '../../lib/auth/modal';
 import type { Locale } from '../../lib/i18n';
 import {
   createScheduleIcs,
@@ -33,7 +34,6 @@ export function LineupScheduleSave({
   const [loadingWallpaper, setLoadingWallpaper] = useState(false);
   const [status, setStatus] = useState<Status>(null);
   const { save, state: saveState, needsSignIn } = useLineupSchedulePersistence();
-  const router = useRouter();
   const pathname = usePathname();
   const timed = items.filter((item) => item.startTime && item.endTime && item.festivalDay);
   const untimed = items.filter((item) => !item.startTime || !item.endTime || !item.festivalDay);
@@ -55,7 +55,7 @@ export function LineupScheduleSave({
   const saveMySchedule = async () => {
     await save();
     if (needsSignIn) {
-      router.push(`${pathname.replace(/^\/(en|zh)/, '/$1')}/auth/sign-in?intent=schedule&callbackUrl=${encodeURIComponent(pathname)}`);
+      openRavenAuthModal('schedule', pathname);
     }
   };
 

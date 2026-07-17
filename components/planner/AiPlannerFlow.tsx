@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { openRavenAuthModal } from "../../lib/auth/modal";
 import {
   ArrowLeft,
   ArrowRight,
@@ -471,7 +472,7 @@ export function AiPlannerFlow({
     if (!auth.signedIn) {
       window.localStorage.setItem('raven_pending_journey_claim', activeGuideId);
       const callbackUrl = `${pathname}?guideId=${encodeURIComponent(activeGuideId)}`;
-      router.push(`/${locale}/auth/sign-in?intent=journey&callbackUrl=${encodeURIComponent(callbackUrl)}`);
+      openRavenAuthModal('journey', callbackUrl);
       return;
     }
     await claimRavenPlan(activeGuideId);
