@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '../../../../auth';
 import { getSessionFromCookie } from '../../../../lib/auth/service';
 import { jsonError, rejectUnsafeMutation } from '../../../../lib/auth/http';
 import { RAVEN_SESSION_COOKIE } from '../../../../lib/auth/sessions';
@@ -7,8 +8,11 @@ import { normalizeSavedLineupSchedule } from '../../../../lib/lineup-schedule-pe
 
 export const runtime = 'nodejs';
 
-async function sessionFor(request: NextRequest) {
-  return getSessionFromCookie(request.cookies.get(RAVEN_SESSION_COOKIE)?.value);
+async function userIdFor(request: NextRequest): Promise<string | null> {
+  const legacy = await getSessionFromCookie(request.cookies.get(RAVEN_SESSION_COOKIE)?.value);
+  if (legacy.signedIn) return legacy.user.id;
+  const nextAuthSession = await auth();
+  return nextAuthSession?.user?.id ?? null;
 }
 
 async function paramsFor(context: { params: Promise<{ activityLegacyId: string }> }) {
@@ -18,20 +22,20 @@ async function paramsFor(context: { params: Promise<{ activityLegacyId: string }
 }
 
 export async function GET(request: NextRequest, context: { params: Promise<{ activityLegacyId: string }> }) {
-  const session = await sessionFor(request);
-  if (!session.signedIn) return jsonError(401, 'Sign in required.');
+  const userId = await userIdFor(request);
+  if (!userId) return jsonError(401, 'Sign in required.');
   const eventId = await paramsFor(context);
   if (!eventId) return jsonError(400, 'Invalid event.');
   const scope = new URL(request.url).searchParams.get('scope') || undefined;
-  const schedule = await getSavedLineupSchedule(session.user.id, eventId, scope);
+  const schedule = await getSavedLineupSchedule(userId, eventId, scope);
   return NextResponse.json({ schedule });
 }
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ activityLegacyId: string }> }) {
   const blocked = rejectUnsafeMutation(request);
   if (blocked) return blocked;
-  const session = await sessionFor(request);
-  if (!session.signedIn) return jsonError(401, 'Sign in required.');
+  const userId = await userIdFor(request);
+  if (!userId) return jsonError(401, 'Sign in required.');
   const eventId = await paramsFor(context);
   if (!eventId) return jsonError(400, 'Invalid event.');
   let body: unknown;
@@ -41,6 +45,6 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ act
     : undefined;
   const schedule = normalizeSavedLineupSchedule(body, eventId, scope);
   if (!schedule) return jsonError(400, 'Invalid schedule.');
-  await saveLineupSchedule(session.user.id, schedule);
+  await saveLineupSchedule(userId, schedule);
   return NextResponse.json({ schedule });
 }

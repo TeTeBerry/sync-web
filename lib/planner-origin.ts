@@ -23,7 +23,49 @@ const PRESET_COUNTRY_BY_CITY: Record<string, string> = {
   新加坡: '新加坡',
   上海: '中国',
   洛杉矶: '美国',
+  beijing: 'China',
+  guangzhou: 'China',
+  shenzhen: 'China',
+  hangzhou: 'China',
+  chengdu: 'China',
+  wuhan: 'China',
+  chongqing: 'China',
+  xian: 'China',
+  'hong kong': 'Hong Kong',
+  macau: 'Macau',
+  bangkok: 'Thailand',
+  pattaya: 'Thailand',
+  phuket: 'Thailand',
+  seoul: 'South Korea',
+  osaka: 'Japan',
+  paris: 'France',
+  amsterdam: 'Netherlands',
+  berlin: 'Germany',
+  frankfurt: 'Germany',
+  madrid: 'Spain',
+  rome: 'Italy',
+  barcelona: 'Spain',
+  dubai: 'United Arab Emirates',
+  sydney: 'Australia',
+  melbourne: 'Australia',
+  toronto: 'Canada',
+  vancouver: 'Canada',
+  'san francisco': 'United States',
+  chicago: 'United States',
+  boston: 'United States',
+  'mexico city': 'Mexico',
+  'sao paulo': 'Brazil',
 };
+
+/** Small client-side safety net for production deployments when the remote catalog is unavailable. */
+const OFFLINE_ORIGIN_CITIES = [
+  '北京', '广州', '深圳', '杭州', '南京', '成都', '武汉', '重庆', '西安', '苏州', '天津',
+  '青岛', '厦门', '长沙', '郑州', '珠海', '宁波', '昆明', '南宁', '香港', '澳门',
+  'Beijing', 'Guangzhou', 'Shenzhen', 'Hangzhou', 'Nanjing', 'Chengdu', 'Wuhan', 'Chongqing',
+  'Xi’an', 'Qingdao', 'Xiamen', 'Changsha', 'Bangkok', 'Pattaya', 'Phuket', 'Seoul', 'Osaka',
+  'Paris', 'Amsterdam', 'Berlin', 'Frankfurt', 'Madrid', 'Rome', 'Barcelona', 'Dubai', 'Sydney',
+  'Melbourne', 'Toronto', 'Vancouver', 'San Francisco', 'Chicago', 'Boston', 'Mexico City', 'São Paulo',
+] as const;
 
 /** Build a single-select origin option; city+country keeps same-named cities distinct. */
 export function suggestionToOriginItem(
@@ -95,7 +137,12 @@ export function buildOriginOptions(input: {
   const remoteItems = dedupeOriginItems(
     input.remote.map(suggestionToOriginItem),
   );
-  if (!remoteItems.length) return dedupeOriginItems(presetItems);
+  if (!remoteItems.length) {
+    const offlineItems = OFFLINE_ORIGIN_CITIES
+      .filter((city) => city.toLowerCase().includes(query))
+      .map(presetToOriginItem);
+    return dedupeOriginItems([...presetItems, ...offlineItems]);
+  }
 
   const remoteCityNames = new Set(
     remoteItems.map((item) => item.label.toLowerCase()),

@@ -19,7 +19,7 @@ import {
   type LineupSetPlannerLabels,
 } from "./LineupSetPlannerCta";
 import { LineupConflictCenter } from "./LineupConflictCenter";
-import { LineupSavedSchedule, LineupSchedulePersistenceProvider } from './LineupSchedulePersistence';
+import { LineupSchedulePersistenceProvider } from './LineupSchedulePersistence';
 
 type BreadcrumbItem = {
   label: string;
@@ -144,7 +144,6 @@ export function LineupExperience({
 
           {hasFlow ? (
             <>
-              <LineupSavedSchedule locale={locale} djs={djs} performances={performances} />
               <LineupMapScene
                 mode="flow"
                 locale={locale}

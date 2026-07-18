@@ -53,7 +53,7 @@ export function SiteNav({ locale, nextLocale, labels }: SiteNavProps) {
     setLogoutError(false);
     try {
       await auth.logout();
-      window.location.assign(homePath);
+      window.location.replace(homePath);
     } catch {
       setLogoutError(true);
     } finally {
@@ -91,12 +91,10 @@ export function SiteNav({ locale, nextLocale, labels }: SiteNavProps) {
               <UserRound size={16} strokeWidth={1.8} aria-hidden />
               <span>{labels.profile}</span>
             </Link>
-            <div className="site-nav__profile-popover">
-              <button type="button" onClick={() => void logout()} disabled={loggingOut}>
-                <LogOut size={15} strokeWidth={1.8} aria-hidden />
-                <span>{loggingOut ? '…' : labels.logout}</span>
-              </button>
-            </div>
+            <button className="site-nav__desktop-logout" type="button" onClick={() => void logout()} disabled={loggingOut}>
+              <LogOut size={15} strokeWidth={1.8} aria-hidden />
+              <span>{loggingOut ? '…' : labels.logout}</span>
+            </button>
             {logoutError ? <p className="site-nav__logout-feedback" role="alert">{labels.logoutFailed}</p> : null}
           </div>
         ) : null}

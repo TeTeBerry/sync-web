@@ -1,3 +1,4 @@
+import { signOut } from 'next-auth/react';
 import type {
   AuthIntendedAction,
   EmailLoginResult,
@@ -80,15 +81,26 @@ export async function submitEmailLogin(input: {
 }
 
 export async function submitLogout(): Promise<void> {
-  const csrf = await ensureAuthCsrf();
-  const response = await fetch('/api/auth/logout', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: {
-      'x-csrf-token': csrf,
-    },
-  });
-  if (!response.ok) {
-    throw Object.assign(new Error('Logout failed'), { status: response.status });
+  // The active Raven session is managed by Auth.js. The legacy endpoint only
+  // clears its own session and the short-lived backend token, so calling it by
+  // itself left the Auth.js cookie intact and Profile still appeared signed in.
+  const result = await signOut({ redirect: false });
+  if (!result?.url) {
+    throw new Error('Logout failed');
+  }
+
+  // Keep clearing legacy cookies for older email sessions and backend tokens.
+  // A failure here must not restore an Auth.js session that has already ended.
+  try {
+    const csrf = await ensureAuthCsrf();
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'x-csrf-token': csrf,
+      },
+    });
+  } catch {
+    // Auth.js sign-out above is the source of truth for access to Profile.
   }
 }
