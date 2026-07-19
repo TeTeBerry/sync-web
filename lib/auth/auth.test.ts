@@ -11,6 +11,7 @@ import { assertNoEmailInAnalyticsProps } from './analytics';
 import { createMemoryAuthRuntime } from './memory-runtime';
 import { TEMP_EMAIL_AUTH_SUCCESS_MESSAGE } from './config';
 import {
+  ensureUserForAuthIdentity,
   findOrCreateUserByEmail,
   findUserByNormalizedEmail,
   touchUserLastLogin,
@@ -21,6 +22,10 @@ import {
   findSessionByRawToken,
 } from './sessions';
 import { resetAuthMemoryStore, shouldUseAuthMemoryStore } from './store';
+import {
+  listSavedLineupSchedules,
+  saveLineupSchedule,
+} from '../lineup-schedule-repository';
 import { assertSameOriginMutation, requireCsrf } from './http';
 import { consumeAuthUsage, resetAuthUsageMemory } from './usage-limits';
 import { isPrivateProfileDetail } from './client-limits';
@@ -200,6 +205,41 @@ describe('auth memory store fallback (no DATABASE_URL)', () => {
     expect((await findUserByNormalizedEmail(emailNormalized))?.lastLoginAt).toBeTruthy();
     expect(await deleteSessionByRawToken(rawToken)).toBe(true);
     expect(await findSessionByRawToken(rawToken)).toBeNull();
+  });
+
+  it('bridges Auth.js identities into raven_users and lists saved schedules', async () => {
+    const authId = 'google-auth-user-123';
+    const ensured = await ensureUserForAuthIdentity({
+      id: authId,
+      email: 'raver@example.com',
+    });
+    expect(ensured).toBe(authId);
+    expect(await ensureUserForAuthIdentity({
+      id: authId,
+      email: 'raver@example.com',
+    })).toBe(authId);
+
+    const schedule = {
+      activityLegacyId: 4,
+      selectionScope: 'w1',
+      selectedIds: ['artist-a@1200', 'artist-b@1320'],
+      clashState: { deferredArtistIds: [], journeyArtistIds: [], resolutions: [] },
+      savedAt: new Date().toISOString(),
+    };
+    await saveLineupSchedule(authId, schedule);
+    const listed = await listSavedLineupSchedules(authId);
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.selectedIds).toEqual(schedule.selectedIds);
+  });
+
+  it('reuses an existing email raven_users row for Auth.js identities', async () => {
+    const { email, emailNormalized } = normalizeEmail('shared@example.com');
+    const legacy = await findOrCreateUserByEmail({ email, emailNormalized });
+    const bridged = await ensureUserForAuthIdentity({
+      id: 'different-auth-js-id',
+      email: 'shared@example.com',
+    });
+    expect(bridged).toBe(legacy.user.id);
   });
 });
 

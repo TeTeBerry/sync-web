@@ -89,6 +89,37 @@ export function memoryFindOrCreateUser(input: {
   return { user, created: true };
 }
 
+/**
+ * Ensure a memory raven_users row for an Auth.js identity.
+ * Prefer exact id, then email match, otherwise create with the Auth.js id.
+ */
+export function memoryEnsureUserForAuthIdentity(input: {
+  id: string;
+  email: string;
+  emailNormalized: string;
+}): string {
+  const byId = memoryFindUserById(input.id);
+  if (byId) return byId.id;
+
+  const byEmail = memoryFindUserByNormalizedEmail(input.emailNormalized);
+  if (byEmail) return byEmail.id;
+
+  const db = getMemoryDb();
+  const now = new Date().toISOString();
+  const user: RavenAuthUser = {
+    id: input.id,
+    email: input.email,
+    emailNormalized: input.emailNormalized,
+    emailVerifiedAt: now,
+    createdAt: now,
+    updatedAt: now,
+    lastLoginAt: now,
+  };
+  db.users.set(input.id, user);
+  db.usersByEmail.set(input.emailNormalized, input.id);
+  return input.id;
+}
+
 export function memoryTouchLastLogin(userId: string): void {
   const user = memoryFindUserById(userId);
   if (!user) return;

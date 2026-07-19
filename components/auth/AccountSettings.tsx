@@ -10,7 +10,12 @@ import { getActivityImage } from '../../lib/api';
 import { activityMeta } from '../../lib/format';
 import { formatYmdInCatalogTz, getActivityStartYmd, isActivityExpired } from '../../lib/activity-date';
 import { getFestivalAtmosphere } from '../../lib/festival-atmosphere';
-import { readLocalSavedLineupSchedule } from '../../lib/lineup-schedule-persistence';
+import {
+  normalizeSavedLineupSchedule,
+  readLocalSavedLineupSchedule,
+  writeLocalSavedLineupSchedule,
+  type SavedLineupSchedule,
+} from '../../lib/lineup-schedule-persistence';
 import { ensureAuthCsrf, submitLogout } from '../../lib/auth/client';
 import { useAuthSession } from '../../hooks/useAuthSession';
 import { EventImage } from '../EventImage';
@@ -71,36 +76,6 @@ function savedPlanJourney(journeys: SavedJourney[]) {
   return journeys.find((journey) => journey.guideId.trim()) ?? null;
 }
 
-function hasSavedRavenData(overview: RavenOverview) {
-  return Boolean(
-    overview.profile?.favoriteFestivalIds?.length
-    || overview.journeys?.length
-    || overview.squadProfiles?.length,
-  );
-}
-
-function createDevelopmentOverview(activities: Activity[]): RavenOverview | null {
-  const candidates = activities.filter((activity) => !isActivityExpired(activity));
-  const festivals = (candidates.length ? candidates : activities).slice(0, 3);
-  const primary = festivals[0];
-  if (!primary) return null;
-  return {
-    profile: {
-      favoriteFestivalIds: festivals.map((activity) => activity.legacyId),
-    },
-    // An empty guide id intentionally opens the normal Plan entry point rather
-    // than pretending a fixture is a persisted user plan.
-    journeys: [{ guideId: '', activityLegacyId: primary.legacyId, updatedAt: new Date().toISOString() }],
-    squadProfiles: [{
-      eventId: primary.legacyId,
-      displayName: 'Raven Dev',
-      matchingPaused: false,
-      visibility: { hideProfile: false },
-    }],
-    pendingSquadRequestsByEvent: { [String(primary.legacyId)]: { received: 2, sent: 1 } },
-  };
-}
-
 export function AccountSettings({ locale, activities = [], view = 'settings' }: AccountSettingsProps) {
   const [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -111,10 +86,6 @@ export function AccountSettings({ locale, activities = [], view = 'settings' }: 
   const [savedTimetableSelections, setSavedTimetableSelections] = useState<Record<number, string[]>>({});
   const router = useRouter();
   const { loading: authLoading, signedIn } = useAuthSession();
-  const developmentFixture = useMemo(
-    () => process.env.NODE_ENV === 'development' ? createDevelopmentOverview(activities) : null,
-    [activities],
-  );
 
   useEffect(() => {
     if (view !== 'profile' || authLoading || !signedIn) return;
@@ -127,34 +98,81 @@ export function AccountSettings({ locale, activities = [], view = 'settings' }: 
       })
       .then((data) => {
         if (!active) return;
-        setOverview(developmentFixture && !hasSavedRavenData(data) ? developmentFixture : data);
+        setOverview(data);
       })
       .catch(() => {
         if (!active) return;
-        if (developmentFixture) {
-          setOverview(developmentFixture);
-          return;
-        }
         setOverviewError(true);
       });
     return () => {
       active = false;
     };
-  }, [authLoading, developmentFixture, signedIn, view]);
+  }, [authLoading, signedIn, view]);
 
   useEffect(() => {
-    if (view !== 'profile') return;
+    if (view !== 'profile' || authLoading) return;
+    let active = true;
     const scopes: Array<string | undefined> = [undefined, 'w1', 'w2'];
-      const selections: Record<number, string[]> = {};
-      const savedActivities = activities.filter((activity) => {
-        const selectedIds = scopes.flatMap((scope) => readLocalSavedLineupSchedule(activity.legacyId, scope)?.selectedIds ?? []);
-        if (!selectedIds.length) return false;
-        selections[activity.legacyId] = [...new Set(selectedIds)];
-        return true;
-      });
-      setSavedTimetableEventIds(savedActivities.map((activity) => activity.legacyId));
+
+    const mergeSelections = (
+      current: Record<number, string[]>,
+      activityLegacyId: number,
+      selectedIds: string[],
+    ) => {
+      if (!selectedIds.length) return;
+      const existing = current[activityLegacyId] ?? [];
+      current[activityLegacyId] = [...new Set([...existing, ...selectedIds])];
+    };
+
+    const applySelections = (selections: Record<number, string[]>) => {
+      if (!active) return;
       setSavedTimetableSelections(selections);
-  }, [activities, view]);
+      setSavedTimetableEventIds(Object.keys(selections).map(Number));
+    };
+
+    const selections: Record<number, string[]> = {};
+    for (const activity of activities) {
+      const selectedIds = scopes.flatMap((scope) => readLocalSavedLineupSchedule(activity.legacyId, scope)?.selectedIds ?? []);
+      mergeSelections(selections, activity.legacyId, selectedIds);
+    }
+    applySelections(selections);
+
+    if (!signedIn) return () => { active = false; };
+
+    void fetch('/api/lineup-schedule', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as { schedules?: unknown };
+      })
+      .then((payload) => {
+        if (!active || !payload) return;
+        const cloudSchedules = Array.isArray(payload.schedules)
+          ? payload.schedules
+            .map((item) => {
+              if (!item || typeof item !== 'object') return null;
+              const activityLegacyId = Number((item as { activityLegacyId?: unknown }).activityLegacyId);
+              const selectionScope = typeof (item as { selectionScope?: unknown }).selectionScope === 'string'
+                ? (item as { selectionScope: string }).selectionScope
+                : undefined;
+              return Number.isFinite(activityLegacyId)
+                ? normalizeSavedLineupSchedule(item, activityLegacyId, selectionScope)
+                : null;
+            })
+            .filter((item): item is SavedLineupSchedule => Boolean(item))
+          : [];
+        if (!cloudSchedules.length) return;
+        for (const schedule of cloudSchedules) {
+          writeLocalSavedLineupSchedule(schedule);
+          mergeSelections(selections, schedule.activityLegacyId, schedule.selectedIds);
+        }
+        applySelections(selections);
+      })
+      .catch(() => {
+        // Local schedule copies remain available when cloud sync is interrupted.
+      });
+
+    return () => { active = false; };
+  }, [activities, authLoading, signedIn, view]);
 
   const activityById = useMemo(
     () => new Map(localizeActivities(activities, locale).map((activity) => [activity.legacyId, activity])),
@@ -190,10 +208,13 @@ export function AccountSettings({ locale, activities = [], view = 'settings' }: 
     if (bStart) return 1;
     return (b.journeys[0]?.updatedAt ?? '').localeCompare(a.journeys[0]?.updatedAt ?? '');
   });
+  const hasSavedSchedule = (eventId: number) => savedTimetableEventIds.includes(eventId);
   const primaryFestival = upcomingFestivals.find((item) => item.journeys.length > 0)
+    ?? upcomingFestivals.find((item) => hasSavedSchedule(item.eventId))
     ?? upcomingFestivals.find((item) => item.squad)
     ?? upcomingFestivals[0]
     ?? festivalJourneys.find((item) => item.journeys.length > 0)
+    ?? festivalJourneys.find((item) => hasSavedSchedule(item.eventId))
     ?? festivalJourneys.find((item) => item.squad)
     ?? festivalJourneys[0]
     ?? null;
@@ -237,20 +258,22 @@ export function AccountSettings({ locale, activities = [], view = 'settings' }: 
     ? overview?.pendingSquadRequestsByEvent?.[String(primaryFestival.eventId)]
     : undefined;
   const copy = locale === 'zh' ? {
-    next: '下一次相聚', carried: '你珍藏的一场音乐节', continue: '继续旅程', enter: '进入音乐节', people: '寻找同行的人', squad: '查看你的 Squad', sound: '你的声音', soundTitle: '那些带你出发的声音。', soundEmpty: '选择你喜欢的音乐类型，Raven 会让它们留在你的旅程里。', other: '仍在空气里的', otherTitle: '这一季的其他音乐节', explore: '探索更多', profile: '个人与隐私', terms: '由你决定', account: '登录只用于让你选择的音乐节、计划与同行者跨设备保持同步。', privacy: '出发地与音乐偏好始终可选；除非你主动记住，它们只属于当前计划。', accountLabel: '账户', privacyLabel: '隐私', threads: '音乐节篇章', pastThreads: '你带走的音乐节篇章', noMore: '暂时没有其他保存的音乐节。', happening: '正在发生的旅程', saved: '已为以后保存', squadActive: 'Squad 已开启', squadPaused: 'Squad 匹配已暂停', open: '打开', meet: '遇见同行的人', return: '回到旅程', squadTitle: '去往 {festival} 的人。', squadOpen: '打开 Festival Squad', squadWaiting: (count: number) => `${count} 个新的连接请求正在等待你`, squadVisible: '你的资料已经开放给同一场音乐节的人；阵容、计划与新的连接会在同一个世界里相遇。', squadPausedCopy: '你的资料暂时暂停。想重新遇见同路的人时，再回到这里。', squadHidden: '你的 Squad 资料目前隐藏。何时被看见，由你决定。',
+    next: '下一次相聚', carried: '你珍藏的一场音乐节', continue: '继续旅程', enter: '进入音乐节', people: '寻找同行的人', squad: '查看你的 Squad', sound: '你的声音', soundTitle: '那些带你出发的声音。', soundEmpty: '选择你喜欢的音乐类型，Raven 会让它们留在你的旅程里。', other: '仍在空气里的', otherTitle: '这一季的其他音乐节', explore: '探索更多', profile: '个人与隐私', terms: '由你决定', account: '登录只用于让你选择的音乐节、计划与同行者跨设备保持同步。', privacy: '出发地与音乐偏好始终可选；除非你主动记住，它们只属于当前计划。', accountLabel: '账户', privacyLabel: '隐私', threads: '音乐节篇章', schedule: '已保存的日程', pastThreads: '你带走的音乐节篇章', noMore: '暂时没有其他保存的音乐节。', happening: '正在发生的旅程', saved: '已为以后保存', squadActive: 'Squad 已开启', squadPaused: 'Squad 匹配已暂停', open: '打开', meet: '遇见同行的人', return: '回到旅程', squadTitle: '去往 {festival} 的人。', squadOpen: '打开 Festival Squad', squadWaiting: (count: number) => `${count} 个新的连接请求正在等待你`, squadVisible: '你的资料已经开放给同一场音乐节的人；阵容、计划与新的连接会在同一个世界里相遇。', squadPausedCopy: '你的资料暂时暂停。想重新遇见同路的人时，再回到这里。', squadHidden: '你的 Squad 资料目前隐藏。何时被看见，由你决定。',
   } : {
-    next: 'YOUR NEXT GATHERING', carried: 'A FESTIVAL YOU CARRIED', continue: 'Continue your journey', enter: 'Enter festival', people: 'Find your people', squad: 'See your Squad', sound: 'YOUR SOUND', soundTitle: 'The sound you come back to.', soundEmpty: 'Choose the genres you love and Raven will carry them into your journey.', other: 'STILL IN THE AIR', otherTitle: 'Elsewhere in your season', explore: 'Explore more', profile: 'Account & privacy', terms: 'ON YOUR TERMS', account: 'Sign-in only keeps the festivals, plans and people you choose close across devices.', privacy: 'Home airport, city and music preferences stay optional. A starting point belongs to a plan unless you choose to remember it.', accountLabel: 'Account', privacyLabel: 'Privacy', threads: 'Festival threads', pastThreads: 'Festivals you carried', noMore: 'No other saved festivals for now.', happening: 'A journey in motion', saved: 'Saved for later', squadActive: 'Squad profile active', squadPaused: 'Squad matching paused', open: 'Open', meet: 'Meet people', return: 'Return to the festival', squadTitle: 'The people on the way to {festival}.', squadOpen: 'Open Festival Squad', squadWaiting: (count: number) => `${count} new connection request${count === 1 ? '' : 's'} waiting`, squadVisible: 'Your profile is open to people heading to the same festival. The lineup, plans and new connections belong in the same world.', squadPausedCopy: 'Your profile is paused for now. Return when you want to meet people heading to the same place.', squadHidden: 'Your Squad profile is hidden. You decide when this festival can see you.',
+    next: 'YOUR NEXT GATHERING', carried: 'A FESTIVAL YOU CARRIED', continue: 'Continue your journey', enter: 'Enter festival', people: 'Find your people', squad: 'See your Squad', sound: 'YOUR SOUND', soundTitle: 'The sound you come back to.', soundEmpty: 'Choose the genres you love and Raven will carry them into your journey.', other: 'STILL IN THE AIR', otherTitle: 'Elsewhere in your season', explore: 'Explore more', profile: 'Account & privacy', terms: 'ON YOUR TERMS', account: 'Sign-in only keeps the festivals, plans and people you choose close across devices.', privacy: 'Home airport, city and music preferences stay optional. A starting point belongs to a plan unless you choose to remember it.', accountLabel: 'Account', privacyLabel: 'Privacy', threads: 'Festival threads', schedule: 'Saved schedule', pastThreads: 'Festivals you carried', noMore: 'No other saved festivals for now.', happening: 'A journey in motion', saved: 'Saved for later', squadActive: 'Squad profile active', squadPaused: 'Squad matching paused', open: 'Open', meet: 'Meet people', return: 'Return to the festival', squadTitle: 'The people on the way to {festival}.', squadOpen: 'Open Festival Squad', squadWaiting: (count: number) => `${count} new connection request${count === 1 ? '' : 's'} waiting`, squadVisible: 'Your profile is open to people heading to the same festival. The lineup, plans and new connections belong in the same world.', squadPausedCopy: 'Your profile is paused for now. Return when you want to meet people heading to the same place.', squadHidden: 'Your Squad profile is hidden. You decide when this festival can see you.',
   };
   const narrative = locale === 'zh' ? {
-    story: '你的音乐节故事', loading: '正在找回你珍藏的片段…', signInTitle: '把下一次相聚留在身边。', signInLead: '当你想把音乐节、计划或同行的人带到其他设备时，再登录即可。', exploreFestivals: '探索音乐节', errorTitle: '你的珍藏世界正在休息。', errorLead: '暂时无法加载，但没有任何内容丢失。', retry: '再试一次', emptyTitle: '找到让你想出发的周末。', emptyLead: '当阵容让你心动时，保存它。计划与 Squad 会一直留在同一个地方。', browseFestivals: '浏览音乐节', upcomingJourney: '你的旅程已经在成形。准备好时，随时接上这条线。', pastJourney: '这一场永远属于你。音乐再次响起时，随时回来看看。', squadJourney: '这场音乐节在召唤你。你的同行者已经是故事的一部分。', savedJourney: '你选择留在身边的一场音乐节。想出发时，让它成为一段旅程。', savedFestival: '已保存的音乐节', unavailableFestival: '这场音乐节已无法打开', deleteTitle: '删除账号', deleteLead: '这会永久删除你的资料、计划、日程、收藏与 Festival Squad 数据，且无法撤销。', deleteConfirm: '输入 DELETE 以确认', deleting: '正在删除…', delete: '删除账号', deleteError: '暂时无法删除账号。请重试或联系 [Contact email]。',
+    story: '你的音乐节故事', loading: '正在找回你珍藏的片段…', signInTitle: '把下一次相聚留在身边。', signInLead: '当你想把音乐节、计划或同行的人带到其他设备时，再登录即可。', exploreFestivals: '探索音乐节', errorTitle: '你的珍藏世界正在休息。', errorLead: '暂时无法加载，但没有任何内容丢失。', retry: '再试一次', emptyTitle: '找到让你想出发的周末。', emptyLead: '当阵容让你心动时，保存日程。计划与 Squad 会一直留在同一个地方。', browseFestivals: '浏览音乐节', upcomingJourney: '你的旅程已经在成形。准备好时，随时接上这条线。', pastJourney: '这一场永远属于你。音乐再次响起时，随时回来看看。', squadJourney: '这场音乐节在召唤你。你的同行者已经是故事的一部分。', scheduleJourney: '你的日程已经留在这里。准备好时，按这条路线走进夜晚。', savedJourney: '你选择留在身边的一场音乐节。想出发时，让它成为一段旅程。', savedFestival: '已保存的音乐节', unavailableFestival: '这场音乐节已无法打开', deleteTitle: '删除账号', deleteLead: '这会永久删除你的资料、计划、日程、收藏与 Festival Squad 数据，且无法撤销。', deleteConfirm: '输入 DELETE 以确认', deleting: '正在删除…', delete: '删除账号', deleteError: '暂时无法删除账号。请重试或联系 [Contact email]。',
   } : {
-    story: 'YOUR FESTIVAL STORY', loading: 'Gathering the moments you kept close…', signInTitle: 'Keep the next one close.', signInLead: 'Sign in when you want a festival, a plan or the people going with you to travel across devices.', exploreFestivals: 'Explore festivals', errorTitle: 'Your saved world is taking a breath.', errorLead: 'We couldn’t load it just now. Nothing has been lost.', retry: 'Try again', emptyTitle: 'Find the weekend that pulls you forward.', emptyLead: 'Save a festival when a lineup catches your ear. Your plan and Squad will always stay with that place.', browseFestivals: 'Browse festivals', upcomingJourney: 'Your journey is already taking shape. Pick up the thread whenever you are ready.', pastJourney: 'This one is yours to revisit whenever the music calls you back.', squadJourney: 'The festival is calling. Your people are already part of the story.', savedJourney: 'A festival you chose to keep close—let it become a journey when the time feels right.', savedFestival: 'Saved festival', unavailableFestival: 'Festival no longer available', deleteTitle: 'Delete account', deleteLead: 'This permanently removes your profile, saved plans, schedules, favorites, and Festival Squad data. It cannot be undone.', deleteConfirm: 'Type DELETE to confirm', deleting: 'Deleting…', delete: 'Delete account', deleteError: 'Your account could not be deleted. Please try again or contact [Contact email].',
+    story: 'YOUR FESTIVAL STORY', loading: 'Gathering the moments you kept close…', signInTitle: 'Keep the next one close.', signInLead: 'Sign in when you want a festival, a plan or the people going with you to travel across devices.', exploreFestivals: 'Explore festivals', errorTitle: 'Your saved world is taking a breath.', errorLead: 'We couldn’t load it just now. Nothing has been lost.', retry: 'Try again', emptyTitle: 'Find the weekend that pulls you forward.', emptyLead: 'Save a schedule when a lineup catches your ear. Your plan and Squad will always stay with that place.', browseFestivals: 'Browse festivals', upcomingJourney: 'Your journey is already taking shape. Pick up the thread whenever you are ready.', pastJourney: 'This one is yours to revisit whenever the music calls you back.', squadJourney: 'The festival is calling. Your people are already part of the story.', scheduleJourney: 'Your schedule is waiting here. Follow it into the night whenever you are ready.', savedJourney: 'A festival you chose to keep close—let it become a journey when the time feels right.', savedFestival: 'Saved festival', unavailableFestival: 'Festival no longer available', deleteTitle: 'Delete account', deleteLead: 'This permanently removes your profile, saved plans, schedules, favorites, and Festival Squad data. It cannot be undone.', deleteConfirm: 'Type DELETE to confirm', deleting: 'Deleting…', delete: 'Delete account', deleteError: 'Your account could not be deleted. Please try again or contact [Contact email].',
   };
+  const showProfileContent = Boolean(overview || savedTimetableEventIds.length);
+  const showOverviewError = overviewError && !savedTimetableEventIds.length;
 
   return (
     <main className="raven-settings raven-settings--profile">
       <section className="raven-profile">
-        {authLoading || (signedIn && overview === null && !overviewError) ? (
+        {authLoading || (signedIn && overview === null && !overviewError && !savedTimetableEventIds.length) ? (
           <section className="raven-profile__loading" aria-live="polite"><p className="raven-settings__kicker">{narrative.story}</p><h1>{narrative.loading}</h1></section>
         ) : null}
 
@@ -263,9 +286,9 @@ export function AccountSettings({ locale, activities = [], view = 'settings' }: 
           </section>
         ) : null}
 
-        {overviewError ? <section className="raven-profile__empty" aria-labelledby="profile-error-title"><p className="raven-settings__kicker">{narrative.story}</p><h1 id="profile-error-title">{narrative.errorTitle}</h1><p>{narrative.errorLead}</p><button type="button" onClick={() => window.location.reload()}>{narrative.retry}</button></section> : null}
+        {showOverviewError ? <section className="raven-profile__empty" aria-labelledby="profile-error-title"><p className="raven-settings__kicker">{narrative.story}</p><h1 id="profile-error-title">{narrative.errorTitle}</h1><p>{narrative.errorLead}</p><button type="button" onClick={() => window.location.reload()}>{narrative.retry}</button></section> : null}
 
-        {overview && !overviewError ? <>
+        {showProfileContent && !showOverviewError ? <>
           {primaryFestival && primaryActivity ? <section className="raven-profile__hero" data-atmosphere={primaryAtmosphere} aria-labelledby="profile-hero-title">
             <div className="raven-profile__hero-media" aria-hidden="true">
               {primaryImage ? <EventImage src={primaryImage} alt="" className="raven-profile__hero-image" priority sizes="(max-width: 760px) 100vw, 720px" /> : null}
@@ -275,7 +298,7 @@ export function AccountSettings({ locale, activities = [], view = 'settings' }: 
               <p className="raven-settings__kicker">{primaryIsPast ? copy.carried : copy.next}</p>
               <p className="raven-profile__hero-meta">{activityMetaLine(primaryActivity)}</p>
               <h1 id="profile-hero-title">{activityTitle(primaryActivity)}</h1>
-              <p className="raven-profile__hero-copy">{primaryTiming ? <span className="raven-profile__hero-timing">{primaryTiming}</span> : null}{primaryJourney ? (primaryIsPast ? ` ${narrative.pastJourney}` : ` ${narrative.upcomingJourney}`) : primaryFestival.squad ? ` ${narrative.squadJourney}` : ` ${narrative.savedJourney}`}</p>
+              <p className="raven-profile__hero-copy">{primaryTiming ? <span className="raven-profile__hero-timing">{primaryTiming}</span> : null}{primaryJourney ? (primaryIsPast ? ` ${narrative.pastJourney}` : ` ${narrative.upcomingJourney}`) : hasSavedSchedule(primaryFestival.eventId) ? ` ${narrative.scheduleJourney}` : primaryFestival.squad ? ` ${narrative.squadJourney}` : ` ${narrative.savedJourney}`}</p>
               <div className="raven-profile__hero-actions">
                 <Link className="raven-profile__cta" href={primaryJourney && !primaryIsPast ? eventPlanPath(locale, primaryActivity, { guideId: primaryJourney.guideId }) : eventPath(locale, primaryActivity)}>{primaryJourney && !primaryIsPast ? copy.continue : primaryIsPast ? copy.return : copy.enter}</Link>
                 {!primaryIsPast ? <Link className="raven-profile__quiet-action" href={primaryFestival.squad ? `${eventSquadPath(locale, primaryActivity)}?view=connections` : `${eventSquadPath(locale, primaryActivity)}?view=create`}>{primaryFestival.squad ? `${copy.squad}${primaryRequestSummary?.received ? ` · ${primaryRequestSummary.received}` : ''}` : copy.people}</Link> : null}
@@ -289,10 +312,10 @@ export function AccountSettings({ locale, activities = [], view = 'settings' }: 
             <div className="raven-profile__thread-list">{remainingFestivals.map((item) => {
               const activity = item.activity;
               const savedJourney = savedPlanJourney(item.journeys);
-              const requestSummary = overview.pendingSquadRequestsByEvent?.[String(item.eventId)];
+              const requestSummary = overview?.pendingSquadRequestsByEvent?.[String(item.eventId)];
               return <article className={`raven-profile__thread${activity && getActivityImage(activity) ? ' raven-profile__thread--visual' : ''}`} key={item.eventId} data-atmosphere={activity ? getFestivalAtmosphere(activity) : 'violet'}>
                 {activity && getActivityImage(activity) ? <div className="raven-profile__thread-poster" aria-hidden="true"><EventImage src={getActivityImage(activity)!} alt="" className="raven-profile__thread-image" sizes="96px" /></div> : null}
-                <div><p className="raven-profile__thread-meta">{activity ? activityMetaLine(activity) : narrative.savedFestival}</p><h3>{activity ? activityTitle(activity) : narrative.unavailableFestival}</h3><p>{item.journeys.length ? copy.happening : item.squad ? (item.squad.matchingPaused ? copy.squadPaused : copy.squadActive) : item.favorite ? copy.saved : copy.threads}</p></div>
+                <div><p className="raven-profile__thread-meta">{activity ? activityMetaLine(activity) : narrative.savedFestival}</p><h3>{activity ? activityTitle(activity) : narrative.unavailableFestival}</h3><p>{item.journeys.length ? copy.happening : hasSavedSchedule(item.eventId) ? copy.schedule : item.squad ? (item.squad.matchingPaused ? copy.squadPaused : copy.squadActive) : item.favorite ? copy.saved : copy.threads}</p></div>
                 {activity ? <><div className="raven-profile__thread-actions"><Link href={savedJourney ? eventPlanPath(locale, activity, { guideId: savedJourney.guideId }) : eventPath(locale, activity)}>{savedJourney ? copy.continue : copy.open}</Link>{!isActivityExpired(activity) ? <Link href={item.squad ? `${eventSquadPath(locale, activity)}?view=connections` : `${eventSquadPath(locale, activity)}?view=create`}>{item.squad ? `${copy.squad}${requestSummary?.received ? ` · ${requestSummary.received}` : ''}` : copy.meet}</Link> : null}</div><ProfileTimetable locale={locale} activityLegacyId={activity.legacyId} selectedIds={savedTimetableSelections[activity.legacyId] ?? []} /></> : null}
               </article>;
             })}</div>

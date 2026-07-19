@@ -69,3 +69,21 @@ export async function saveLineupSchedule(
   `;
   return schedule;
 }
+
+export async function listSavedLineupSchedules(userId: string): Promise<SavedLineupSchedule[]> {
+  if (!getDatabaseUrl()) {
+    const prefix = `${userId}:`;
+    return [...memory().entries()]
+      .filter(([entryKey]) => entryKey.startsWith(prefix))
+      .map(([, schedule]) => schedule)
+      .sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+  }
+  await ensureTable();
+  const sql = getSql();
+  const rows = await sql`
+    SELECT payload FROM raven_lineup_schedules
+    WHERE user_id = ${userId}
+    ORDER BY updated_at DESC
+  `;
+  return rows.map((row) => row.payload as SavedLineupSchedule);
+}

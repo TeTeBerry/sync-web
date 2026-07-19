@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ActivitySchedule } from '../../lib/api';
 import type { Locale } from '../../lib/i18n';
 import { buildLineupTimetable, type LineupTimetableDay } from '../../lib/lineup-timetable';
@@ -30,74 +30,116 @@ function dayLabel(value: string, locale: Locale) {
   }).format(date);
 }
 
+async function loadSavedArtistIds(activityLegacyId: number, selectedIds: string[]): Promise<string[]> {
+  const localIds = selectedIds.filter((id) => typeof id === 'string' && id.trim());
+  const savedResponses = await Promise.all(['w1', 'w2', ''].map((scope) =>
+    fetch(`/api/lineup-schedule/${activityLegacyId}${scope ? `?scope=${scope}` : ''}`, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+    }),
+  ));
+  const savedPayloads = await Promise.all(
+    savedResponses
+      .filter((response) => response.ok)
+      .map((response) => response.json() as Promise<SavedScheduleResponse>),
+  );
+  const cloudIds = savedPayloads.flatMap((payload) => (
+    Array.isArray(payload.schedule?.selectedIds)
+      ? payload.schedule.selectedIds.filter((id): id is string => typeof id === 'string')
+      : []
+  ));
+  return [...new Set([...localIds, ...cloudIds])];
+}
+
 export function ProfileTimetable({ locale, activityLegacyId, selectedIds = [] }: ProfileTimetableProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(selectedIds.length > 0);
   const [loading, setLoading] = useState(false);
   const [schedule, setSchedule] = useState<LineupTimetableDay[] | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const loadedFor = useRef<string | null>(null);
   const zh = locale === 'zh';
+  const artistCount = selectedIds.length;
 
-  async function toggle() {
-    if (expanded) {
-      setExpanded(false);
-      return;
-    }
-    setExpanded(true);
-    if (schedule !== null || message) return;
+  useEffect(() => {
+    if (selectedIds.length > 0) setExpanded(true);
+  }, [selectedIds.length]);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const cacheKey = `${activityLegacyId}:${selectedIds.join(',')}`;
+    if (loadedFor.current === cacheKey) return;
+    loadedFor.current = cacheKey;
+
+    let active = true;
     setLoading(true);
     setMessage(null);
-    try {
-      const responses = await Promise.all(['', '?weekend=w1', '?weekend=w2'].map((query) =>
-        fetch(`/api/activities/${activityLegacyId}/itinerary/schedule${query}`, {
-          credentials: 'same-origin',
-          cache: 'no-store',
-        }),
-      ));
-      let savedIds = [...selectedIds];
-      if (!savedIds.length) {
-        const savedResponses = await Promise.all(['w1', 'w2', ''].map((scope) =>
-          fetch(`/api/lineup-schedule/${activityLegacyId}${scope ? `?scope=${scope}` : ''}`, {
-            credentials: 'same-origin', cache: 'no-store',
+
+    void (async () => {
+      try {
+        const responses = await Promise.all(['', '?weekend=w1', '?weekend=w2'].map((query) =>
+          fetch(`/api/activities/${activityLegacyId}/itinerary/schedule${query}`, {
+            credentials: 'same-origin',
+            cache: 'no-store',
           }),
         ));
-        const savedPayloads = await Promise.all(savedResponses.filter((response) => response.ok).map((response) => response.json() as Promise<SavedScheduleResponse>));
-        savedIds = savedPayloads.flatMap((payload) => Array.isArray(payload.schedule?.selectedIds) ? payload.schedule.selectedIds.filter((id): id is string => typeof id === 'string') : []);
+        const savedIds = await loadSavedArtistIds(activityLegacyId, selectedIds);
+        if (!active) return;
+        const payloads = await Promise.all(
+          responses
+            .filter((response) => response.ok)
+            .map((response) => response.json() as Promise<ScheduleResponse>),
+        );
+        const schedules = payloads
+          .map((payload) => payload.schedule ?? payload.data)
+          .filter((value): value is ActivitySchedule => Boolean(value));
+        const allPerformances = [...new Map(schedules.flatMap((value) => value.performances ?? []).map((performance) => [
+          `${performance.artistId}-${performance.dateKey}-${performance.startMinutes}-${performance.stage}`,
+          performance,
+        ])).values()];
+        const savedIdSet = new Set(savedIds);
+        const performances = allPerformances.filter((performance) => (
+          savedIdSet.has(`${performance.artistId}@${performance.startMinutes}`)
+          || savedIdSet.has(performance.artistId)
+        ));
+        const timetable = schedules.length
+          ? buildLineupTimetable({
+            ...schedules[0],
+            schedulePublished: schedules.some((value) => value.schedulePublished),
+            sessions: [...new Map(schedules.flatMap((value) => value.sessions ?? []).map((session) => [session.dateKey, session])).values()],
+            performances,
+          }, locale)
+          : [];
+        setSchedule(timetable);
+        if (!timetable.length) {
+          setMessage(savedIds.length
+            ? (zh ? '你保存的艺人暂时没有可用的演出时间。' : 'Your saved artists do not have published set times yet.')
+            : (zh ? '还没有保存的艺人。' : 'You have not saved any artists for this event yet.'));
+        }
+      } catch {
+        if (!active) return;
+        loadedFor.current = null;
+        setMessage(zh ? '暂时无法加载 timetable。' : 'The timetable is unavailable right now.');
+      } finally {
+        if (active) setLoading(false);
       }
-      const payloads = await Promise.all(responses.filter((response) => response.ok).map((response) => response.json() as Promise<ScheduleResponse>));
-      const schedules = payloads
-        .map((payload) => payload.schedule ?? payload.data)
-        .filter((value): value is ActivitySchedule => Boolean(value));
-      const allPerformances = [...new Map(schedules.flatMap((value) => value.performances ?? []).map((performance) => [
-        `${performance.artistId}-${performance.dateKey}-${performance.startMinutes}-${performance.stage}`,
-        performance,
-      ])).values()];
-      const savedIdSet = new Set(savedIds);
-      const performances = allPerformances.filter((performance) => savedIdSet.has(`${performance.artistId}@${performance.startMinutes}`) || savedIdSet.has(performance.artistId));
-      const timetable = schedules.length
-        ? buildLineupTimetable({
-          ...schedules[0],
-          schedulePublished: schedules.some((value) => value.schedulePublished),
-          sessions: [...new Map(schedules.flatMap((value) => value.sessions ?? []).map((session) => [session.dateKey, session])).values()],
-          performances,
-        }, locale)
-        : [];
-      setSchedule(timetable);
-      if (!timetable.length) {
-        setMessage(savedIds.length
-          ? (zh ? '你保存的艺人暂时没有可用的演出时间。' : 'Your saved artists do not have published set times yet.')
-          : (zh ? '还没有保存的艺人。' : 'You have not saved any artists for this event yet.'));
-      }
-    } catch {
-      setMessage(zh ? '暂时无法加载 timetable。' : 'The timetable is unavailable right now.');
-    } finally {
-      setLoading(false);
-    }
-  }
+    })();
+
+    return () => { active = false; };
+  }, [activityLegacyId, expanded, locale, selectedIds, zh]);
 
   return (
     <div className="raven-profile__timetable">
-      <button type="button" className="raven-profile__timetable-toggle" onClick={() => void toggle()} aria-expanded={expanded}>
-        {expanded ? (zh ? '收起 timetable' : 'Hide timetable') : (zh ? '查看 timetable' : 'View timetable')}
+      <button
+        type="button"
+        className="raven-profile__timetable-toggle"
+        onClick={() => setExpanded((value) => !value)}
+        aria-expanded={expanded}
+      >
+        {expanded
+          ? (zh ? '收起 timetable' : 'Hide timetable')
+          : artistCount
+            ? (zh ? `查看 timetable · ${artistCount} 位艺人` : `View timetable · ${artistCount} artists`)
+            : (zh ? '查看 timetable' : 'View timetable')}
       </button>
       {expanded ? (
         <section className="lineup-saved-schedule raven-profile__timetable-panel" aria-live="polite" aria-label={zh ? '已保存的时间表' : 'Saved schedule'}>

@@ -1,7 +1,9 @@
 import { getSql } from '../db';
 import type { RavenAuthUser } from './types';
 import { newEntityId } from './crypto';
+import { normalizeEmail } from './email';
 import {
+  memoryEnsureUserForAuthIdentity,
   memoryFindOrCreateUser,
   memoryFindUserById,
   memoryFindUserByNormalizedEmail,
@@ -187,4 +189,67 @@ export async function touchUserLastLogin(userId: string): Promise<void> {
     SET last_login_at = ${now}, updated_at = ${now}
     WHERE id = ${userId}
   `;
+}
+
+/**
+ * Bridge Auth.js (Google / Mongo adapter) identities into Postgres `raven_users`
+ * so lineup schedules can satisfy the FK on `raven_lineup_schedules.user_id`.
+ *
+ * Resolution order: exact Auth.js id → existing email row → create with Auth.js id.
+ */
+export async function ensureUserForAuthIdentity(input: {
+  id: string;
+  email?: string | null;
+}): Promise<string> {
+  const id = input.id.trim();
+  if (!id) {
+    throw new Error('Missing auth user id');
+  }
+
+  const rawEmail = input.email?.trim() || `${id}@users.raven.local`;
+  const { email, emailNormalized } = normalizeEmail(rawEmail);
+
+  if (shouldUseAuthMemoryStore()) {
+    warnAuthMemoryFallbackOnce();
+    return memoryEnsureUserForAuthIdentity({ id, email, emailNormalized });
+  }
+
+  await ensureAuthTables();
+  const byId = await findUserById(id);
+  if (byId) return byId.id;
+
+  const byEmail = await findUserByNormalizedEmail(emailNormalized);
+  if (byEmail) return byEmail.id;
+
+  const sql = getSql();
+  const now = new Date().toISOString();
+
+  try {
+    await sql`
+      INSERT INTO raven_users (
+        id,
+        email,
+        email_normalized,
+        email_verified_at,
+        created_at,
+        updated_at,
+        last_login_at
+      ) VALUES (
+        ${id},
+        ${email},
+        ${emailNormalized},
+        ${now},
+        ${now},
+        ${now},
+        ${now}
+      )
+    `;
+    return id;
+  } catch (error) {
+    const retryById = await findUserById(id);
+    if (retryById) return retryById.id;
+    const retryByEmail = await findUserByNormalizedEmail(emailNormalized);
+    if (retryByEmail) return retryByEmail.id;
+    throw error;
+  }
 }
