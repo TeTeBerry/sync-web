@@ -30,6 +30,8 @@ export async function mintNestTokenForAuthUser(input: {
 }): Promise<{ token: string } | { error: NextResponse }> {
   const key = process.env.INTERNAL_API_KEY;
   if (!key) return { error: jsonError(503, 'Sign-in is not configured.', 'unavailable') };
+  // Nest unique index (provider, providerUserId) treats a missing subject as null
+  // and rejects later Google users — always send the Auth.js user id.
   const response = await fetch(`${getApiBase()}/auth/web-session`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-internal-api-key': key },
@@ -39,6 +41,7 @@ export async function mintNestTokenForAuthUser(input: {
       name: input.name,
       image: input.image,
       provider: input.provider ?? 'google',
+      providerUserId: input.id,
     }),
     cache: 'no-store',
   });
