@@ -34,6 +34,7 @@ if (hasGoogle) {
   providers.push(Google({
     // Keep the authorization request self-contained. Google discovery can fail in
     // restricted server environments even though the browser can reach Google.
+    issuer: 'https://accounts.google.com',
     authorization: {
       url: 'https://accounts.google.com/o/oauth2/v2/auth',
       params: { scope: 'openid email profile' },
@@ -72,12 +73,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...(adapter ? { adapter } : {}),
   providers,
   trustHost: true,
+  debug: process.env.NODE_ENV !== 'production',
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? (
     process.env.NODE_ENV === 'production' ? undefined : 'raven-local-auth-secret-change-me'
   ),
   // Credentials providers use JWT sessions. Keep production Google sessions in
   // MongoDB while making the local mock path self-contained.
   session: { strategy: hasMongo && !hasDevMockLogin ? 'database' : 'jwt', maxAge: 60 * 60 * 24 * 30 },
+  logger: {
+    error(error) {
+      console.error('[auth:error]', error.name, error.message, error.cause ?? '');
+    },
+    warn(code) {
+      console.warn('[auth:warn]', code);
+    },
+  },
   callbacks: {
     jwt({ token, user }) {
       if (user?.id) token.userId = user.id;

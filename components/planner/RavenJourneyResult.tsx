@@ -28,6 +28,8 @@ type RavenJourneyResultProps = {
   image?: string;
   showLanguageCaveat?: boolean;
   persistenceNotice?: boolean;
+  savedToAccount?: boolean;
+  saveError?: string | null;
   guideId?: string;
   preferences?: PlannerPreferences | null;
   favoriteArtists?: string[];
@@ -180,6 +182,8 @@ export function RavenJourneyResult({
   image,
   showLanguageCaveat = false,
   persistenceNotice = true,
+  savedToAccount = false,
+  saveError = null,
   guideId,
   preferences,
   favoriteArtists,
@@ -194,6 +198,8 @@ export function RavenJourneyResult({
 }: RavenJourneyResultProps) {
   const t = getMessages(locale);
   const copy = t.aiPlanner.journeyResult;
+  const saveLabel = savedToAccount ? copy.openProfile : copy.save;
+  const saveHint = savedToAccount ? copy.savedHint : copy.saveHint;
   const shareCopy = t.aiPlanner.journeyShare;
   const isEnglish = locale === "en";
   const metaBits = useMemo(
@@ -767,12 +773,17 @@ export function RavenJourneyResult({
               className="raven-journey__cta"
               onClick={onSave}
             >
-              {copy.save}
+              {saveLabel}
               <ArrowRight size={15} strokeWidth={2.25} aria-hidden />
             </button>
           </div>
-          {copy.saveHint ? (
-            <p className="raven-journey__save-hint">{copy.saveHint}</p>
+          {saveHint ? (
+            <p className="raven-journey__save-hint">{saveHint}</p>
+          ) : null}
+          {saveError ? (
+            <p className="raven-journey__save-hint" role="alert">
+              {saveError}
+            </p>
           ) : null}
           <details className="raven-journey__disclosure raven-journey__disclosure--quiet raven-journey__finale-tools">
             <summary>{copy.changeJourney}</summary>
@@ -793,7 +804,7 @@ export function RavenJourneyResult({
               </button>
             </div>
           </details>
-          {persistenceNotice ? (
+          {persistenceNotice && !savedToAccount ? (
             <p className="raven-journey__persist">{copy.persistenceNotice}</p>
           ) : null}
         </footer>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { openRavenAuthModal } from "../../lib/auth/modal";
 import {
   ArrowLeft,
@@ -37,7 +37,7 @@ import {
   type SchedulePerformance,
 } from "../../lib/api";
 import { useAuthSession } from "../../hooks/useAuthSession";
-import { getMessages, type Locale } from "../../lib/i18n";
+import { getMessages, localizedPath, type Locale } from "../../lib/i18n";
 import { readLineupSelection } from "../../lib/lineup-selection";
 import { resolveSelectedArtistNames } from "../../lib/planner-selection";
 import {
@@ -86,7 +86,65 @@ const SETUP_STEPS: SetupStepId[] = [
   "priority",
 ];
 const PLANNER_PREFERENCES_STORAGE_PREFIX = "raven-plan-preferences";
+const JOURNEY_CLAIM_PENDING_KEY = "raven_pending_journey_claim";
+const JOURNEY_CLAIM_REDIRECT_KEY = "raven_journey_claim_redirect";
 const ORIGIN_SUGGEST_DEBOUNCE_MS = 200;
+
+function armPendingJourneyClaim(guideId: string) {
+  try {
+    window.localStorage.setItem(JOURNEY_CLAIM_PENDING_KEY, guideId);
+  } catch {
+    // Storage can be unavailable in private mode; claim can still be triggered via Save.
+  }
+}
+
+function clearPendingJourneyClaim(guideId?: string) {
+  try {
+    if (
+      !guideId ||
+      window.localStorage.getItem(JOURNEY_CLAIM_PENDING_KEY) === guideId
+    ) {
+      window.localStorage.removeItem(JOURNEY_CLAIM_PENDING_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function setClaimRedirectGuideId(guideId: string) {
+  try {
+    window.sessionStorage.setItem(JOURNEY_CLAIM_REDIRECT_KEY, guideId);
+  } catch {
+    // ignore
+  }
+}
+
+function clearClaimRedirect(guideId?: string) {
+  try {
+    const current = window.sessionStorage.getItem(JOURNEY_CLAIM_REDIRECT_KEY);
+    // Legacy value from earlier builds was the literal "profile".
+    if (
+      !guideId ||
+      !current ||
+      current === guideId ||
+      current === "profile"
+    ) {
+      window.sessionStorage.removeItem(JOURNEY_CLAIM_REDIRECT_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function takeClaimRedirectGuideId(): string | null {
+  try {
+    const current = window.sessionStorage.getItem(JOURNEY_CLAIM_REDIRECT_KEY);
+    window.sessionStorage.removeItem(JOURNEY_CLAIM_REDIRECT_KEY);
+    return current;
+  } catch {
+    return null;
+  }
+}
 const DEFAULT_PREFERENCES: PlannerPreferences = {
   origin: "",
   travelStyle: "smart",
@@ -391,7 +449,7 @@ export function AiPlannerFlow({
   djs,
   performances,
   image,
-  returnHref,
+  returnHref: _returnHref,
   hideHeader = false,
   initialRemotePlan = null,
   initialGuideId = null,
@@ -399,6 +457,7 @@ export function AiPlannerFlow({
   initialEstimate = null,
   onPhaseChange,
 }: AiPlannerFlowProps) {
+  void _returnHref;
   const t = getMessages(locale);
   const copy = t.aiPlanner;
   const lineupPath = eventLineupPath(locale, activity);
@@ -463,37 +522,90 @@ export function AiPlannerFlow({
 
   const [preferences, setPreferences] =
     useState<PlannerPreferences>(DEFAULT_PREFERENCES);
+  // Never infer ownership from ?guideId= alone — shared public plans also use that param.
+  const [savedToAccount, setSavedToAccount] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const auth = useAuthSession();
-  const router = useRouter();
   const pathname = usePathname();
+  const profileHref = localizedPath(locale, "/profile");
+  const saveFailedMessage =
+    locale === "zh"
+      ? "暂时无法保存到主页，请再试一次。"
+      : "Couldn’t save this journey to your profile. Please try again.";
 
   const saveJourney = useCallback(async () => {
     if (!activeGuideId) return;
-    if (!auth.signedIn) {
-      window.localStorage.setItem('raven_pending_journey_claim', activeGuideId);
-      const callbackUrl = `${pathname}?guideId=${encodeURIComponent(activeGuideId)}`;
-      openRavenAuthModal('journey', callbackUrl);
+    setSaveError(null);
+    if (savedToAccount) {
+      window.location.href = profileHref;
       return;
     }
-    await claimRavenPlan(activeGuideId);
-    window.location.href = returnHref;
-  }, [activeGuideId, auth.signedIn, locale, pathname, returnHref, router]);
+    if (!auth.signedIn) {
+      armPendingJourneyClaim(activeGuideId);
+      setClaimRedirectGuideId(activeGuideId);
+      const callbackUrl = `${pathname}?guideId=${encodeURIComponent(activeGuideId)}`;
+      openRavenAuthModal("journey", callbackUrl);
+      return;
+    }
+    try {
+      await claimRavenPlan(activeGuideId);
+      clearPendingJourneyClaim(activeGuideId);
+      clearClaimRedirect(activeGuideId);
+      setSavedToAccount(true);
+      window.location.href = profileHref;
+    } catch {
+      // Keep the journey open so the traveler can retry rather than losing it.
+      setSaveError(saveFailedMessage);
+    }
+  }, [
+    activeGuideId,
+    auth.signedIn,
+    pathname,
+    profileHref,
+    saveFailedMessage,
+    savedToAccount,
+  ]);
 
   useEffect(() => {
-    if (!auth.signedIn || !activeGuideId) return;
-    if (window.localStorage.getItem('raven_pending_journey_claim') !== activeGuideId) return;
+    if (!auth.signedIn || !activeGuideId || phase !== "result") return;
+    if (savedToAccount) return;
+
+    let pending: string | null = null;
+    try {
+      pending = window.localStorage.getItem(JOURNEY_CLAIM_PENDING_KEY);
+    } catch {
+      return;
+    }
+    if (pending !== activeGuideId) return;
+
     let active = true;
     void claimRavenPlan(activeGuideId)
       .then(() => {
         if (!active) return;
-        window.localStorage.removeItem('raven_pending_journey_claim');
-        window.location.href = returnHref;
+        clearPendingJourneyClaim(activeGuideId);
+        setSavedToAccount(true);
+        setSaveError(null);
+        const redirectFor = takeClaimRedirectGuideId();
+        // Only bounce to profile when Save armed this guideId (or legacy "profile" flag).
+        if (redirectFor === activeGuideId || redirectFor === "profile") {
+          window.location.href = profileHref;
+        }
       })
       .catch(() => {
-        // Keep the journey open so the traveler can retry rather than losing it.
+        if (!active) return;
+        setSaveError(saveFailedMessage);
       });
-    return () => { active = false; };
-  }, [activeGuideId, auth.signedIn, returnHref]);
+    return () => {
+      active = false;
+    };
+  }, [
+    activeGuideId,
+    auth.signedIn,
+    phase,
+    profileHref,
+    saveFailedMessage,
+    savedToAccount,
+  ]);
 
   useEffect(() => {
     if (phase !== "result") {
@@ -809,6 +921,9 @@ export function AiPlannerFlow({
     setShowLanguageCaveat(false);
     setShowJourneyReveal(false);
     setHasJourneyRevealed(false);
+    setSavedToAccount(false);
+    setSaveError(null);
+    clearClaimRedirect();
     setPhase("generating");
     setGenerationStage("mission");
     const guideId = createGuideId();
@@ -918,6 +1033,8 @@ export function AiPlannerFlow({
             setRemotePlan(job.plan);
             if (generationRequest.guideId) {
               setActiveGuideId(generationRequest.guideId);
+              // Arm claim so login (Save or session) binds this plan to the account.
+              armPendingJourneyClaim(generationRequest.guideId);
             }
             setPlan(resolved.plan);
             setShowLanguageCaveat(resolved.showLanguageCaveat);
@@ -1567,7 +1684,9 @@ export function AiPlannerFlow({
           })}
           image={image}
           showLanguageCaveat={showLanguageCaveat}
-          persistenceNotice={!initialGuideId}
+          persistenceNotice={!savedToAccount}
+          savedToAccount={savedToAccount}
+          saveError={saveError}
           guideId={activeGuideId ?? undefined}
           preferences={preferences}
           favoriteArtists={favoriteArtists}

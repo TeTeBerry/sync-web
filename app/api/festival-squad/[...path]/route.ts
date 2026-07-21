@@ -14,29 +14,28 @@ import { auth } from '../../../../auth';
 export const runtime = 'nodejs';
 export { RAVEN_BACKEND_TOKEN_COOKIE };
 
-async function resolveBackendToken(
-  request: NextRequest,
-): Promise<{ token: string; minted?: string } | { error: NextResponse }> {
+type SessionIdentity = {
+  id: string;
+  email: string;
+  name?: string | null;
+  image?: string | null;
+};
+
+async function sessionIdentity(): Promise<SessionIdentity | null> {
   const session = await auth();
-  if (!session?.user?.email || !session.user.id) {
-    return {
-      error: NextResponse.json({ message: 'Sign in required.' }, { status: 401 }),
-    };
-  }
+  if (!session?.user?.id || !session.user.email) return null;
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  };
+}
 
-  const existing = request.cookies.get(RAVEN_BACKEND_TOKEN_COOKIE)?.value;
-  if (existing) return { token: existing };
-
-  const nest = await mintNestTokenForAuthUser({ id: session.user.id, email: session.user.email, name: session.user.name, image: session.user.image });
-  if ('error' in nest) {
-    return {
-      error: NextResponse.json(
-        { message: 'Sign in required. Please sign in again.' },
-        { status: 401 },
-      ),
-    };
-  }
-  return { token: nest.token, minted: nest.token };
+async function mintToken(identity: SessionIdentity) {
+  return mintNestTokenForAuthUser({
+    ...identity,
+  });
 }
 
 async function proxy(
@@ -48,8 +47,21 @@ async function proxy(
     if (blocked) return blocked;
   }
 
-  const auth = await resolveBackendToken(request);
-  if ('error' in auth) return auth.error;
+  const identity = await sessionIdentity();
+  if (!identity) {
+    return NextResponse.json({ message: 'Sign in required.' }, { status: 401 });
+  }
+
+  const existingToken = request.cookies.get(RAVEN_BACKEND_TOKEN_COOKIE)?.value;
+  const initialToken = existingToken
+    ? { token: existingToken }
+    : await mintToken(identity);
+  if ('error' in initialToken) {
+    return NextResponse.json(
+      { message: 'Sign in required. Please sign in again.' },
+      { status: 401 },
+    );
+  }
 
   const { path } = await context.params;
   const url = `${getApiBase()}/festival-squad/${path.map(encodeURIComponent).join('/')}${new URL(request.url).search}`;
@@ -57,17 +69,46 @@ async function proxy(
     request.method === 'GET' || request.method === 'HEAD'
       ? undefined
       : await request.text();
-  const upstream = await fetch(url, {
+  const headers = {
+    ...(request.headers.get('content-type')
+      ? { 'content-type': request.headers.get('content-type')! }
+      : {}),
+  };
+
+  let token = initialToken.token;
+  let minted = !existingToken;
+  let upstream = await fetch(url, {
     method: request.method,
     headers: {
-      authorization: `Bearer ${auth.token}`,
-      ...(request.headers.get('content-type')
-        ? { 'content-type': request.headers.get('content-type')! }
-        : {}),
+      authorization: `Bearer ${token}`,
+      ...headers,
     },
     body,
     cache: 'no-store',
   });
+
+  // Auth.js session can outlive a Nest bearer cookie (deploy / re-login).
+  // Remint once from the trusted session instead of failing Squad permanently.
+  if (existingToken && (upstream.status === 401 || upstream.status === 403)) {
+    const refreshed = await mintToken(identity);
+    if ('error' in refreshed) {
+      return NextResponse.json(
+        { message: 'Sign in required. Please sign in again.' },
+        { status: 401 },
+      );
+    }
+    token = refreshed.token;
+    minted = true;
+    upstream = await fetch(url, {
+      method: request.method,
+      headers: {
+        authorization: `Bearer ${token}`,
+        ...headers,
+      },
+      body,
+      cache: 'no-store',
+    });
+  }
 
   const response = new NextResponse(upstream.body, {
     status: upstream.status,
@@ -76,8 +117,8 @@ async function proxy(
       'cache-control': 'no-store',
     },
   });
-  if (auth.minted) {
-    setRavenBackendTokenCookie(response, auth.minted, isSecureRequest(request));
+  if (minted) {
+    setRavenBackendTokenCookie(response, token, isSecureRequest(request));
   }
   return response;
 }
