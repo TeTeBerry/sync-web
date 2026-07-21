@@ -1,16 +1,25 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const BOOKMARKS_KEY = 'sync_bookmarks';
+
+function coerceFavoriteIds(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return [
+    ...new Set(
+      value
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    ),
+  ];
+}
 
 function readBookmarks(): Set<number> {
   try {
     const raw = window.localStorage.getItem(BOOKMARKS_KEY);
     if (!raw) return new Set();
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return new Set();
-    return new Set(parsed.filter((value): value is number => typeof value === 'number'));
+    return new Set(coerceFavoriteIds(JSON.parse(raw) as unknown));
   } catch {
     return new Set();
   }
@@ -27,9 +36,13 @@ function writeBookmarks(ids: Set<number>) {
 export function useBookmarks() {
   const [bookmarks, setBookmarks] = useState<Set<number>>(new Set());
   const [hydrated, setHydrated] = useState(false);
+  const bookmarksRef = useRef(bookmarks);
+  bookmarksRef.current = bookmarks;
 
   useEffect(() => {
-    setBookmarks(readBookmarks());
+    const initial = readBookmarks();
+    bookmarksRef.current = initial;
+    setBookmarks(initial);
     setHydrated(true);
   }, []);
 
@@ -38,21 +51,26 @@ export function useBookmarks() {
     [bookmarks],
   );
 
-  const toggleBookmark = useCallback((legacyId: number): boolean => {
-    let added = false;
-    setBookmarks((current) => {
-      const next = new Set(current);
-      if (next.has(legacyId)) {
-        next.delete(legacyId);
-      } else {
-        next.add(legacyId);
-        added = true;
-      }
-      writeBookmarks(next);
-      return next;
-    });
-    return added;
+  const toggleBookmark = useCallback((legacyId: number): { added: boolean; ids: number[] } => {
+    const next = new Set(bookmarksRef.current);
+    const added = !next.has(legacyId);
+    if (added) next.add(legacyId);
+    else next.delete(legacyId);
+    const ids = [...next];
+    writeBookmarks(next);
+    bookmarksRef.current = next;
+    setBookmarks(next);
+    return { added, ids };
   }, []);
 
-  return { bookmarks, hydrated, isBookmarked, toggleBookmark };
+  const replaceBookmarks = useCallback((nextIds: number[]) => {
+    const next = new Set(coerceFavoriteIds(nextIds));
+    writeBookmarks(next);
+    bookmarksRef.current = next;
+    setBookmarks(next);
+  }, []);
+
+  return { bookmarks, hydrated, isBookmarked, toggleBookmark, replaceBookmarks };
 }
+
+export { coerceFavoriteIds, BOOKMARKS_KEY };

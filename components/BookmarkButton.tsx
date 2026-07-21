@@ -5,9 +5,10 @@ import { usePathname } from 'next/navigation';
 import { Bookmark, BookmarkCheck } from 'lucide-react';
 import { track } from '@vercel/analytics';
 import { ActionSuccessBanner } from './states/ActionSuccessBanner';
-import { useBookmarks } from '../hooks/useBookmarks';
+import { coerceFavoriteIds, useBookmarks } from '../hooks/useBookmarks';
 import { useAuthSession } from '../hooks/useAuthSession';
 import { ensureAuthCsrf } from '../lib/auth/client';
+import { unwrapApiEnvelope } from '../lib/api';
 import type { Locale } from '../lib/i18n';
 import { openRavenAuthModal } from '../lib/auth/modal';
 
@@ -29,6 +30,10 @@ type BookmarkButtonProps = {
   planPath: string;
 };
 
+type ProfileFavorites = {
+  favoriteFestivalIds?: Array<string | number>;
+};
+
 export function BookmarkButton({
   legacyId,
   eventTitle,
@@ -38,7 +43,7 @@ export function BookmarkButton({
   eventsPath,
   planPath,
 }: BookmarkButtonProps) {
-  const { bookmarks, hydrated, isBookmarked, toggleBookmark } = useBookmarks();
+  const { hydrated, isBookmarked, toggleBookmark, replaceBookmarks } = useBookmarks();
   const auth = useAuthSession();
   const pathname = usePathname();
   const [showSuccess, setShowSuccess] = useState(false);
@@ -61,26 +66,51 @@ export function BookmarkButton({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.signedIn, hydrated, legacyId]);
 
+  async function readServerFavoriteIds(): Promise<number[]> {
+    try {
+      const response = await fetch('/api/me/profile', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      if (!response.ok) return [];
+      const payload = unwrapApiEnvelope(
+        (await response.json()) as ProfileFavorites | { data?: ProfileFavorites },
+      );
+      return coerceFavoriteIds(payload?.favoriteFestivalIds);
+    } catch {
+      return [];
+    }
+  }
+
   async function saveFavorite() {
     if (saveInFlight.current) return;
     saveInFlight.current = true;
     setSaving(true);
-    const added = toggleBookmark(legacyId);
-    const nextIds = added
-      ? [...bookmarks, legacyId]
-      : [...bookmarks].filter((id) => id !== legacyId);
+    const { added, ids: localNext } = toggleBookmark(legacyId);
+    const previousIds = added
+      ? localNext.filter((id) => id !== legacyId)
+      : [...localNext, legacyId];
     try {
+      const serverIds = await readServerFavoriteIds();
+      const merged = new Set([...serverIds, ...localNext]);
+      if (!added) merged.delete(legacyId);
+      else merged.add(legacyId);
+      const nextIds = [...merged];
+      replaceBookmarks(nextIds);
+
       const csrf = await ensureAuthCsrf();
       const response = await fetch('/api/me/profile', {
-        method: 'PATCH', credentials: 'same-origin',
+        method: 'PATCH',
+        credentials: 'same-origin',
         headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
         body: JSON.stringify({ favoriteFestivalIds: nextIds.map(String) }),
       });
       if (!response.ok) throw new Error('favorite failed');
       window.localStorage.removeItem('raven_pending_festival_favorite');
-      if (added) setShowSuccess(true); else setShowSuccess(false);
+      if (added) setShowSuccess(true);
+      else setShowSuccess(false);
     } catch {
-      toggleBookmark(legacyId);
+      replaceBookmarks(previousIds);
     } finally {
       saveInFlight.current = false;
       setSaving(false);
