@@ -50,7 +50,6 @@ export {
   writeSquadProfile,
 } from './repository';
 export { useFocusTrap } from './use-focus-trap';
-export { useBodyScrollLock } from './use-body-scroll-lock';
 export {
   createConnectionRequest,
   deleteSquadProfile,

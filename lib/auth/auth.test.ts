@@ -8,8 +8,6 @@ import {
   resetAuthRateLimitMemory,
 } from './rate-limit';
 import { assertNoEmailInAnalyticsProps } from './analytics';
-import { createMemoryAuthRuntime } from './memory-runtime';
-import { TEMP_EMAIL_AUTH_SUCCESS_MESSAGE } from './config';
 import {
   ensureUserForAuthIdentity,
   findOrCreateUserByEmail,
@@ -112,71 +110,6 @@ describe('analytics scrubbing', () => {
   });
 });
 
-describe('memory auth runtime', () => {
-  beforeEach(() => {
-    resetAuthRateLimitMemory();
-  });
-
-  it('creates a user and session on valid email login', () => {
-    const runtime = createMemoryAuthRuntime();
-    const { result, rawToken, created } = runtime.login({
-      email: 'Traveler@Example.com',
-      returnUrl: '/en/events/x/squad',
-      intendedAction: 'create_squad_profile',
-      clientIp: '1.1.1.1',
-    });
-    expect(created).toBe(true);
-    expect(result.message).toBe(TEMP_EMAIL_AUTH_SUCCESS_MESSAGE);
-    expect(result.session.user.emailVerified).toBe(false);
-    expect(result.session.user.emailVerifiedAt).toBeNull();
-    expect(result.returnUrl).toBe('/en/events/x/squad');
-    expect(result.intendedAction).toBe('create_squad_profile');
-    expect(runtime.getSession(rawToken).signedIn).toBe(true);
-  });
-
-  it('rejects invalid email', () => {
-    const runtime = createMemoryAuthRuntime();
-    expect(() => runtime.login({ email: 'not-an-email', clientIp: '1.1.1.1' })).toThrow();
-  });
-
-  it('does not create duplicate users for the same normalized email', () => {
-    const runtime = createMemoryAuthRuntime();
-    runtime.login({ email: 'Same@Example.com', clientIp: '1.1.1.1' });
-    const second = runtime.login({ email: 'same@example.com', clientIp: '1.1.1.2' });
-    expect(second.created).toBe(false);
-    expect(runtime.userCount()).toBe(1);
-    expect(second.result.message).toBe(TEMP_EMAIL_AUTH_SUCCESS_MESSAGE);
-  });
-
-  it('logout invalidates the session', () => {
-    const runtime = createMemoryAuthRuntime();
-    const { rawToken } = runtime.login({ email: 'out@example.com', clientIp: '2.2.2.2' });
-    runtime.logout(rawToken);
-    expect(runtime.getSession(rawToken).signedIn).toBe(false);
-  });
-
-  it('rejects unsafe return URLs while still signing in', () => {
-    const runtime = createMemoryAuthRuntime();
-    const { result } = runtime.login({
-      email: 'safe@example.com',
-      returnUrl: 'https://evil.example',
-      clientIp: '3.3.3.3',
-    });
-    expect(result.returnUrl).toBeNull();
-    expect(result.session.signedIn).toBe(true);
-  });
-
-  it('rate limits repeated logins from the same IP', () => {
-    const runtime = createMemoryAuthRuntime();
-    process.env.TEMP_AUTH_LOGIN_IP_MAX = '2';
-    resetAuthRateLimitMemory();
-    runtime.login({ email: 'a@example.com', clientIp: '9.9.9.9' });
-    runtime.login({ email: 'b@example.com', clientIp: '9.9.9.9' });
-    expect(() => runtime.login({ email: 'c@example.com', clientIp: '9.9.9.9' })).toThrow();
-    delete process.env.TEMP_AUTH_LOGIN_IP_MAX;
-  });
-});
-
 describe('auth memory store fallback (no DATABASE_URL)', () => {
   beforeEach(() => {
     resetAuthMemoryStore();
@@ -245,14 +178,14 @@ describe('auth memory store fallback (no DATABASE_URL)', () => {
 
 describe('mutation Origin + CSRF guards', () => {
   it('rejects missing Origin', () => {
-    const request = new NextRequest('http://localhost:3002/api/auth/email-login', {
+    const request = new NextRequest('http://localhost:3002/api/auth/logout', {
       method: 'POST',
     });
     expect(assertSameOriginMutation(request)).toBe(false);
   });
 
   it('accepts matching Origin', () => {
-    const request = new NextRequest('http://localhost:3002/api/auth/email-login', {
+    const request = new NextRequest('http://localhost:3002/api/auth/logout', {
       method: 'POST',
       headers: { origin: 'http://localhost:3002' },
     });
@@ -260,7 +193,7 @@ describe('mutation Origin + CSRF guards', () => {
   });
 
   it('rejects cross-origin', () => {
-    const request = new NextRequest('http://localhost:3002/api/auth/email-login', {
+    const request = new NextRequest('http://localhost:3002/api/auth/logout', {
       method: 'POST',
       headers: { origin: 'https://evil.example' },
     });

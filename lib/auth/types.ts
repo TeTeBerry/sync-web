@@ -57,11 +57,3 @@ export type AuthIntendedAction =
   | 'view_received_requests'
   | 'manage_squad_visibility'
   | 'logout';
-
-export type EmailLoginResult = {
-  ok: true;
-  message: string;
-  session: PublicAuthSession;
-  returnUrl: string | null;
-  intendedAction: AuthIntendedAction | null;
-};

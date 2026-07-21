@@ -1,16 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import {
-  fetchAuthSession,
-  submitEmailLogin,
-  submitLogout,
-} from '../lib/auth/client';
+import { fetchAuthSession, submitLogout } from '../lib/auth/client';
 import { trackAuthEvent } from '../lib/auth/analytics';
-import type {
-  AuthIntendedAction,
-  PublicAuthSessionResponse,
-} from '../lib/auth/types';
+import type { PublicAuthSessionResponse } from '../lib/auth/types';
 
 export function useAuthSession() {
   const [session, setSession] = useState<PublicAuthSessionResponse | null>(null);
@@ -57,36 +50,6 @@ export function useAuthSession() {
     void refresh();
   }, [refresh]);
 
-  const login = useCallback(
-    async (input: {
-      email: string;
-      returnUrl?: string | null;
-      intendedAction?: AuthIntendedAction | null;
-    }) => {
-      trackAuthEvent('auth_email_submitted', {
-        intendedAction: input.intendedAction ?? 'none',
-      });
-      try {
-        const result = await submitEmailLogin(input);
-        setSession(result.session);
-        trackAuthEvent('auth_email_login_completed', {
-          intendedAction: result.intendedAction ?? 'none',
-          hasReturnUrl: Boolean(result.returnUrl),
-        });
-        return result;
-      } catch (err) {
-        trackAuthEvent('auth_email_login_failed', {
-          status:
-            typeof err === 'object' && err && 'status' in err
-              ? Number((err as { status: number }).status)
-              : 0,
-        });
-        throw err;
-      }
-    },
-    [],
-  );
-
   const logout = useCallback(async () => {
     await submitLogout();
     trackAuthEvent('auth_logout_completed');
@@ -98,7 +61,6 @@ export function useAuthSession() {
     loading,
     error,
     refresh,
-    login,
     logout,
     signedIn: session?.signedIn === true,
     user: session?.signedIn ? session.user : null,

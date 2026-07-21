@@ -24,26 +24,14 @@ Sessions and cookies are **per hostname**. Users signing in on the CN domain do 
 | `NEXT_PUBLIC_SITE_URL` | **Build + runtime** (see below) | Canonical site origin, no trailing slash. Used by metadata, sitemap, robots. |
 | `AUTH_URL` | **Runtime** | Canonical Auth.js origin. Must exactly match a Google OAuth redirect URI host. |
 
-### Strongly recommended (both)
-
-| Variable | When | Notes |
-|----------|------|--------|
-| `TEMP_EMAIL_ONLY_AUTH_ENABLED` | Runtime | Production defaults **off** unless set to `true` / `1` / `yes`. |
-| `NEXT_PUBLIC_TEMP_EMAIL_ONLY_AUTH_ENABLED` | **Build** (and runtime on server) | Same flag for client UI. Set `true` on both targets if email login should show. |
-
 ### Optional (both)
 
 | Variable | Default / behavior |
 |----------|-------------------|
 | `NEXT_PUBLIC_API_BASE_URL` | Fallback if `API_BASE_URL` unset (prefer server-only `API_BASE_URL`). |
 | `AUTH_MEMORY_FALLBACK` | `true` forces in-memory auth (dev only; not for prod). |
-| `TEMP_AUTH_LOGIN_IP_MAX` | Login rate limit per IP (default `20`). |
-| `TEMP_AUTH_LOGIN_IP_WINDOW_MS` | IP window ms (default `900000`). |
-| `TEMP_AUTH_LOGIN_EMAIL_MAX` | Per-email login max (default `10`). |
-| `TEMP_AUTH_LOGIN_EMAIL_WINDOW_MS` | Email window ms (default `900000`). |
-| `TEMP_AUTH_LOGIN_SUSPICIOUS_IP` | Suspicious IP log threshold (default `12`). |
-| `TEMP_AUTH_MAX_CONNECTION_REQUESTS_PER_DAY` | Unverified squad connection cap. |
-| `TEMP_AUTH_MAX_PRIVATE_PROFILE_VIEWS_PER_HOUR` | Unverified private profile view cap. |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth credentials for Auth.js. |
+| `INTERNAL_API_KEY` | Shared secret to mint Nest bearer tokens from Auth.js sessions. |
 
 ### Platform-injected (do not set manually)
 
@@ -69,8 +57,9 @@ API_BASE_URL=https://sync-backend-prd-….sh.run.tcloudbase.com/api
 NEXT_PUBLIC_SITE_URL=https://raven-ashen-mu.vercel.app   # or custom domain
 AUTH_URL=https://www.raventribe.tech                      # canonical Google OAuth host
 DATABASE_URL=…   # or rely on integration POSTGRES_URL
-TEMP_EMAIL_ONLY_AUTH_ENABLED=true
-NEXT_PUBLIC_TEMP_EMAIL_ONLY_AUTH_ENABLED=true
+AUTH_GOOGLE_ID=…
+AUTH_GOOGLE_SECRET=…
+INTERNAL_API_KEY=…
 ```
 
 - If `NEXT_PUBLIC_SITE_URL` is omitted in production, `getSiteUrl()` falls back to `VERCEL_PROJECT_PRODUCTION_URL`.
@@ -84,11 +73,10 @@ NEXT_PUBLIC_TEMP_EMAIL_ONLY_AUTH_ENABLED=true
 docker build \
   --build-arg NEXT_PUBLIC_SITE_URL=https://你的备案域名 \
   --build-arg NEXT_PUBLIC_API_BASE_URL=https://sync-backend-prd-….sh.run.tcloudbase.com/api \
-  --build-arg NEXT_PUBLIC_TEMP_EMAIL_ONLY_AUTH_ENABLED=true \
   -t sync-web:prd .
 ```
 
-`Dockerfile` wires these as build `ARG`/`ENV`: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_TEMP_EMAIL_ONLY_AUTH_ENABLED`. Add more `ARG`/`ENV` pairs if other public vars are needed.
+`Dockerfile` wires these as build `ARG`/`ENV`: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_API_BASE_URL`. Add more `ARG`/`ENV` pairs if other public vars are needed.
 
 **Runtime env** (云托管服务配置 / secrets):
 
@@ -96,7 +84,9 @@ docker build \
 API_BASE_URL=https://sync-backend-prd-….sh.run.tcloudbase.com/api
 NEXT_PUBLIC_SITE_URL=https://你的备案域名
 DATABASE_URL=…          # must be reachable from the CN container
-TEMP_EMAIL_ONLY_AUTH_ENABLED=true
+AUTH_GOOGLE_ID=…
+AUTH_GOOGLE_SECRET=…
+INTERNAL_API_KEY=…
 PORT=3000               # or whatever the service listens on
 ```
 
@@ -112,8 +102,8 @@ Critical differences vs Vercel:
 
 | Kind | Examples | Rule |
 |------|----------|------|
-| `NEXT_PUBLIC_*` | `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_TEMP_EMAIL_ONLY_AUTH_ENABLED` | Baked at **build**. Different CN vs Vercel values ⇒ separate builds (Vercel project env vs Docker `--build-arg`). |
-| Server-only | `API_BASE_URL`, `DATABASE_URL`, `TEMP_EMAIL_ONLY_AUTH_ENABLED` | Safe to change at **runtime** without rebuild (CloudBase service env / Vercel env + redeploy). |
+| `NEXT_PUBLIC_*` | `NEXT_PUBLIC_SITE_URL` | Baked at **build**. Different CN vs Vercel values ⇒ separate builds (Vercel project env vs Docker `--build-arg`). |
+| Server-only | `API_BASE_URL`, `DATABASE_URL`, `AUTH_*`, `INTERNAL_API_KEY` | Safe to change at **runtime** without rebuild (CloudBase service env / Vercel env + redeploy). |
 
 ---
 
@@ -125,14 +115,12 @@ API_BASE_URL=http://127.0.0.1:3000/api npm run dev
 
 - Dev server: `http://localhost:3002`
 - Without DB URL: auth uses in-memory store (sessions reset on restart)
-- Email auth defaults **on** when unset in non-production
-
-See also [TEMP_EMAIL_AUTH.md](./TEMP_EMAIL_AUTH.md).
+- Sign-in is Auth.js + Google (temp email login removed)
 
 ---
 
 ## Smoke after deploy (each hostname)
 
 1. Home / events list load (SSR → `API_BASE_URL`)
-3. Email login + session cookie
-4. Plan / lineup / squad flows that hit `app/api/*` and backend
+2. Google sign-in + session cookie
+3. Plan / lineup / squad flows that hit `app/api/*` and backend
