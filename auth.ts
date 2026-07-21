@@ -26,7 +26,8 @@ if (!process.env.AUTH_URL && configuredAuthUrl) {
 
 const hasMongo = Boolean(process.env.MONGODB_URI?.trim());
 const hasGoogle = Boolean(process.env.AUTH_GOOGLE_ID?.trim() && process.env.AUTH_GOOGLE_SECRET?.trim());
-const hasDevMockLogin = process.env.NODE_ENV !== 'production' && process.env.AUTH_DEV_MOCK_LOGIN !== 'false';
+const hasDevMockLogin =
+  process.env.NODE_ENV !== 'production' && process.env.AUTH_DEV_MOCK_LOGIN === 'true';
 
 const providers: Provider[] = [];
 

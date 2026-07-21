@@ -4,7 +4,6 @@ import { ensureAuthCsrf } from "./auth/client";
 
 const PRODUCTION_API_BASE =
   "https://sync-backend-prd-269371-9-1442514260.sh.run.tcloudbase.com/api";
-const DEVELOPMENT_API_BASE = "http://127.0.0.1:3000/api";
 
 function isLoopbackApiUrl(value: string): boolean {
   try {
@@ -28,10 +27,8 @@ function resolveApiBase(): string {
     return publicConfigured.replace(/\/$/, "");
   }
 
-  if (process.env.NODE_ENV !== "production") {
-    return DEVELOPMENT_API_BASE;
-  }
-
+  // Default to CloudBase. Point API_BASE_URL at a local Nest stack when needed:
+  // API_BASE_URL=http://127.0.0.1:3000/api
   return PRODUCTION_API_BASE;
 }
 
