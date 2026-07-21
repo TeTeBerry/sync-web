@@ -12,17 +12,24 @@ import { unwrapApiEnvelope } from '../api';
 
 type Envelope<T> = { data?: T; message?: string; code?: number };
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+type RequestOptions = RequestInit & {
+  /** Force the BFF to mint a fresh Nest bearer (post-login recovery). */
+  forceRemint?: boolean;
+};
+
+async function request<T>(path: string, init?: RequestOptions): Promise<T> {
   const method = (init?.method ?? 'GET').toUpperCase();
+  const { forceRemint, ...rest } = init ?? {};
   const headers: Record<string, string> = {
     'content-type': 'application/json',
-    ...(init?.headers as Record<string, string> | undefined),
+    ...(rest.headers as Record<string, string> | undefined),
   };
+  if (forceRemint) headers['x-raven-force-remint'] = '1';
   if (method !== 'GET' && method !== 'HEAD') {
     headers['x-csrf-token'] = await ensureAuthCsrf();
   }
   const response = await fetch(`/api/festival-squad${path}`, {
-    ...init,
+    ...rest,
     method,
     cache: 'no-store',
     credentials: 'same-origin',
@@ -36,11 +43,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         : `Festival Squad request failed (${response.status}).`;
     throw Object.assign(new Error(message), { status: response.status });
   }
-  if (raw == null) {
-    throw Object.assign(new Error('Festival Squad returned an empty response.'), {
-      status: response.status,
-    });
-  }
+  // JSON `null` is a valid Nest "no Squad profile" payload after BFF unwrap.
+  if (raw === null) return null as T;
   return unwrapApiEnvelope(raw);
 }
 
@@ -60,12 +64,24 @@ function profile(raw: ApiProfile): FestivalSquadProfile {
   };
 }
 
+function isApiProfile(value: unknown): value is ApiProfile {
+  return Boolean(
+    value
+      && typeof value === 'object'
+      && typeof (value as ApiProfile).id === 'string'
+      && (value as ApiProfile).id.trim().length > 0
+      && Number.isFinite(Number((value as ApiProfile).eventId)),
+  );
+}
+
 export async function getSquadProfile(
   eventId: number,
+  options?: { forceRemint?: boolean },
 ): Promise<FestivalSquadProfile | null> {
-  const result = await request<ApiProfile | null>(`/events/${eventId}/profile/me`);
-  if (!result || typeof result !== 'object') return null;
-  if (typeof result.id !== 'string' || !result.id.trim()) return null;
+  const result = await request<ApiProfile | null>(`/events/${eventId}/profile/me`, {
+    forceRemint: options?.forceRemint,
+  });
+  if (!isApiProfile(result)) return null;
   return profile(result);
 }
 
@@ -128,21 +144,24 @@ export async function getSquadMatches(eventId: number): Promise<SquadMatch[]> {
         }
       >
     | { matches?: unknown }
+    | null
   >(`/events/${eventId}/matches`);
 
   const list = Array.isArray(payload)
     ? payload
-    : Array.isArray((payload as { matches?: unknown }).matches)
+    : payload && typeof payload === 'object' && Array.isArray((payload as { matches?: unknown }).matches)
       ? ((payload as { matches: Array<Omit<SquadMatch, 'profile'> & { profile: ApiProfile }> }).matches)
       : [];
 
-  return list.map((match) => ({
-    ...match,
-    profile: profile(match.profile),
-    sharedGenres: match.sharedGenres ?? [],
-    sharedArtists: match.sharedArtists ?? [],
-    reasons: Array.isArray(match.reasons) ? match.reasons : [],
-  }));
+  return list
+    .filter((match) => isApiProfile(match?.profile))
+    .map((match) => ({
+      ...match,
+      profile: profile(match.profile),
+      sharedGenres: match.sharedGenres ?? [],
+      sharedArtists: match.sharedArtists ?? [],
+      reasons: Array.isArray(match.reasons) ? match.reasons : [],
+    }));
 }
 
 export async function getSquadStats(eventId: number): Promise<FestivalSquadStats> {
@@ -168,7 +187,7 @@ export async function getConnectionRequests(): Promise<{
   const payload = await request<{
     sent?: SquadConnectionRequest[];
     received?: SquadConnectionRequest[];
-  }>('/connection-request');
+  } | null>('/connection-request');
   return {
     sent: Array.isArray(payload?.sent) ? payload.sent : [],
     received: Array.isArray(payload?.received) ? payload.received : [],

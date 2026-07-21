@@ -90,6 +90,8 @@ export function FestivalSquadExperience({
   const [loginOpen, setLoginOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<AuthIntendedAction | null>(null);
   const [resumeComposeMatchId, setResumeComposeMatchId] = useState<string | null>(null);
+  const [loadNonce, setLoadNonce] = useState(0);
+  const forceRemintRef = useRef(true);
   const developmentTravelers = useMemo(
     () =>
       process.env.NODE_ENV === 'development'
@@ -97,6 +99,14 @@ export function FestivalSquadExperience({
         : [],
     [eventId, festivalDateRange],
   );
+
+  // After Auth.js finishes resolving, the first signed-in Squad fetch should
+  // mint a fresh Nest bearer — production was stuck on stale post-login cookies.
+  useEffect(() => {
+    if (!auth.loading && auth.signedIn) {
+      forceRemintRef.current = true;
+    }
+  }, [auth.loading, auth.signedIn]);
 
   useEffect(() => {
     if (auth.loading) {
@@ -110,13 +120,31 @@ export function FestivalSquadExperience({
     setError(false);
     setProfile(null);
     setMatches([]);
+    const shouldRemint = forceRemintRef.current;
 
     void (async () => {
       try {
         if (auth.signedIn) {
-          const current = await getSquadProfile(eventId);
-          if (!active) return;
-          setProfile(current);
+          try {
+            const current = await getSquadProfile(eventId, { forceRemint: shouldRemint });
+            if (!active) return;
+            setProfile(current);
+          } catch (err) {
+            const status = err && typeof err === 'object' && 'status' in err
+              ? Number((err as { status?: unknown }).status)
+              : 0;
+            // Post-login Nest bearer races: remint once without touching Auth.js
+            // loading state (refresh() would remount this effect mid-flight).
+            if (status === 401 || status === 403) {
+              const current = await getSquadProfile(eventId, { forceRemint: true });
+              if (!active) return;
+              setProfile(current);
+            } else {
+              throw err;
+            }
+          } finally {
+            forceRemintRef.current = false;
+          }
         }
         const preferences = readPlannerPreferences(eventId);
         const lineupArtists = readLineupArtistNames(eventId, artistNameById);
@@ -158,6 +186,7 @@ export function FestivalSquadExperience({
     artistNameById,
     auth.loading,
     auth.signedIn,
+    loadNonce,
   ]);
 
   useEffect(() => {
@@ -170,6 +199,11 @@ export function FestivalSquadExperience({
     if (initialView === 'create' && !profile) openProfileForm('create');
     if (initialView === 'edit' && profile) openProfileForm('edit');
   }, [auth.signedIn, error, initialView, profile, profileResolved, ready]);
+
+  function retryLoad() {
+    forceRemintRef.current = true;
+    setLoadNonce((value) => value + 1);
+  }
 
   useEffect(() => {
     if (!profile || profile.matchingPaused || profile.visibility.hideProfile) {
@@ -345,7 +379,7 @@ export function FestivalSquadExperience({
         lead={copy.empty.errorLead}
         tone="error"
         actions={
-          <button type="button" className="button" onClick={() => window.location.reload()}>
+          <button type="button" className="button" onClick={retryLoad}>
             {copy.empty.errorCta}
           </button>
         }

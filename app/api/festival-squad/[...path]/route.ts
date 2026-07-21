@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApiBase } from '../../../../lib/api';
+import { getApiBase, unwrapApiEnvelope } from '../../../../lib/api';
 import {
   isSecureRequest,
   rejectUnsafeMutation,
@@ -39,6 +39,11 @@ async function mintToken(identity: SessionIdentity) {
   });
 }
 
+function wantsForceRemint(request: NextRequest): boolean {
+  const header = request.headers.get('x-raven-force-remint')?.trim();
+  return header === '1' || header === 'true';
+}
+
 async function proxy(
   request: NextRequest,
   context: { params: Promise<{ path: string[] }> },
@@ -53,9 +58,10 @@ async function proxy(
     return NextResponse.json({ message: 'Sign in required.' }, { status: 401 });
   }
 
-  // Reuse a Nest bearer only when it was minted for this Auth.js user. A bare
-  // cookie after Google re-login could belong to a previous account.
-  const existingToken = readBoundBackendToken(request, identity.id);
+  const forceRemint = wantsForceRemint(request);
+  const existingToken = forceRemint
+    ? undefined
+    : readBoundBackendToken(request, identity.id);
   const initialToken = existingToken
     ? { token: existingToken }
     : await mintToken(identity);
@@ -85,8 +91,7 @@ async function proxy(
     cache: 'no-store',
   });
 
-  // Remint once on auth failure (stale tv / deploy), whether or not we started
-  // from a cookie — covers racing Nest tokenVersion cache after account linking.
+  // Remint once on auth failure (stale tv / deploy / unbound legacy cookie).
   if (upstream.status === 401 || upstream.status === 403) {
     const refreshed = await mintToken(identity);
     if ('error' in refreshed) return refreshed.error;
@@ -103,12 +108,15 @@ async function proxy(
     });
   }
 
-  const response = new NextResponse(upstream.body, {
+  const payload = await upstream.json().catch(() => null);
+  // Nest wraps success as `{ code, message, data }`. Keep the browser contract
+  // unwrapped so `data: null` (no Squad profile yet) stays a real JSON null.
+  const responseBody =
+    payload == null ? null : unwrapApiEnvelope(payload);
+
+  const response = NextResponse.json(responseBody, {
     status: upstream.status,
-    headers: {
-      'content-type': upstream.headers.get('content-type') ?? 'application/json',
-      'cache-control': 'no-store',
-    },
+    headers: { 'cache-control': 'no-store' },
   });
   if (minted) {
     setRavenBackendTokenCookie(response, token, isSecureRequest(request), identity.id);
