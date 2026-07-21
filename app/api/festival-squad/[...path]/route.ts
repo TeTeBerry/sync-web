@@ -7,6 +7,7 @@ import {
 import {
   mintNestTokenForAuthUser,
   RAVEN_BACKEND_TOKEN_COOKIE,
+  readBoundBackendToken,
   setRavenBackendTokenCookie,
 } from '../../../../lib/auth/raven-backend-token';
 import { auth } from '../../../../auth';
@@ -52,16 +53,13 @@ async function proxy(
     return NextResponse.json({ message: 'Sign in required.' }, { status: 401 });
   }
 
-  const existingToken = request.cookies.get(RAVEN_BACKEND_TOKEN_COOKIE)?.value;
+  // Reuse a Nest bearer only when it was minted for this Auth.js user. A bare
+  // cookie after Google re-login could belong to a previous account.
+  const existingToken = readBoundBackendToken(request, identity.id);
   const initialToken = existingToken
     ? { token: existingToken }
     : await mintToken(identity);
-  if ('error' in initialToken) {
-    return NextResponse.json(
-      { message: 'Sign in required. Please sign in again.' },
-      { status: 401 },
-    );
-  }
+  if ('error' in initialToken) return initialToken.error;
 
   const { path } = await context.params;
   const url = `${getApiBase()}/festival-squad/${path.map(encodeURIComponent).join('/')}${new URL(request.url).search}`;
@@ -87,16 +85,11 @@ async function proxy(
     cache: 'no-store',
   });
 
-  // Auth.js session can outlive a Nest bearer cookie (deploy / re-login).
-  // Remint once from the trusted session instead of failing Squad permanently.
-  if (existingToken && (upstream.status === 401 || upstream.status === 403)) {
+  // Remint once on auth failure (stale tv / deploy), whether or not we started
+  // from a cookie — covers racing Nest tokenVersion cache after account linking.
+  if (upstream.status === 401 || upstream.status === 403) {
     const refreshed = await mintToken(identity);
-    if ('error' in refreshed) {
-      return NextResponse.json(
-        { message: 'Sign in required. Please sign in again.' },
-        { status: 401 },
-      );
-    }
+    if ('error' in refreshed) return refreshed.error;
     token = refreshed.token;
     minted = true;
     upstream = await fetch(url, {
@@ -118,7 +111,7 @@ async function proxy(
     },
   });
   if (minted) {
-    setRavenBackendTokenCookie(response, token, isSecureRequest(request));
+    setRavenBackendTokenCookie(response, token, isSecureRequest(request), identity.id);
   }
   return response;
 }

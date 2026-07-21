@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '../../../../auth';
-import { getApiBase } from '../../../../lib/api';
+import { getApiBase, unwrapApiEnvelope } from '../../../../lib/api';
 import { isSecureRequest, jsonError } from '../../../../lib/auth/http';
 import {
   mintNestTokenForAuthUser,
-  RAVEN_BACKEND_TOKEN_COOKIE,
+  readBoundBackendToken,
   setRavenBackendTokenCookie,
 } from '../../../../lib/auth/raven-backend-token';
 
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   if (!identity) {
     return jsonError(401, 'Sign in required.', 'unauthorized');
   }
-  const existingToken = request.cookies.get(RAVEN_BACKEND_TOKEN_COOKIE)?.value;
+  const existingToken = readBoundBackendToken(request, identity.id);
   const initialToken = existingToken ? { token: existingToken } : await mintToken(identity);
   if ('error' in initialToken) return initialToken.error;
 
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     // A backend deployment or a new login can invalidate the short-lived
     // Nest bearer cookie while the Auth.js session is still valid. Exchange
     // the trusted session once, instead of leaving Profile permanently empty.
-    if (existingToken && (upstream.status === 401 || upstream.status === 403)) {
+    if (upstream.status === 401 || upstream.status === 403) {
       const refreshed = await mintToken(identity);
       if ('error' in refreshed) return refreshed.error;
       token = refreshed.token;
@@ -66,15 +66,15 @@ export async function GET(request: NextRequest) {
   } catch {
     return jsonError(503, 'Your Raven collection is temporarily unavailable.', 'unavailable');
   }
-  const response = new NextResponse(upstream.body, {
+
+  const payload = await upstream.json().catch(() => null);
+  const body = payload == null ? null : unwrapApiEnvelope(payload);
+  const response = NextResponse.json(body, {
     status: upstream.status,
-    headers: {
-      'content-type': upstream.headers.get('content-type') ?? 'application/json',
-      'cache-control': 'no-store',
-    },
+    headers: { 'cache-control': 'no-store' },
   });
   if (minted) {
-    setRavenBackendTokenCookie(response, token, isSecureRequest(request));
+    setRavenBackendTokenCookie(response, token, isSecureRequest(request), identity.id);
   }
   return response;
 }

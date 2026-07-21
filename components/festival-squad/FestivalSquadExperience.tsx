@@ -99,10 +99,18 @@ export function FestivalSquadExperience({
   );
 
   useEffect(() => {
+    if (auth.loading) {
+      setReady(false);
+      return;
+    }
+
     let active = true;
     setReady(false);
     setProfileResolved(false);
+    setError(false);
     setProfile(null);
+    setMatches([]);
+
     void (async () => {
       try {
         if (auth.signedIn) {
@@ -137,7 +145,9 @@ export function FestivalSquadExperience({
         setReady(true);
       }
     })();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [
     eventId,
     locale,
@@ -146,11 +156,12 @@ export function FestivalSquadExperience({
     festivalDateLabel,
     artistNames,
     artistNameById,
+    auth.loading,
     auth.signedIn,
   ]);
 
   useEffect(() => {
-    if (!ready || !profileResolved || !initialView) return;
+    if (!ready || !profileResolved || error || !initialView) return;
     if (initialView === 'connections') {
       if (profile) requestAnimationFrame(scrollToPath);
       return;
@@ -158,15 +169,18 @@ export function FestivalSquadExperience({
     if (!auth.signedIn) return;
     if (initialView === 'create' && !profile) openProfileForm('create');
     if (initialView === 'edit' && profile) openProfileForm('edit');
-  }, [auth.signedIn, initialView, profile, profileResolved, ready]);
+  }, [auth.signedIn, error, initialView, profile, profileResolved, ready]);
 
   useEffect(() => {
     if (!profile || profile.matchingPaused || profile.visibility.hideProfile) {
       setMatches([]);
       return;
     }
+
+    let active = true;
     void getSquadMatches(eventId)
-      .then((next) =>
+      .then((next) => {
+        if (!active) return;
         setMatches(
           next.map((match) => ({
             ...match,
@@ -175,9 +189,17 @@ export function FestivalSquadExperience({
               genres: match.sharedGenres.length,
             }),
           })),
-        ),
-      )
-      .catch(() => setError(true));
+        );
+      })
+      .catch(() => {
+        // Matches are additive — keep the profile experience usable when ranking fails.
+        if (!active) return;
+        setMatches([]);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [
     eventId,
     profile?.id,

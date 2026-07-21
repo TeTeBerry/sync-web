@@ -16,6 +16,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
     redirect(`${localizedPath(locale, '/auth/sign-in')}?intent=profile&callbackUrl=${encodeURIComponent(profilePath)}`);
   }
 
-  const activities = await listActivities();
+  const activities = await listActivities({ includeExpired: true });
   return <AccountSettings locale={locale} activities={activities} view="profile" />;
 }

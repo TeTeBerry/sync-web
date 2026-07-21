@@ -6,7 +6,7 @@ import {
   rejectUnsafeMutation,
   withAuthCookies,
 } from '../../../../lib/auth/http';
-import { RAVEN_BACKEND_TOKEN_COOKIE } from '../../../../lib/auth/raven-backend-token';
+import { clearRavenBackendTokenCookies } from '../../../../lib/auth/raven-backend-token';
 import { RAVEN_SESSION_COOKIE } from '../../../../lib/auth/sessions';
 
 export const runtime = 'nodejs';
@@ -25,12 +25,6 @@ export async function POST(request: NextRequest) {
     clearSession: true,
     secure,
   });
-  loggedOut.cookies.set(RAVEN_BACKEND_TOKEN_COOKIE, '', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure,
-    path: '/',
-    maxAge: 0,
-  });
+  clearRavenBackendTokenCookies(loggedOut, secure);
   return loggedOut;
 }

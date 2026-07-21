@@ -44,7 +44,8 @@ type ApiEnvelope<T> = {
   data?: T;
 };
 
-function unwrap<T>(payload: T | ApiEnvelope<T>): T {
+/** Nest `TransformInterceptor` wraps successful bodies as `{ code, message, data }`. */
+export function unwrapApiEnvelope<T>(payload: T | ApiEnvelope<T>): T {
   if (
     payload &&
     typeof payload === "object" &&
@@ -54,6 +55,10 @@ function unwrap<T>(payload: T | ApiEnvelope<T>): T {
     return (payload as ApiEnvelope<T>).data as T;
   }
   return payload as T;
+}
+
+function unwrap<T>(payload: T | ApiEnvelope<T>): T {
+  return unwrapApiEnvelope(payload);
 }
 
 function normalizeBaseUrl(value: string): string {
@@ -217,17 +222,25 @@ export type ActivitiesFetchResult = {
   status: ActivitiesFetchStatus;
 };
 
-async function fetchActivitiesPayload(): Promise<Activity[]> {
+async function fetchActivitiesPayload(options?: {
+  includeExpired?: boolean;
+}): Promise<Activity[]> {
   const payload = await apiGet<Activity[] | ActivityListPage>("/activities");
   const items = Array.isArray(payload) ? payload : (payload.items ?? []);
   return items
     .map(normalizeActivity)
-    .filter((item) => item.legacyId > 0 && !isActivityExpired(item));
+    .filter((item) => {
+      if (item.legacyId <= 0) return false;
+      if (options?.includeExpired) return true;
+      return !isActivityExpired(item);
+    });
 }
 
-export async function fetchActivities(): Promise<ActivitiesFetchResult> {
+export async function fetchActivities(options?: {
+  includeExpired?: boolean;
+}): Promise<ActivitiesFetchResult> {
   try {
-    const activities = await fetchActivitiesPayload();
+    const activities = await fetchActivitiesPayload(options);
     return {
       activities,
       status: activities.length ? "ok" : "empty",
@@ -237,8 +250,10 @@ export async function fetchActivities(): Promise<ActivitiesFetchResult> {
   }
 }
 
-export async function listActivities(): Promise<Activity[]> {
-  const result = await fetchActivities();
+export async function listActivities(options?: {
+  includeExpired?: boolean;
+}): Promise<Activity[]> {
+  const result = await fetchActivities(options);
   return result.activities;
 }
 

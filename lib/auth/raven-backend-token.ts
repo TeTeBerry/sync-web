@@ -1,23 +1,52 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getApiBase } from '../api';
 import { jsonError } from './http';
 
 export const RAVEN_BACKEND_TOKEN_COOKIE = 'raven_backend_token';
+/** Auth.js user id that the Nest bearer was minted for — prevents cross-account reuse. */
+export const RAVEN_BACKEND_TOKEN_AUTH_USER_COOKIE = 'raven_backend_token_uid';
 
 const BACKEND_TOKEN_MAX_AGE_SEC = 60 * 60 * 24 * 30;
+
+function tokenCookieOptions(secure: boolean, maxAge: number) {
+  return {
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    secure,
+    path: '/',
+    maxAge,
+  };
+}
 
 export function setRavenBackendTokenCookie(
   response: NextResponse,
   token: string,
   secure: boolean,
+  authUserId: string,
 ): void {
-  response.cookies.set(RAVEN_BACKEND_TOKEN_COOKIE, token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure,
-    path: '/',
-    maxAge: BACKEND_TOKEN_MAX_AGE_SEC,
-  });
+  const options = tokenCookieOptions(secure, BACKEND_TOKEN_MAX_AGE_SEC);
+  response.cookies.set(RAVEN_BACKEND_TOKEN_COOKIE, token, options);
+  response.cookies.set(RAVEN_BACKEND_TOKEN_AUTH_USER_COOKIE, authUserId, options);
+}
+
+export function clearRavenBackendTokenCookies(
+  response: NextResponse,
+  secure: boolean,
+): void {
+  const options = tokenCookieOptions(secure, 0);
+  response.cookies.set(RAVEN_BACKEND_TOKEN_COOKIE, '', options);
+  response.cookies.set(RAVEN_BACKEND_TOKEN_AUTH_USER_COOKIE, '', options);
+}
+
+/** Return the Nest bearer only when it was minted for this Auth.js user. */
+export function readBoundBackendToken(
+  request: NextRequest,
+  authUserId: string,
+): string | undefined {
+  const token = request.cookies.get(RAVEN_BACKEND_TOKEN_COOKIE)?.value?.trim();
+  const boundUserId = request.cookies.get(RAVEN_BACKEND_TOKEN_AUTH_USER_COOKIE)?.value?.trim();
+  if (!token || !boundUserId || boundUserId !== authUserId) return undefined;
+  return token;
 }
 
 /** Exchange a verified Auth.js session for Nest's server-only bearer token. */

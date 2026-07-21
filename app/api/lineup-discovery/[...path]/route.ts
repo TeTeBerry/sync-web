@@ -4,7 +4,7 @@ import { getApiBase } from '../../../../lib/api';
 import { isSecureRequest, rejectUnsafeMutation } from '../../../../lib/auth/http';
 import {
   mintNestTokenForAuthUser,
-  RAVEN_BACKEND_TOKEN_COOKIE,
+  readBoundBackendToken,
   setRavenBackendTokenCookie,
 } from '../../../../lib/auth/raven-backend-token';
 
@@ -16,12 +16,12 @@ export const runtime = 'nodejs';
  */
 async function resolveOptionalToken(
   request: NextRequest,
-): Promise<{ token?: string; minted?: string }> {
+): Promise<{ token?: string; minted?: string; authUserId?: string }> {
   const session = await auth();
   if (!session?.user?.id || !session.user.email) return {};
 
-  const existing = request.cookies.get(RAVEN_BACKEND_TOKEN_COOKIE)?.value;
-  if (existing) return { token: existing };
+  const existing = readBoundBackendToken(request, session.user.id);
+  if (existing) return { token: existing, authUserId: session.user.id };
 
   const nest = await mintNestTokenForAuthUser({
     id: session.user.id,
@@ -30,7 +30,7 @@ async function resolveOptionalToken(
     image: session.user.image,
   });
   if ('error' in nest) return {};
-  return { token: nest.token, minted: nest.token };
+  return { token: nest.token, minted: nest.token, authUserId: session.user.id };
 }
 
 async function proxy(
@@ -69,8 +69,8 @@ async function proxy(
       'cache-control': 'no-store',
     },
   });
-  if (authState.minted) {
-    setRavenBackendTokenCookie(response, authState.minted, isSecureRequest(request));
+  if (authState.minted && authState.authUserId) {
+    setRavenBackendTokenCookie(response, authState.minted, isSecureRequest(request), authState.authUserId);
   }
   return response;
 }

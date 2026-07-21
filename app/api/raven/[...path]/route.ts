@@ -8,7 +8,7 @@ import {
 } from '../../../../lib/raven-proxy-identity';
 import { auth } from '../../../../auth';
 import { isSecureRequest, rejectUnsafeMutation } from '../../../../lib/auth/http';
-import { mintNestTokenForAuthUser, RAVEN_BACKEND_TOKEN_COOKIE, setRavenBackendTokenCookie } from '../../../../lib/auth/raven-backend-token';
+import { mintNestTokenForAuthUser, readBoundBackendToken, setRavenBackendTokenCookie } from '../../../../lib/auth/raven-backend-token';
 
 type RavenProxyContext = {
   params: Promise<{ path: string[] }>;
@@ -44,7 +44,9 @@ async function proxyRavenRequest(request: NextRequest, context: RavenProxyContex
   const { key: rateKey, isNew } = resolveRavenRateKey(request);
 
   const session = await auth();
-  const existingToken = request.cookies.get(RAVEN_BACKEND_TOKEN_COOKIE)?.value;
+  const existingToken = session?.user?.id
+    ? readBoundBackendToken(request, session.user.id)
+    : undefined;
   const minted = !existingToken && session?.user?.id && session.user.email
     ? await mintNestTokenForAuthUser({ id: session.user.id, email: session.user.email, name: session.user.name, image: session.user.image })
     : null;
@@ -79,8 +81,8 @@ async function proxyRavenRequest(request: NextRequest, context: RavenProxyContex
       maxAge: 60 * 60 * 24 * 365,
     });
   }
-  if (minted && 'token' in minted) {
-    setRavenBackendTokenCookie(outbound, minted.token, isSecureRequest(request));
+  if (minted && 'token' in minted && session?.user?.id) {
+    setRavenBackendTokenCookie(outbound, minted.token, isSecureRequest(request), session.user.id);
   }
 
   return outbound;

@@ -84,8 +84,32 @@ export function AccountSettings({ locale, activities = [], view = 'settings' }: 
   const [overviewError, setOverviewError] = useState(false);
   const [savedTimetableEventIds, setSavedTimetableEventIds] = useState<number[]>([]);
   const [savedTimetableSelections, setSavedTimetableSelections] = useState<Record<number, string[]>>({});
+  const [localFavoriteIds, setLocalFavoriteIds] = useState<number[]>([]);
   const router = useRouter();
   const { loading: authLoading, signedIn } = useAuthSession();
+
+  useEffect(() => {
+    if (view !== 'profile') return;
+    try {
+      const raw = window.localStorage.getItem('sync_bookmarks');
+      if (!raw) {
+        setLocalFavoriteIds([]);
+        return;
+      }
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) {
+        setLocalFavoriteIds([]);
+        return;
+      }
+      setLocalFavoriteIds(
+        parsed
+          .map((id) => Number(id))
+          .filter((id) => Number.isFinite(id) && id > 0),
+      );
+    } catch {
+      setLocalFavoriteIds([]);
+    }
+  }, [view]);
 
   useEffect(() => {
     if (view !== 'profile' || authLoading || !signedIn) return;
@@ -94,11 +118,25 @@ export function AccountSettings({ locale, activities = [], view = 'settings' }: 
     void fetch('/api/me/overview', { credentials: 'same-origin', cache: 'no-store' })
       .then(async (response) => {
         if (!response.ok) throw new Error('Unable to load profile overview');
-        return (await response.json()) as RavenOverview;
+        const payload = await response.json() as RavenOverview | { data?: RavenOverview };
+        // Defend against a Nest `{ data }` envelope if a proxy forgets to unwrap.
+        if (payload && typeof payload === 'object' && 'data' in payload && payload.data && typeof payload.data === 'object') {
+          return payload.data;
+        }
+        return payload as RavenOverview;
       })
       .then((data) => {
         if (!active) return;
         setOverview(data);
+        const serverIds = (data.profile?.favoriteFestivalIds ?? [])
+          .map((id) => Number(id))
+          .filter((id) => Number.isFinite(id) && id > 0);
+        setLocalFavoriteIds(serverIds);
+        try {
+          window.localStorage.setItem('sync_bookmarks', JSON.stringify(serverIds));
+        } catch {
+          // localStorage unavailable
+        }
       })
       .catch(() => {
         if (!active) return;
@@ -178,7 +216,13 @@ export function AccountSettings({ locale, activities = [], view = 'settings' }: 
     () => new Map(localizeActivities(activities, locale).map((activity) => [activity.legacyId, activity])),
     [activities, locale],
   );
-  const favoriteIds = new Set((overview?.profile?.favoriteFestivalIds ?? []).map((id) => Number(id)));
+  const serverFavoriteIds = (overview?.profile?.favoriteFestivalIds ?? [])
+    .map((id) => Number(id))
+    .filter((id) => Number.isFinite(id) && id > 0);
+  // Prefer the signed-in server list. Local bookmarks are only a fallback when
+  // overview failed, so a shared browser cannot leak another account's saves
+  // into a successful profile response.
+  const favoriteIds = new Set(overview ? serverFavoriteIds : overviewError ? localFavoriteIds : []);
   const journeyByEvent = new Map<number, SavedJourney[]>();
   for (const journey of overview?.journeys ?? []) {
     const journeys = journeyByEvent.get(journey.activityLegacyId) ?? [];
@@ -267,8 +311,10 @@ export function AccountSettings({ locale, activities = [], view = 'settings' }: 
   } : {
     story: 'YOUR FESTIVAL STORY', loading: 'Gathering the moments you kept close…', signInTitle: 'Keep the next one close.', signInLead: 'Sign in when you want a festival, a plan or the people going with you to travel across devices.', exploreFestivals: 'Explore festivals', errorTitle: 'Your saved world is taking a breath.', errorLead: 'We couldn’t load it just now. Nothing has been lost.', retry: 'Try again', emptyTitle: 'Find the weekend that pulls you forward.', emptyLead: 'Save a schedule when a lineup catches your ear. Your plan and Squad will always stay with that place.', browseFestivals: 'Browse festivals', upcomingJourney: 'Your journey is already taking shape. Pick up the thread whenever you are ready.', pastJourney: 'This one is yours to revisit whenever the music calls you back.', squadJourney: 'The festival is calling. Your people are already part of the story.', scheduleJourney: 'Your schedule is waiting here. Follow it into the night whenever you are ready.', savedJourney: 'A festival you chose to keep close—let it become a journey when the time feels right.', savedFestival: 'Saved festival', unavailableFestival: 'Festival no longer available', deleteTitle: 'Delete account', deleteLead: 'This permanently removes your profile, saved plans, schedules, favorites, and Festival Squad data. It cannot be undone.', deleteConfirm: 'Type DELETE to confirm', deleting: 'Deleting…', delete: 'Delete account', deleteError: 'Your account could not be deleted. Please try again or contact [Contact email].',
   };
-  const showProfileContent = Boolean(overview || savedTimetableEventIds.length);
-  const showOverviewError = overviewError && !savedTimetableEventIds.length;
+  const showProfileContent = Boolean(
+    overview || savedTimetableEventIds.length || (overviewError && localFavoriteIds.length),
+  );
+  const showOverviewError = overviewError && !savedTimetableEventIds.length && !localFavoriteIds.length;
 
   return (
     <main className="raven-settings raven-settings--profile">

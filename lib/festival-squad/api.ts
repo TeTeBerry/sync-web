@@ -8,8 +8,9 @@ import type {
 } from './types';
 import { DEFAULT_VISIBILITY } from './types';
 import { ensureAuthCsrf } from '../auth/client';
+import { unwrapApiEnvelope } from '../api';
 
-type Envelope<T> = { data?: T };
+type Envelope<T> = { data?: T; message?: string; code?: number };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const method = (init?.method ?? 'GET').toUpperCase();
@@ -27,19 +28,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     credentials: 'same-origin',
     headers,
   });
-  const payload = (await response.json()) as T | Envelope<T>;
-  if (!response.ok)
-    throw new Error(
-      (payload as { message?: string }).message ?? 'Festival Squad request failed.',
-    );
-  return (
-    payload &&
-    typeof payload === 'object' &&
-    'data' in payload &&
-    (payload as Envelope<T>).data !== undefined
-      ? (payload as Envelope<T>).data
-      : payload
-  ) as T;
+  const raw = (await response.json().catch(() => null)) as T | Envelope<T> | null;
+  if (!response.ok) {
+    const message =
+      raw && typeof raw === 'object' && 'message' in raw && typeof raw.message === 'string'
+        ? raw.message
+        : `Festival Squad request failed (${response.status}).`;
+    throw Object.assign(new Error(message), { status: response.status });
+  }
+  if (raw == null) {
+    throw Object.assign(new Error('Festival Squad returned an empty response.'), {
+      status: response.status,
+    });
+  }
+  return unwrapApiEnvelope(raw);
 }
 
 type ApiProfile = Omit<FestivalSquadProfile, 'visibility' | 'favoriteArtists'> & {
@@ -62,7 +64,9 @@ export async function getSquadProfile(
   eventId: number,
 ): Promise<FestivalSquadProfile | null> {
   const result = await request<ApiProfile | null>(`/events/${eventId}/profile/me`);
-  return result ? profile(result) : null;
+  if (!result || typeof result !== 'object') return null;
+  if (typeof result.id !== 'string' || !result.id.trim()) return null;
+  return profile(result);
 }
 
 export async function saveSquadProfile(
@@ -117,18 +121,27 @@ export async function deleteSquadProfile(eventId: number): Promise<void> {
 }
 
 export async function getSquadMatches(eventId: number): Promise<SquadMatch[]> {
-  const matches = await request<
-    Array<
-      Omit<SquadMatch, 'profile'> & {
-        profile: ApiProfile;
-      }
-    >
+  const payload = await request<
+    | Array<
+        Omit<SquadMatch, 'profile'> & {
+          profile: ApiProfile;
+        }
+      >
+    | { matches?: unknown }
   >(`/events/${eventId}/matches`);
-  return matches.map((match) => ({
+
+  const list = Array.isArray(payload)
+    ? payload
+    : Array.isArray((payload as { matches?: unknown }).matches)
+      ? ((payload as { matches: Array<Omit<SquadMatch, 'profile'> & { profile: ApiProfile }> }).matches)
+      : [];
+
+  return list.map((match) => ({
     ...match,
     profile: profile(match.profile),
     sharedGenres: match.sharedGenres ?? [],
     sharedArtists: match.sharedArtists ?? [],
+    reasons: Array.isArray(match.reasons) ? match.reasons : [],
   }));
 }
 
@@ -152,7 +165,14 @@ export async function getConnectionRequests(): Promise<{
   sent: SquadConnectionRequest[];
   received: SquadConnectionRequest[];
 }> {
-  return request('/connection-request');
+  const payload = await request<{
+    sent?: SquadConnectionRequest[];
+    received?: SquadConnectionRequest[];
+  }>('/connection-request');
+  return {
+    sent: Array.isArray(payload?.sent) ? payload.sent : [],
+    received: Array.isArray(payload?.received) ? payload.received : [],
+  };
 }
 
 export async function respondToConnectionRequest(

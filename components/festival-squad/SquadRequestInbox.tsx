@@ -53,7 +53,10 @@ export function SquadRequestInbox({
         });
         setError(false);
       })
-      .catch(() => setError(true));
+      .catch(() => {
+        setData({ sent: [], received: [] });
+        setError(true);
+      });
   }, [copy.matchReasons]);
 
   useEffect(() => {
