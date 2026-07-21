@@ -91,7 +91,8 @@ export function FestivalSquadExperience({
   const [pendingAction, setPendingAction] = useState<AuthIntendedAction | null>(null);
   const [resumeComposeMatchId, setResumeComposeMatchId] = useState<string | null>(null);
   const [loadNonce, setLoadNonce] = useState(0);
-  const forceRemintRef = useRef(true);
+  const forceRemintRef = useRef(false);
+  const wasSignedInRef = useRef(false);
   const developmentTravelers = useMemo(
     () =>
       process.env.NODE_ENV === 'development'
@@ -100,12 +101,13 @@ export function FestivalSquadExperience({
     [eventId, festivalDateRange],
   );
 
-  // After Auth.js finishes resolving, the first signed-in Squad fetch should
-  // mint a fresh Nest bearer — production was stuck on stale post-login cookies.
+  // Remint only on the signed-out → signed-in edge (fresh Nest bearer after Google login).
   useEffect(() => {
-    if (!auth.loading && auth.signedIn) {
+    if (auth.loading) return;
+    if (auth.signedIn && !wasSignedInRef.current) {
       forceRemintRef.current = true;
     }
+    wasSignedInRef.current = auth.signedIn;
   }, [auth.loading, auth.signedIn]);
 
   useEffect(() => {
@@ -133,10 +135,14 @@ export function FestivalSquadExperience({
             const status = err && typeof err === 'object' && 'status' in err
               ? Number((err as { status?: unknown }).status)
               : 0;
-            // Post-login Nest bearer races: remint once without touching Auth.js
-            // loading state (refresh() would remount this effect mid-flight).
+            // Auth races: remint once. Config/upstream 503: retry once without remint
+            // so a bound cookie can still serve the page.
             if (status === 401 || status === 403) {
               const current = await getSquadProfile(eventId, { forceRemint: true });
+              if (!active) return;
+              setProfile(current);
+            } else if (status === 503 && shouldRemint) {
+              const current = await getSquadProfile(eventId, { forceRemint: false });
               if (!active) return;
               setProfile(current);
             } else {

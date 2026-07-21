@@ -59,12 +59,16 @@ async function proxy(
   }
 
   const forceRemint = wantsForceRemint(request);
-  const existingToken = forceRemint
-    ? undefined
-    : readBoundBackendToken(request, identity.id);
-  const initialToken = existingToken
+  const boundCookie = readBoundBackendToken(request, identity.id);
+  let existingToken = forceRemint ? undefined : boundCookie;
+  let initialToken = existingToken
     ? { token: existingToken }
     : await mintToken(identity);
+  // Prefer a bound cookie over a hard mint failure (e.g. missing INTERNAL_API_KEY).
+  if ('error' in initialToken && boundCookie) {
+    existingToken = boundCookie;
+    initialToken = { token: boundCookie };
+  }
   if ('error' in initialToken) return initialToken.error;
 
   const { path } = await context.params;

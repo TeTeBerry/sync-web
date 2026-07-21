@@ -57,29 +57,54 @@ export async function mintNestTokenForAuthUser(input: {
   image?: string | null;
   provider?: 'google' | 'email';
 }): Promise<{ token: string } | { error: NextResponse }> {
-  const key = process.env.INTERNAL_API_KEY;
-  if (!key) return { error: jsonError(503, 'Sign-in is not configured.', 'unavailable') };
+  const key = process.env.INTERNAL_API_KEY?.trim();
+  if (!key) {
+    return {
+      error: jsonError(
+        503,
+        'Squad backend link is not configured (INTERNAL_API_KEY).',
+        'unavailable',
+      ),
+    };
+  }
   // Nest unique index (provider, providerUserId) treats a missing subject as null
   // and rejects later Google users — always send the Auth.js user id.
-  const response = await fetch(`${getApiBase()}/auth/web-session`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-internal-api-key': key },
-    body: JSON.stringify({
-      id: input.id,
-      email: input.email,
-      name: input.name,
-      image: input.image,
-      provider: input.provider ?? 'google',
-      providerUserId: input.id,
-    }),
-    cache: 'no-store',
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${getApiBase()}/auth/web-session`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-internal-api-key': key },
+      body: JSON.stringify({
+        id: input.id,
+        email: input.email,
+        name: input.name,
+        image: input.image,
+        provider: input.provider ?? 'google',
+        providerUserId: input.id,
+      }),
+      cache: 'no-store',
+    });
+  } catch {
+    return {
+      error: jsonError(503, 'Could not reach the festival backend.', 'unavailable'),
+    };
+  }
   const payload = (await response.json().catch(() => ({}))) as {
     data?: { accessToken?: string };
     accessToken?: string;
+    message?: string;
   };
   const token = payload.data?.accessToken ?? payload.accessToken;
   if (!response.ok || !token) {
+    if (response.status >= 500) {
+      return {
+        error: jsonError(
+          503,
+          payload.message?.trim() || 'Festival backend temporarily unavailable.',
+          'unavailable',
+        ),
+      };
+    }
     return { error: jsonError(401, 'Please sign in again.', 'unauthorized') };
   }
   return { token };
