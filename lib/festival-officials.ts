@@ -34,6 +34,11 @@ const FESTIVAL_OFFICIALS: Record<string, FestivalOfficialData> = {
     organizer: 'Insomniac',
     countryCode: 'TH',
   },
+  '808festival': {
+    officialUrl: 'https://808festival.net',
+    organizer: '808 Festival',
+    countryCode: 'TH',
+  },
   'world-dj-festival': {
     officialUrl: 'https://worlddjfestival-jp.com/',
     organizer: 'World DJ Festival Japan',

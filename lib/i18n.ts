@@ -3484,9 +3484,13 @@ const EN_ACTIVITY_CONTENT: Record<number, ActivityLocaleContent> = {
     infoSource: 'Creamfields official website',
   },
   11: {
-    location: 'Odaiba, Tokyo',
+    name: 'Ultra Japan 2026',
+    title: 'Ultra Japan 2026',
+    location: 'Odaiba Ultra Park, Tokyo',
     city: 'Tokyo',
     area: 'Japan',
+    description:
+      "Japan's flagship dance music festival at Odaiba — Main Stage, Resistance, and Peggy Gou's gou talk across two days.",
     infoSource: 'Ultra Japan official website',
   },
   12: {
@@ -3528,7 +3532,7 @@ const EN_ACTIVITY_CONTENT: Record<number, ActivityLocaleContent> = {
     location: 'BITEC Bangna, Bangkok, Thailand',
     city: 'Bangkok',
     area: 'Thailand',
-    description: "Thailand's flagship EDM festival returns to Bangkok for two days.",
+    description: "Thailand's flagship EDM festival returns to BITEC Bangna for three days — techno, house, bass, and Drumcode / Monstercat stage takeovers.",
     infoSource: '808 Festival official website',
   },
   18: {
