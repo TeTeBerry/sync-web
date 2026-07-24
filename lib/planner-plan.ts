@@ -85,28 +85,6 @@ function hasTimedPerformance(performance: SchedulePerformance): boolean {
   return Boolean(stage && startTime);
 }
 
-function buildSyntheticTimeline(
-  artists: string[],
-  labels: PlannerPlanLabels,
-): PlannerTimelineDay[] {
-  if (!artists.length) return [];
-
-  const stages = [labels.stageMain, labels.stageLate, labels.stageLate];
-  const sets = artists.slice(0, 3).map((artist, index) => ({
-    time: labels.timelineTimes[index] ?? labels.timelineTimes[labels.timelineTimes.length - 1] ?? '',
-    artist,
-    stage: stages[index] ?? labels.stageMain,
-    highlight: true,
-  }));
-
-  return [
-    {
-      label: labels.timelineDay.replace('{day}', '1'),
-      sets,
-    },
-  ];
-}
-
 function buildArtistTimeline(
   performances: SchedulePerformance[],
   favoriteArtists: string[],
@@ -116,6 +94,7 @@ function buildArtistTimeline(
 ): PlannerTimelineDay[] {
   const priorityArtists = favoriteArtists.length ? favoriteArtists : fallbackArtists;
   const prioritySet = new Set(priorityArtists.map(normalizeArtistName));
+  // Only official timed slots — never invent HH:mm for lineup-only festivals.
   const timedPerformances = performances.filter(hasTimedPerformance);
 
   let selected = timedPerformances.filter((performance) =>
@@ -129,7 +108,7 @@ function buildArtistTimeline(
   }
 
   if (!selected.length) {
-    return buildSyntheticTimeline(priorityArtists, labels);
+    return [];
   }
 
   const byDay = new Map<string, SchedulePerformance[]>();

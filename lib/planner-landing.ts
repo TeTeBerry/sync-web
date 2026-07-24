@@ -242,7 +242,11 @@ function buildTravelSteps(
   const firstDaySets = demoPlan.artistTimeline.days[0]?.sets ?? [];
   const setSummary = firstDaySets
     .slice(0, 2)
-    .map((set) => `${set.time} ${set.artist}`)
+    .map((set) => {
+      const time = set.time?.trim();
+      return time ? `${time} ${set.artist}` : set.artist;
+    })
+    .filter(Boolean)
     .join(locale === 'zh' ? '、' : ', ');
   const settle = travelData.stay.items.bestAreas[0] ?? city;
 
@@ -263,7 +267,7 @@ function buildTravelSteps(
       {
         label: '入场',
         title: `走进 ${title}`,
-        detail: setSummary || demoPlan.experiences[0] || '主舞台黄金时段',
+        detail: setSummary || demoPlan.experiences[0] || '先按官宣阵容走进现场',
         feeling: '这才是你来这一趟的理由。',
       },
       {
@@ -297,7 +301,7 @@ function buildTravelSteps(
     {
       label: 'Enter',
       title: `Step into ${title}`,
-      detail: setSummary || demoPlan.experiences[0] || 'Peak-time main stage sets',
+      detail: setSummary || demoPlan.experiences[0] || 'Follow the announced lineup into the night',
       feeling: 'This is why you came.',
     },
     {
