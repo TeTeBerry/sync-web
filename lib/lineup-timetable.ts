@@ -32,16 +32,50 @@ export type LineupTimetableDay = {
   stages: LineupTimetableStage[];
 };
 
-function hasTimedStageSlot(performance: SchedulePerformance): boolean {
+/** True only when both stage and HH:mm are present (official set times). */
+export function isOfficialTimedPerformance(
+  performance: SchedulePerformance,
+): boolean {
   const stage = performance.stageLabel?.trim() || performance.stage?.trim();
   const startTime = performance.startTime?.trim();
   return Boolean(stage && startTime);
 }
 
-export function hasLineupTimetable(schedule?: ActivitySchedule | null): boolean {
+/** Official HH:mm timetable only — lineup-only festivals must not look timed. */
+export function hasOfficialTimedSlots(
+  schedule?: ActivitySchedule | null,
+): boolean {
   if (!schedule?.schedulePublished) return false;
-  const performances = schedule.performances ?? [];
-  return performances.some(hasTimedStageSlot);
+  return (schedule.performances ?? []).some(isOfficialTimedPerformance);
+}
+
+/**
+ * Drop unpublished / invented clock times so SSR and clients never render
+ * HH:mm for lineup-only festivals (808, Ultra Japan, etc.).
+ */
+export function normalizeActivitySchedule(
+  schedule: ActivitySchedule,
+): ActivitySchedule {
+  if (hasOfficialTimedSlots(schedule)) {
+    return {
+      ...schedule,
+      schedulePublished: true,
+      performances: (schedule.performances ?? []).filter(
+        isOfficialTimedPerformance,
+      ),
+    };
+  }
+
+  return {
+    ...schedule,
+    schedulePublished: false,
+    // Artists stay on `djs`; performances stay empty until set times are official.
+    performances: [],
+  };
+}
+
+export function hasLineupTimetable(schedule?: ActivitySchedule | null): boolean {
+  return hasOfficialTimedSlots(schedule);
 }
 
 function toSlot(
@@ -95,7 +129,9 @@ export function buildLineupTimetable(
   schedule: ActivitySchedule,
   locale: Locale,
 ): LineupTimetableDay[] {
-  const performances = (schedule.performances ?? []).filter(hasTimedStageSlot);
+  const performances = (schedule.performances ?? []).filter(
+    isOfficialTimedPerformance,
+  );
   if (!performances.length) return [];
 
   const byDateKey = new Map<string, SchedulePerformance[]>();

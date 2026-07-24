@@ -90,111 +90,22 @@ export const messages = {
       worldsEyebrow: '另一个世界',
       worldsExplore: '探索更多旅程',
       dashboard: {
-        badge: '旅程已成形',
         festival: 'Tomorrowland Thailand',
         meta: '12/12–14 · 3 人同行',
-        status: '安心出发',
-      cta: '开始你的旅程',
-        tabs: [
-          { id: 'trip' as const, label: '行程' },
-          { id: 'budget' as const, label: '预算' },
-          { id: 'timeline' as const, label: '必看 Set' },
-          { id: 'packing' as const, label: '行李' },
-          { id: 'calendar' as const, label: '日历' },
-        ],
+        cta: '开始你的旅程',
         trip: {
           flight: {
             label: '抵达',
             route: '曼谷 → 普吉 · 12/11',
-            detail: 'AirAsia · 07:40 出发',
           },
           hotel: {
             label: '住近现场',
             name: 'Rhythm Park 附近',
-            detail: '2 晚 · 含接驳',
           },
-          shuttle: {
-            label: '回程',
-            route: '酒店 ↔ 电音节场地',
-            detail: '每日 16:00 / 02:30',
-          },
-          days: [
-            { label: 'Day 1', summary: '主舞台黄金时段 · 场地接驳 · 夜场收尾' },
-            {
-              label: 'Day 2',
-              summary: 'Deep House 分区 · 朋友会合 · 凌晨返程',
-            },
-            { label: 'Day 3', summary: '轻松离场 · 曼谷返程 · 缓冲日' },
-          ],
         },
         budget: {
           total: '¥4,200',
           perPerson: '旅程预估',
-          items: [
-            { label: '电音节门票', amount: '¥1,800', share: 43 },
-            { label: '机票', amount: '¥980', share: 23 },
-            { label: '酒店', amount: '¥860', share: 20 },
-            { label: '接驳与本地交通', amount: '¥320', share: 8 },
-            { label: '餐饮与其他', amount: '¥240', share: 6 },
-          ],
-        },
-        timeline: {
-          days: [
-            {
-              label: '12/12 · Day 1',
-              sets: [
-                {
-                  time: '18:30',
-                  artist: 'Charlotte de Witte',
-                  stage: 'Main Stage',
-                  highlight: true,
-                },
-                { time: '21:00', artist: 'Amelie Lens', stage: 'Main Stage' },
-                {
-                  time: '23:30',
-                  artist: 'I Hate Models',
-                  stage: 'Freedom Stage',
-                },
-              ],
-            },
-            {
-              label: '12/13 · Day 2',
-              sets: [
-                {
-                  time: '19:00',
-                  artist: 'FISHER',
-                  stage: 'Main Stage',
-                  highlight: true,
-                },
-                { time: '22:00', artist: 'Dixon', stage: 'Deep House Garden' },
-                { time: '01:00', artist: 'Mochakk', stage: 'Freedom Stage' },
-              ],
-            },
-          ],
-        },
-        packing: {
-          progress: '8 / 12',
-          progressLabel: '行李已备好',
-          groups: [
-            {
-              name: '必备',
-              items: ['护照 / 身份证件', '电子票 QR 码', '防水手机袋', '充电宝'],
-            },
-            {
-              name: '现场',
-              items: ['舒适运动鞋', '轻薄雨衣', '耳塞', '现金与交通卡'],
-            },
-          ],
-        },
-        calendar: {
-          synced: '已同步到行程日历',
-          events: [
-            { date: '12/11', title: '飞往普吉', kind: '交通' },
-            { date: '12/12', title: '电音节 Day 1', kind: '电音节' },
-            { date: '12/13', title: '电音节 Day 2', kind: '电音节' },
-            { date: '12/14', title: '电音节 Day 3 · 返程', kind: '电音节' },
-            { date: '12/15', title: '曼谷缓冲日', kind: '休整' },
-          ],
         },
       },
       popularEyebrow: '热门电音节',
@@ -1124,17 +1035,7 @@ export const messages = {
           festival: '电音节花费',
           extras: '餐饮与其他',
         },
-        strategy: {
-          artists: '提前 30 分钟占位主舞台，重点艺人连场不缺席',
-          discover: '白天探索副舞台，晚上回归主舞台高光',
-          party: '从预热 Stage 开始，凌晨转战地下舞台',
-          default: '按日程优先级排列，留 15 分钟转场缓冲',
-        },
-        conflict: '{artist1} 与 {artist2} 时间重叠 — 建议优先主舞台',
         stageMain: '主舞台黄金时段',
-        stageLate: '深夜 Techno 旅程',
-        timelineDay: '第 {day} 天',
-        timelineTimes: ['18:30', '21:00', '23:30'],
       },
     },
     eventCard: {
@@ -1579,6 +1480,35 @@ export const messages = {
         },
       ],
     },
+    cookies: {
+      seoTitle: 'Cookie 政策 | Raven',
+      title: 'Cookie 政策',
+      updated: '最后更新：2026 年 7 月',
+      intro:
+        'Raven 使用少量必要 Cookie，让网站保持安全、记住你的登录状态，并保护请求不被滥用。',
+      sections: [
+        {
+          title: '什么是 Cookie',
+          body: 'Cookie 是网站保存在浏览器中的小型文本文件。它们让网站能在页面和访问之间识别必要的状态。',
+        },
+        {
+          title: 'Raven 使用的必要 Cookie',
+          body: 'Raven 会使用 raven_sid 维持登录会话、raven_csrf 验证请求来源并防止伪造请求，以及 raven_rl 保护 Raven API 免受滥用。登录由 Auth.js 处理，因此还会使用 Auth.js 的会话、CSRF、回跳地址及 Google OAuth 验证 Cookie（名称可能以 authjs. 或 __Secure-authjs. 开头）。已登录使用 Festival Squad 时，raven_backend_token 与 raven_backend_token_uid 会把后端会话安全地绑定到你的账户。',
+        },
+        {
+          title: '保存期限与安全',
+          body: '登录会话与后端会话 Cookie 最多保存 30 天；限流 Cookie 最多保存一年。CSRF、回跳地址与 OAuth 验证 Cookie 会在完成验证或较短期限后失效。Cookie 的安全属性会因用途不同而不同：敏感会话 Cookie 限服务器读取；需要由浏览器提交的 CSRF Cookie 可由脚本读取。Raven 的自有 Cookie 使用 SameSite=Lax，且在生产环境中仅通过 HTTPS 传输。',
+        },
+        {
+          title: '你的选择',
+          body: '这些 Cookie 是 Raven 正常、安全运行所必需的。你可以在浏览器中清除或阻止 Cookie，但登录、保存的旅程、Festival Squad 或其他受保护功能可能无法正常使用。Raven 不在此政策覆盖的范围内使用广告或跨站追踪 Cookie。',
+        },
+        {
+          title: '联系我们',
+          body: '如有 Cookie 或隐私相关问题，请通过 Raven 提供的联系渠道联系我们。',
+        },
+      ],
+    },
   },
   en: {
     htmlLang: 'en',
@@ -1628,130 +1558,22 @@ export const messages = {
       worldsEyebrow: 'Another world',
       worldsExplore: 'Explore more journeys',
       dashboard: {
-        badge: 'Journey Shaped',
         festival: 'Tomorrowland Thailand',
         meta: 'Dec 12–14 · Squad of 3',
-        status: 'Calm plan',
         cta: 'Start planning yours',
-        tabs: [
-          { id: 'trip' as const, label: 'Journey route' },
-          { id: 'budget' as const, label: 'Budget' },
-          { id: 'timeline' as const, label: 'Must-see sets' },
-          { id: 'packing' as const, label: 'Packing' },
-          { id: 'calendar' as const, label: 'Calendar' },
-        ],
         trip: {
           flight: {
             label: 'Arrival',
             route: 'BKK → HKT · Dec 11',
-            detail: 'AirAsia · departs 07:40',
           },
           hotel: {
             label: 'Stay close',
             name: 'Near Rhythm Park',
-            detail: '2 nights · shuttle included',
           },
-          shuttle: {
-            label: 'Way home',
-            route: 'Hotel ↔ festival site',
-            detail: 'Daily 16:00 / 02:30',
-          },
-          days: [
-            {
-              label: 'Day 1',
-              summary: 'Main stage prime time · venue shuttle · late sets',
-            },
-            {
-              label: 'Day 2',
-              summary: 'Deep house stages · crew meetup · after-hours',
-            },
-            {
-              label: 'Day 3',
-              summary: 'Easy exit · return to Bangkok · buffer day',
-            },
-          ],
         },
         budget: {
           total: '$580',
           perPerson: 'Journey estimate',
-          items: [
-            { label: 'Festival ticket', amount: '$240', share: 41 },
-            { label: 'Flights', amount: '$140', share: 24 },
-            { label: 'Hotel', amount: '$120', share: 21 },
-            { label: 'Shuttle & local transit', amount: '$45', share: 8 },
-            { label: 'Food & misc', amount: '$35', share: 6 },
-          ],
-        },
-        timeline: {
-          days: [
-            {
-              label: 'Dec 12 · Day 1',
-              sets: [
-                {
-                  time: '6:30 PM',
-                  artist: 'Charlotte de Witte',
-                  stage: 'Main Stage',
-                  highlight: true,
-                },
-                { time: '9:00 PM', artist: 'Amelie Lens', stage: 'Main Stage' },
-                {
-                  time: '11:30 PM',
-                  artist: 'I Hate Models',
-                  stage: 'Freedom Stage',
-                },
-              ],
-            },
-            {
-              label: 'Dec 13 · Day 2',
-              sets: [
-                {
-                  time: '7:00 PM',
-                  artist: 'FISHER',
-                  stage: 'Main Stage',
-                  highlight: true,
-                },
-                {
-                  time: '10:00 PM',
-                  artist: 'Dixon',
-                  stage: 'Deep House Garden',
-                },
-                { time: '1:00 AM', artist: 'Mochakk', stage: 'Freedom Stage' },
-              ],
-            },
-          ],
-        },
-        packing: {
-          progress: '8 / 12',
-          progressLabel: 'items packed',
-          groups: [
-            {
-              name: 'Essentials',
-              items: ['Passport / ID', 'Ticket QR codes', 'Waterproof phone pouch', 'Power bank'],
-            },
-            {
-              name: 'Festival',
-              items: [
-                'Comfortable sneakers',
-                'Light rain shell',
-                'Earplugs',
-                'Cash & transit card',
-              ],
-            },
-          ],
-        },
-        calendar: {
-          synced: 'Synced to trip calendar',
-          events: [
-            { date: 'Dec 11', title: 'Fly to Phuket', kind: 'Travel' },
-            { date: 'Dec 12', title: 'Festival Day 1', kind: 'Festival' },
-            { date: 'Dec 13', title: 'Festival Day 2', kind: 'Festival' },
-            {
-              date: 'Dec 14',
-              title: 'Festival Day 3 · return',
-              kind: 'Festival',
-            },
-            { date: 'Dec 15', title: 'Bangkok buffer day', kind: 'Rest' },
-          ],
         },
       },
       popularEyebrow: 'Popular festivals',
@@ -2750,17 +2572,7 @@ export const messages = {
           festival: 'Festival expenses',
           extras: 'Food & extras',
         },
-        strategy: {
-          artists: "Arrive 30 min early for main stage — don't miss back-to-back favorites",
-          discover: 'Explore side stages by day, return for main stage highlights',
-          party: 'Start at warm-up stages, shift to underground after midnight',
-          default: 'Priority-ordered schedule with 15-min transfer buffers',
-        },
-        conflict: '{artist1} overlaps with {artist2} — prioritize main stage',
         stageMain: 'Main stage golden hour',
-        stageLate: 'Late-night techno journey',
-        timelineDay: 'Day {day}',
-        timelineTimes: ['6:30 PM', '9:00 PM', '11:30 PM'],
       },
     },
     eventCard: {
@@ -3212,6 +3024,35 @@ export const messages = {
         {
           title: 'Contact',
           body: 'For privacy questions, contact Raven through the available contact channel.',
+        },
+      ],
+    },
+    cookies: {
+      seoTitle: 'Cookie Policy | Raven',
+      title: 'Cookie Policy',
+      updated: 'Last updated: July 2026',
+      intro:
+        'Raven uses a small number of essential cookies to keep the site secure, remember your sign-in, and protect requests from misuse.',
+      sections: [
+        {
+          title: 'What cookies are',
+          body: 'Cookies are small text files a website stores in your browser. They allow the site to recognise necessary state between pages and visits.',
+        },
+        {
+          title: 'Essential cookies Raven uses',
+          body: 'Raven uses raven_sid to maintain a signed-in session, raven_csrf to verify request origin and help prevent forged requests, and raven_rl to protect the Raven API from misuse. Sign-in is handled by Auth.js, which also uses session, CSRF, callback-url and Google OAuth-verification cookies (their names may begin with authjs. or __Secure-authjs.). When you use Festival Squad while signed in, raven_backend_token and raven_backend_token_uid securely bind the backend session to your account.',
+        },
+        {
+          title: 'Duration and security',
+          body: 'Sign-in and backend-session cookies last up to 30 days; the rate-limit cookie lasts up to one year. CSRF, callback-url and OAuth-verification cookies expire after the verification flow or a shorter period. Security attributes vary by purpose: sensitive session cookies are server-readable only, while the CSRF cookie must be readable by scripts that submit protected requests. Raven-owned cookies use SameSite=Lax and, in production, are sent only over HTTPS.',
+        },
+        {
+          title: 'Your choices',
+          body: 'These cookies are necessary for Raven to work safely. You can clear or block cookies in your browser, but sign-in, saved journeys, Festival Squad, and other protected features may no longer work properly. Raven does not use advertising or cross-site tracking cookies covered by this policy.',
+        },
+        {
+          title: 'Contact',
+          body: 'For questions about cookies or privacy, contact Raven through the available contact channel.',
         },
       ],
     },

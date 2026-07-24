@@ -67,6 +67,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
             <Link href={`${localizedPath(locale)}#discovery-promise`}>{t.nav.howItWorks}</Link>
             <Link href={localizedPath(locale, '/events')}>{t.nav.festivals}</Link>
             <Link href={localizedPath(locale, '/privacy')}>{t.privacy.title}</Link>
+            <Link href={localizedPath(locale, '/cookies')}>{t.cookies.title}</Link>
           </nav>
         </div>
       </footer>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApiBase } from '../../../../../../lib/api';
+import { getApiBase, type ActivitySchedule } from '../../../../../../lib/api';
+import { normalizeActivitySchedule } from '../../../../../../lib/lineup-timetable';
 
 export const runtime = 'nodejs';
 
@@ -22,10 +23,14 @@ export async function GET(
     const body = payload && typeof payload === 'object' && 'data' in payload && payload.data !== undefined
       ? payload.data
       : payload;
+    const schedule =
+      body && typeof body === 'object'
+        ? normalizeActivitySchedule(body as ActivitySchedule)
+        : body;
     // Keep the browser-facing shape stable for ProfileTimetable. The backend
     // returns the schedule object directly (and some deployments wrap it in
     // `data`), while the profile loader consumes `{ schedule }`.
-    return NextResponse.json({ schedule: body }, {
+    return NextResponse.json({ schedule }, {
       status: upstream.status,
       headers: { 'cache-control': 'no-store' },
     });

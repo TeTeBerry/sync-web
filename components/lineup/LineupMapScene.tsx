@@ -160,9 +160,11 @@ function FlowStopRow({
       aria-pressed={selected}
       onClick={() => toggle(selectionId)}
     >
-      <time className="lineup-flow__time" dateTime={stop.startTime}>
-        {stop.timeLabel}
-      </time>
+      {stop.timeLabel ? (
+        <time className="lineup-flow__time" dateTime={stop.startTime}>
+          {stop.timeLabel}
+        </time>
+      ) : null}
       <span className="lineup-flow__artist">{stop.artistName}</span>
       <span className="lineup-flow__place">
         {[

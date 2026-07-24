@@ -3,6 +3,7 @@ import type { ScheduleDj, SchedulePerformance } from './api';
 import { buildEventAiSummary } from './event-ai-summary';
 import type { Locale } from './i18n';
 import { localizeSessionLabel, localizeStageLabel } from './lineup-display';
+import { isOfficialTimedPerformance } from './lineup-timetable';
 import { formatDisplayMoney } from './raven-currency';
 
 export type TravelStyle = 'budget' | 'smart' | 'premium';
@@ -59,9 +60,6 @@ type PlannerPlanLabels = {
     extras: string;
   };
   stageMain: string;
-  stageLate: string;
-  timelineDay: string;
-  timelineTimes: readonly string[];
 };
 
 /** Local fallback budget bands are authored in CNY; EN converts to USD. */
@@ -79,12 +77,6 @@ function normalizeArtistName(name: string): string {
   return name.trim().toLowerCase();
 }
 
-function hasTimedPerformance(performance: SchedulePerformance): boolean {
-  const stage = performance.stageLabel?.trim() || performance.stage?.trim();
-  const startTime = performance.startTime?.trim();
-  return Boolean(stage && startTime);
-}
-
 function buildArtistTimeline(
   performances: SchedulePerformance[],
   favoriteArtists: string[],
@@ -95,7 +87,7 @@ function buildArtistTimeline(
   const priorityArtists = favoriteArtists.length ? favoriteArtists : fallbackArtists;
   const prioritySet = new Set(priorityArtists.map(normalizeArtistName));
   // Only official timed slots — never invent HH:mm for lineup-only festivals.
-  const timedPerformances = performances.filter(hasTimedPerformance);
+  const timedPerformances = performances.filter(isOfficialTimedPerformance);
 
   let selected = timedPerformances.filter((performance) =>
     prioritySet.has(normalizeArtistName(performance.artistName)),

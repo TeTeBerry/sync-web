@@ -1,6 +1,7 @@
 import type { Activity, ActivityListPage } from "./types";
 import { isActivityExpired } from "./activity-date";
 import { ensureAuthCsrf } from "./auth/client";
+import { normalizeActivitySchedule } from "./lineup-timetable";
 
 const PRODUCTION_API_BASE =
   "https://sync-backend-prd-269371-9-1442514260.sh.run.tcloudbase.com/api";
@@ -361,11 +362,27 @@ export async function fetchActivitySchedule(
     const params = new URLSearchParams();
     if (options?.weekend) params.set("weekend", options.weekend);
     const query = params.size ? `?${params.toString()}` : "";
-    const schedule = await apiGet<ActivitySchedule>(
-      `/activities/${legacyId}/itinerary/schedule${query}`,
+    // Never use the shared apiGet Data Cache (revalidate: 120) here — a stale
+    // timed schedule would keep inventing HH:mm after lineup-only seed updates.
+    const response = await fetch(
+      `${normalizeBaseUrl(API_BASE)}/activities/${legacyId}/itinerary/schedule${query}`,
+      {
+        cache: "no-store",
+        signal: AbortSignal.timeout(API_FETCH_TIMEOUT_MS),
+      },
     );
-    const djs = schedule?.djs ?? [];
-    const performances = schedule?.performances ?? [];
+    if (!response.ok) {
+      throw new Error(`Raven API schedule failed: ${response.status}`);
+    }
+    const schedule = normalizeActivitySchedule(
+      unwrap<ActivitySchedule>(
+        (await response.json()) as
+          | ActivitySchedule
+          | ApiEnvelope<ActivitySchedule>,
+      ),
+    );
+    const djs = schedule.djs ?? [];
+    const performances = schedule.performances ?? [];
     const hasContent = djs.length > 0 || performances.length > 0;
     return {
       schedule,

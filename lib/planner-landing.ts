@@ -4,6 +4,7 @@ import { buildEventAiSummary } from './event-ai-summary';
 import { buildEventTravelData, type EventTravelData, type TravelFaqItem } from './event-travel';
 import { getMessages, type Locale } from './i18n';
 import { buildFeaturedArtists } from './lineup-preview';
+import { isOfficialTimedPerformance } from './lineup-timetable';
 import { buildPlannerPlan, type PlannerPlan } from './planner-plan';
 import { formatDisplayMoneyRange } from './raven-currency';
 import type { Activity } from './types';
@@ -162,7 +163,11 @@ export function buildPlannerLineupIntel(
   );
 
   const timedSets = performances
-    .filter((performance) => performance.startTime?.trim() && performance.artistName?.trim())
+    .filter(
+      (performance) =>
+        isOfficialTimedPerformance(performance) &&
+        performance.artistName?.trim(),
+    )
     .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0))
     .slice(0, 4)
     .map((performance) => {
